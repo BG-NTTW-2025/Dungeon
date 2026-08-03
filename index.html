@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dungeon Prototype - Datagestuurd</title>
+    <style>
+        body {
+            background-color: #8B0000;
+            color: #fff;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #game-container {
+            position: relative;
+            width: 1200px;
+            height: 600px;
+            border: 4px solid #333;
+            background-color: #5B5B00;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="1200" height="550"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // 1. AFBEELDINGEN LADEN
+        const assets = {
+            room: new Image(),
+            door: new Image(),
+            doorway: new Image(),
+            hero: new Image(),
+            kompass: new Image(),
+            thumbsUp: new Image(),
+            thumbsDown: new Image()
+        };
+
+        assets.room.src = "EmptyRoom.png";
+        assets.door.src = "Door.png";
+        assets.doorway.src = "DoorWay.png";
+        assets.hero.src = "Hero.png";
+        assets.kompass.src = "Kompass.png";
+        assets.thumbsUp.src = "ThumbsUp.png";
+        assets.thumbsDown.src = "ThumbsDown.png";
+
+        // 2. JavaScript KAMER DATA-STRUCTUUR (De "Identiteitskaart" per kamer)
+        // Index volgorde voor muren: [0 = Top, 1 = Right, 2 = Bottom, 3 = Left]
+        const rooms = {
+            0: {
+                roomNo: 0,
+                totRooms: 1,
+                kompassRotation: 0, // Graden of rotatie voor het kompas
+                doorWayStat: [0, 0, 1, 0], // 1 = Open deurgat, 0 = Dichte deur
+                likes: [2, 1, 0, 3],       // Like scores per muur
+                dislikes: [0, 0, 0, 0],    // Dislike scores per muur
+                puzzleSolved: [true, false, false, false], // Of de puzzel is opgelost
+                targetRooms: {
+                    top: 1,    // Als je door de top gaat, kom je in kamer 1
+                    right: null,
+                    bottom: null,
+                    left: null
+                }
+            }
+        };
+
+        let currentRoomId = 0; // We starten in kamer 0
+
+        // Zodra alle assets geladen zijn, tekenen we de actieve kamer
+        let loadedImages = 0;
+        const totalImages = Object.keys(assets).length;
+
+        for (let key in assets) {
+            assets[key].onload = () => {
+                loadedImages++;
+                if (loadedImages === totalImages) {
+                    drawRoom(currentRoomId);
+                }
+            };
+        }
+
+        // 3. GENERIEKE TEKEN-FUNCTIE VOOR ELKE KAMER
+        function drawRoom(roomId) {
+            const room = rooms[roomId];
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // A. Achtergrond (EmptyRoom.png)
+            ctx.drawImage(assets.room, 450, 200, 300, 300);
+
+            // B. Loop door alle 4 de muren (0=Top, 1=Right, 2=Bottom, 3=Left)
+            for (let side = 0; side < 4; side++) {
+                drawWall(side, room.doorWayStat[side], room.likes[side], room.dislikes[side], room.puzzleSolved[side]);
+            }
+
+            // C. Held plaatsen tegen de zuidmuur (kijkend naar het noorden)
+            ctx.drawImage(assets.hero, 577, 430, 52, 50);
+
+            // D. Kompas in de buurt van de kamer
+            ctx.drawImage(assets.kompass, 480, 235, 55, 55);
+
+            // E. Kamer informatie HUD (Onderaan bij de kamer)
+            ctx.font = "bold 18px monospace";
+            ctx.fillStyle = "#ffcc00";
+            ctx.textAlign = "left";
+            ctx.fillText("Room: " + room.roomNo, 455, 515);
+
+            ctx.textAlign = "left";
+            ctx.fillText("Tot: " + room.totRooms, 620, 515);
+        }
+
+        // 4. HULPFUNCTIE OM PER MUUR DE JUISTE ELEMENTEN TE TEKENEN
+function drawWall(side, type, likes, dislikes, solved) {
+            ctx.save();
+
+            if (side === 0) { // TOP MUUR
+                if (type === 1) {
+                    ctx.drawImage(assets.doorway, 575, 194, 50, 50);
+                } else {
+                    ctx.drawImage(assets.door, 575, 194, 50, 50);
+                }
+                ctx.restore(); // Herstel direct voor de UI, zodat deze niet meedraait
+                // Teken UI rechtop voor Top muur
+                if (type !== 1) {
+                    ctx.drawImage(assets.thumbsUp, 590, 170, 20, 20);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "14px monospace";
+                    ctx.textAlign = "left";
+                    ctx.fillText(likes, 615, 185);
+                }
+            } 
+            else if (side === 1) { // RIGHT MUUR (Rechts)
+                // 1. Teken eerst de deur met rotatie
+                ctx.translate(732, 375);
+                ctx.rotate(Math.PI / 2);
+                if (type === 1) {
+                    ctx.drawImage(assets.doorway, -50, -25, 50, 50);
+                } else {
+                    ctx.drawImage(assets.door, -50, -25, 50, 50);
+                }
+                ctx.restore(); // Sluit rotatie hier af!
+
+                // 2. Teken de duim en score RECHTOP op vaste schermcoördinaten rechts van de deur
+                if (type !== 1) {
+                    ctx.drawImage(assets.thumbsUp, 750, 340, 20, 20);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "14px monospace";
+                    ctx.textAlign = "left";
+                    ctx.fillText(likes, 775, 355);
+                }
+            } 
+            else if (side === 2) { // BOTTOM MUUR (Onder)
+                ctx.translate(575, 532);
+                ctx.rotate(Math.PI);
+                if (type === 1) {
+                    ctx.drawImage(assets.doorway, -50, 25, 50, 50);
+                } else {
+                    ctx.drawImage(assets.door, -50, 25, 50, 50);
+                }
+                ctx.restore();
+
+                if (type !== 1) {
+                    ctx.drawImage(assets.thumbsDown, 550, 510, 20, 20);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "14px monospace";
+                    ctx.textAlign = "left";
+                    ctx.fillText(likes, 575, 525);
+                }
+            } 
+            else if (side === 3) { // LEFT MUUR (Links)
+                ctx.translate(468, 325);
+                ctx.rotate(-Math.PI / 2);
+                if (type === 1) {
+                    ctx.drawImage(assets.doorway, -50, -25, 50, 50);
+                } else {
+                    ctx.drawImage(assets.door, -50, -25, 50, 50);
+                }
+                ctx.restore();
+
+                if (type !== 1) {
+                    ctx.drawImage(assets.thumbsUp, 430, 340, 20, 20);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "14px monospace";
+                    ctx.textAlign = "left";
+                    ctx.fillText(likes, 415, 355);
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
