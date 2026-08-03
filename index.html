@@ -17,7 +17,7 @@
         }
         #game-container {
             position: relative;
-            width: 1200px;
+            width: 600px;
             height: 600px;
             border: 4px solid #333;
             background-color: #5B5B00;
@@ -32,7 +32,7 @@
 <body>
 
     <div id="game-container">
-        <canvas id="gameCanvas" width="1200" height="550"></canvas>
+        <canvas id="gameCanvas" width="600" height="550"></canvas>
     </div>
 
     <script>
@@ -100,7 +100,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // A. Achtergrond (EmptyRoom.png)
-            ctx.drawImage(assets.room, 450, 200, 300, 300);
+            ctx.drawImage(assets.room, 150, 200, 300, 300);
 
             // B. Loop door alle 4 de muren (0=Top, 1=Right, 2=Bottom, 3=Left)
             for (let side = 0; side < 4; side++) {
@@ -108,19 +108,19 @@
             }
 
             // C. Held plaatsen tegen de zuidmuur (kijkend naar het noorden)
-            ctx.drawImage(assets.hero, 577, 430, 52, 50);
+            ctx.drawImage(assets.hero, 277, 430, 52, 50);
 
             // D. Kompas in de buurt van de kamer
-            ctx.drawImage(assets.kompass, 480, 235, 55, 55);
+            ctx.drawImage(assets.kompass, 180, 235, 55, 55);
 
             // E. Kamer informatie HUD (Onderaan bij de kamer)
             ctx.font = "bold 18px monospace";
             ctx.fillStyle = "#ffcc00";
             ctx.textAlign = "left";
-            ctx.fillText("Room: " + room.roomNo, 455, 515);
+            ctx.fillText("Room: " + room.roomNo, 155, 515);
 
             ctx.textAlign = "left";
-            ctx.fillText("Tot: " + room.totRooms, 620, 515);
+            ctx.fillText("Tot: " + room.totRooms, 320, 515);
         }
 
         // 4. HULPFUNCTIE OM PER MUUR DE JUISTE ELEMENTEN TE TEKENEN
@@ -129,23 +129,23 @@ function drawWall(side, type, likes, dislikes, solved) {
 
             if (side === 0) { // TOP MUUR
                 if (type === 1) {
-                    ctx.drawImage(assets.doorway, 575, 194, 50, 50);
+                    ctx.drawImage(assets.doorway, 275, 194, 50, 50);
                 } else {
-                    ctx.drawImage(assets.door, 575, 194, 50, 50);
+                    ctx.drawImage(assets.door, 275, 194, 50, 50);
                 }
                 ctx.restore(); // Herstel direct voor de UI, zodat deze niet meedraait
                 // Teken UI rechtop voor Top muur
                 if (type !== 1) {
-                    ctx.drawImage(assets.thumbsUp, 590, 170, 20, 20);
+                    ctx.drawImage(assets.thumbsUp, 290, 170, 20, 20);
                     ctx.fillStyle = "#fff";
                     ctx.font = "14px monospace";
                     ctx.textAlign = "left";
-                    ctx.fillText(likes, 615, 185);
+                    ctx.fillText(likes, 315, 185);
                 }
             } 
             else if (side === 1) { // RIGHT MUUR (Rechts)
                 // 1. Teken eerst de deur met rotatie
-                ctx.translate(732, 375);
+                ctx.translate(432, 375);
                 ctx.rotate(Math.PI / 2);
                 if (type === 1) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
@@ -156,15 +156,15 @@ function drawWall(side, type, likes, dislikes, solved) {
 
                 // 2. Teken de duim en score RECHTOP op vaste schermcoördinaten rechts van de deur
                 if (type !== 1) {
-                    ctx.drawImage(assets.thumbsUp, 750, 340, 20, 20);
+                    ctx.drawImage(assets.thumbsUp, 450, 340, 20, 20);
                     ctx.fillStyle = "#fff";
                     ctx.font = "14px monospace";
                     ctx.textAlign = "left";
-                    ctx.fillText(likes, 775, 355);
+                    ctx.fillText(likes, 475, 355);
                 }
             } 
             else if (side === 2) { // BOTTOM MUUR (Onder)
-                ctx.translate(575, 532);
+                ctx.translate(275, 532);
                 ctx.rotate(Math.PI);
                 if (type === 1) {
                     ctx.drawImage(assets.doorway, -50, 25, 50, 50);
@@ -174,15 +174,15 @@ function drawWall(side, type, likes, dislikes, solved) {
                 ctx.restore();
 
                 if (type !== 1) {
-                    ctx.drawImage(assets.thumbsDown, 550, 510, 20, 20);
+                    ctx.drawImage(assets.thumbsDown, 250, 510, 20, 20);
                     ctx.fillStyle = "#fff";
                     ctx.font = "14px monospace";
                     ctx.textAlign = "left";
-                    ctx.fillText(likes, 575, 525);
+                    ctx.fillText(likes, 275, 525);
                 }
             } 
             else if (side === 3) { // LEFT MUUR (Links)
-                ctx.translate(468, 325);
+                ctx.translate(168, 325);
                 ctx.rotate(-Math.PI / 2);
                 if (type === 1) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
@@ -192,11 +192,11 @@ function drawWall(side, type, likes, dislikes, solved) {
                 ctx.restore();
 
                 if (type !== 1) {
-                    ctx.drawImage(assets.thumbsUp, 430, 340, 20, 20);
+                    ctx.drawImage(assets.thumbsUp, 130, 340, 20, 20);
                     ctx.fillStyle = "#fff";
                     ctx.font = "14px monospace";
                     ctx.textAlign = "left";
-                    ctx.fillText(likes, 415, 355);
+                    ctx.fillText(likes, 115, 355);
                 }
             }
         }
