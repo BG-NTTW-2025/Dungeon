@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Dungeon Prototype - 3 Muur-statussen</title>
+    <title>Dungeon Editor - Vaste Kamer & Draaiende Speler</title>
     <style>
         body {
             background-color: #8B0000;
@@ -26,6 +26,8 @@
             display: block;
             width: 100%;
             height: 100%;
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
         }
     </style>
 </head>
@@ -58,30 +60,41 @@
         assets.thumbsUp.src = "ThumbsUp.png";
         assets.thumbsDown.src = "ThumbsDown.png";
 
-        // 2. KAMER DATA-STRUCTUUR
-        // doorWayStat waarden: 
-        // 0 = Blinde muur (geen deur/geen opening)
-        // 1 = Dichte deur (met puzzel/scores)
-        // 2 = Open deurgat (vrije doorgang)
-        const rooms = {
+        // 2. STANDAARD KAMERS
+        const defaultDungeon = {
             0: {
-                roomNo: 0,
-                totRooms: 1,
-                kompassRotation: 0,
-                doorWayStat: [2, 1, 0, 1], // Top = open deurgat (2), Rechts = dichte deur (1), Onder = blinde muur (0), Links = open deurgat (2)
-                likes: [0, 1, 0, 3],       
-                dislikes: [0, 0, 0, 0],    
-                puzzleSolved: [true, false, false, false],
-                targetRooms: {
-                    top: 1,
-                    right: null,
-                    bottom: null,
-                    left: null
-                }
+                roomNo: 0, totRooms: 4,
+                doorWayStat: [2, 2, 0, 2], // Top, Right, Left open
+                likes: [0, 0, 0, 0], puzzleSolved: [true, true, false, true],
+                targetRooms: { top: 1, right: 2, bottom: null, left: 3 }
+            },
+            1: {
+                roomNo: 1, totRooms: 4,
+                doorWayStat: [1, 0, 2, 0], // Top open, Bottom open (terug naar 0)
+                likes: [0, 0, 0, 0], puzzleSolved: [false, false, true, false],
+                targetRooms: { top: null, right: null, bottom: 0, left: null }
+            },
+            2: {
+                roomNo: 2, totRooms: 4,
+                doorWayStat: [1, 0, 0, 2], // Top open, Left open (terug naar 0)
+                likes: [0, 0, 0, 0], puzzleSolved: [false, false, false, true],
+                targetRooms: { top: null, right: null, bottom: null, left: 0 }
+            },
+            3: {
+                roomNo: 3, totRooms: 4,
+                doorWayStat: [1, 2, 0, 0], // Top open, Right open (terug naar 0)
+                likes: [0, 0, 0, 0], puzzleSolved: [false, true, false, false],
+                targetRooms: { top: null, right: 0, bottom: null, left: null }
             }
         };
 
+        let rooms = JSON.parse(localStorage.getItem("dungeon_rooms")) || defaultDungeon;
         let currentRoomId = 0;
+        let entrySide = 2; // Standaard onderaan binnenkomen
+
+        function saveDungeonData() {
+            localStorage.setItem("dungeon_rooms", JSON.stringify(rooms));
+        }
 
         let loadedImages = 0;
         const totalImages = Object.keys(assets).length;
@@ -90,35 +103,49 @@
             assets[key].onload = () => {
                 loadedImages++;
                 if (loadedImages === totalImages) {
-                    drawRoom(currentRoomId);
+                    drawRoom(currentRoomId, entrySide);
                 }
             };
         }
 
-        // 3. GENERIEKE TEKEN-FUNCTIE VOOR ELKE KAMER
-        function drawRoom(roomId) {
+        // 3. GENERIEKE TEKEN-FUNCTIE
+        function drawRoom(roomId, entry) {
             const room = rooms[roomId];
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // A. Achtergrond
+            // A. Achtergrond kamer
             ctx.drawImage(assets.room, 150, 200, 300, 300);
 
-            // B. Loop door alle 4 de muren (0=Top, 1=Right, 2=Bottom, 3=Left)
+            // B. Muren tekenen
             for (let side = 0; side < 4; side++) {
-                if (roomId === 0 && side === 2) {
-                    continue; // Zuidmuur in kamer 0 blijft altijd een dichte/blinde muur
-                }
-                drawWall(side, room.doorWayStat[side], room.likes[side], room.puzzleSolved[side]);
+                drawWall(side, room.doorWayStat[side], room.likes[side]);
             }
 
-            // C. Held plaatsen
-            ctx.drawImage(assets.hero, 277, 430, 52, 50);
+            // C. Held plaatsen en laten meedraaien op basis van de ingang
+            let heroX = 277, heroY = 430;
+            let heroAngle = 0; // Standaard omhoog (North)
+
+            if (entry === 0) { // Binnengekomen via bovenste deur -> staat boven, kijkt omlaag (South)
+                heroX = 267; heroY = 225; heroAngle = Math.PI;
+            } else if (entry === 1) { // Binnengekomen via rechter deur -> staat rechts, kijkt naar links (West)
+                heroX = 380; heroY = 320; heroAngle = -Math.PI / 2;
+            } else if (entry === 2) { // Binnengekomen via onderste deur -> staat onder, kijkt omhoog (North)
+                heroX = 282; heroY = 430; heroAngle = 0;
+            } else if (entry === 3) { // Binnengekomen via linker deur -> staat links, kijkt naar rechts (East)
+                heroX = 170; heroY = 330; heroAngle = Math.PI / 2;
+            }
+
+            ctx.save();
+            ctx.translate(heroX + 26, heroY + 25); // Verplaats naar het midden van de held
+            ctx.rotate(heroAngle);                  // Draai de held in de juiste richting
+            ctx.drawImage(assets.hero, -26, -25, 42, 40); // Teken gecentreerd
+            ctx.restore();
 
             // D. Kompas
             ctx.drawImage(assets.kompass, 180, 235, 55, 55);
 
-            // E. Kamer informatie HUD
+            // E. HUD / Kamer informatie
             ctx.font = "bold 18px monospace";
             ctx.fillStyle = "#ffcc00";
             ctx.textAlign = "left";
@@ -126,84 +153,113 @@
             ctx.fillText("Tot: " + room.totRooms, 320, 515);
         }
 
-        // 4. HULPFUNCTIE MET DE 3 STATUSSEN (0 = Blinde muur, 1 = Deur, 2 = Deurgat)
-        function drawWall(side, type, likes, solved) {
-            // Als type === 0 (Blinde muur), teken dan helemaal niets en sluit af
+        // 4. HULPFUNCTIE VOOR MUREN
+        function drawWall(side, type, likes) {
             if (type === 0) return;
 
             ctx.save();
 
             if (side === 0) { // TOP MUUR
                 if (type === 2) {
-                    ctx.drawImage(assets.doorway, 275, 194, 50, 50);
+                    ctx.drawImage(assets.doorway, 275, 193, 50, 50);
                 } else if (type === 1) {
-                    ctx.drawImage(assets.door, 275, 194, 50, 50);
-                }
-                ctx.restore(); 
-                
-                // Teken UI alleen bij een dichte deur (type 1)
-                if (type === 1) {
+                    ctx.drawImage(assets.door, 275, 193, 50, 50);
                     ctx.drawImage(assets.thumbsUp, 290, 170, 20, 20);
-                    ctx.fillStyle = "#fff";
-                    ctx.font = "14px monospace";
-                    ctx.textAlign = "left";
+                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
                     ctx.fillText(likes, 315, 185);
                 }
             } 
-            else if (side === 1) { // RIGHT MUUR (Rechts)
-                ctx.translate(432, 375);
-                ctx.rotate(Math.PI / 2);
+            else if (side === 1) { // RIGHT MUUR
+                ctx.translate(432, 375); ctx.rotate(Math.PI / 2);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, -25, 50, 50);
                 }
                 ctx.restore();
-
                 if (type === 1) {
                     ctx.drawImage(assets.thumbsUp, 450, 340, 20, 20);
-                    ctx.fillStyle = "#fff";
-                    ctx.font = "14px monospace";
-                    ctx.textAlign = "left";
+                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
                     ctx.fillText(likes, 475, 355);
                 }
             } 
-            else if (side === 2) { // BOTTOM MUUR (Onder)
-                ctx.translate(275, 532);
-                ctx.rotate(Math.PI);
+            else if (side === 2) { // BOTTOM MUUR
+                ctx.translate(275, 532); ctx.rotate(Math.PI);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, 25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, 25, 50, 50);
                 }
                 ctx.restore();
-
                 if (type === 1) {
                     ctx.drawImage(assets.thumbsDown, 250, 510, 20, 20);
-                    ctx.fillStyle = "#fff";
-                    ctx.font = "14px monospace";
-                    ctx.textAlign = "left";
+                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
                     ctx.fillText(likes, 275, 525);
                 }
             } 
-            else if (side === 3) { // LEFT MUUR (Links)
-                ctx.translate(168, 325);
-                ctx.rotate(-Math.PI / 2);
+            else if (side === 3) { // LEFT MUUR
+                ctx.translate(168, 325); ctx.rotate(-Math.PI / 2);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, -25, 50, 50);
                 }
                 ctx.restore();
-
                 if (type === 1) {
                     ctx.drawImage(assets.thumbsUp, 130, 340, 20, 20);
-                    ctx.fillStyle = "#fff";
-                    ctx.font = "14px monospace";
-                    ctx.textAlign = "left";
+                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
                     ctx.fillText(likes, 115, 355);
                 }
             }
+            ctx.restore();
+        }
+
+        // 5. KLIK-DETECTIE
+        canvas.addEventListener("click", function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const room = rooms[currentRoomId];
+
+            let clickedSide = -1;
+            if (mouseX >= 250 && mouseX <= 350 && mouseY >= 200 && mouseY <= 250) clickedSide = 0;
+            else if (mouseX >= 400 && mouseX <= 450 && mouseY >= 340 && mouseY <= 390) clickedSide = 1;
+            else if (mouseX >= 250 && mouseX <= 350 && mouseY >= 490 && mouseY <= 540) clickedSide = 2;
+            else if (mouseX >= 140 && mouseX <= 190 && mouseY >= 340 && mouseY <= 390) clickedSide = 3;
+
+            if (clickedSide !== -1 && room.doorWayStat[clickedSide] === 2) {
+                let nextRoomId = null;
+                let newEntrySide = 2;
+
+                if (clickedSide === 0) {
+                    nextRoomId = room.targetRooms.top;
+                    newEntrySide = 2; // Binnenkomend via onderste deur in de volgende kamer
+                } else if (clickedSide === 1) {
+                    nextRoomId = room.targetRooms.right;
+                    newEntrySide = 3; // Binnenkomend via linker deur in de volgende kamer
+                } else if (clickedSide === 2) {
+                    nextRoomId = room.targetRooms.bottom;
+                    newEntrySide = 0; // Binnenkomend via bovenste deur in de volgende kamer
+                } else if (clickedSide === 3) {
+                    nextRoomId = room.targetRooms.left;
+                    newEntrySide = 1; // Binnenkomend via rechter deur in de volgende kamer
+                }
+
+                if (nextRoomId !== null && rooms[nextRoomId] !== undefined) {
+                    changeRoom(nextRoomId, newEntrySide);
+                }
+            }
+        });
+
+        function changeRoom(newId, newEntry) {
+            canvas.style.opacity = 0;
+            setTimeout(() => {
+                currentRoomId = newId;
+                entrySide = newEntry;
+                drawRoom(currentRoomId, entrySide);
+                saveDungeonData();
+                canvas.style.opacity = 1;
+            }, 200);
         }
     </script>
 
