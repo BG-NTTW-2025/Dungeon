@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Dungeon Editor - Vaste Kamer & Draaiende Speler</title>
+    <title>Dungeon Editor - Verbeterde Interface</title>
     <style>
         body {
             background-color: #8B0000;
@@ -15,10 +15,35 @@
             height: 100vh;
             margin: 0;
         }
+        #game-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 600px;
+        }
+        /* Topbalk met Reset knop */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 0 5px;
+        }
+        #top-bar button {
+            background: #444;
+            color: #ffcc00;
+            border: 1px solid #ffcc00;
+            padding: 4px 10px;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #top-bar button:hover {
+            background: #666;
+        }
         #game-container {
             position: relative;
             width: 600px;
-            height: 600px;
+            height: 550px;
             border: 4px solid #333;
             background-color: #5B5B00;
         }
@@ -29,12 +54,135 @@
             opacity: 1;
             transition: opacity 0.2s ease-in-out;
         }
+        #puzzle-box {
+            display: none;
+            position: absolute;
+            top: 30px;
+            left: 10px;
+            width: 580px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #ffcc00;
+            padding: 15px;
+            box-sizing: border-box;
+            font-family: monospace;
+            color: #fff;
+            z-index: 10;
+        }
+        /* Rood kruisje rechtsboven in het puzzelvenster */
+        #close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: #cc0000;
+            color: #fff;
+            border: none;
+            width: 26px;
+            height: 26px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #close-btn:hover {
+            background: #ff1a1a;
+        }
+        #puzzle-box p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #ffcc00;
+            padding-right: 25px; /* Ruimte zodat tekst niet onder het kruisje komt */
+        }
+        .action-row {
+            margin-top: 10px;
+        }
+        #puzzle-box input {
+            padding: 5px;
+            font-size: 16px;
+            font-family: monospace;
+            width: 70%;
+            background: #222;
+            color: #ffcc00;
+            border: 1px solid #ffcc00;
+        }
+        #puzzle-box button.answer-btn {
+            padding: 6px 12px;
+            font-family: monospace;
+            background: #ffcc00;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px;
+            color: #000;
+        }
+        #puzzle-feedback {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        #puzzle-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #00ffff;
+            font-style: italic;
+        }
+        /* Goed leesbare waarderingsknoppen (verschijnen pas na succes) */
+        .rating-container {
+            display: none;
+            margin-top: 12px;
+            border-top: 1px dashed #555;
+            padding-top: 8px;
+            font-size: 12px;
+        }
+        .rating-container button {
+            background: #222;
+            border: 1px solid #777;
+            color: #fff;
+            cursor: pointer;
+            padding: 4px 10px;
+            margin: 0 5px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .rating-container button:hover {
+            border-color: #ffcc00;
+            background: #333;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="600" height="550"></canvas>
+    <div id="game-wrapper">
+        <!-- Topbalk met Reset knop -->
+        <div id="top-bar">
+            <span>Dungeon Game</span>
+            <button onclick="resetGameData()">Reset Game</button>
+        </div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="600" height="550"></canvas>
+            
+            <!-- HTML Invoerveld voor het raadsel / de opdracht -->
+            <div id="puzzle-box">
+                <button id="close-btn" onclick="closePuzzle()">×</button>
+                <p id="puzzle-question"></p>
+                <div class="action-row">
+                    <input type="text" id="puzzle-input" placeholder="Typ je antwoord...">
+                    <button class="answer-btn" onclick="checkPuzzleAnswer()">Beantwoord</button>
+                </div>
+                <div id="puzzle-hint"></div>
+                <div id="puzzle-feedback"></div>
+                
+                <!-- Like / Dislike sectie (standaard verborgen, zichtbaar na succes) -->
+                <div class="rating-container" id="rating-section">
+                    Waardeer deze kamer/vraag: 
+                    <button onclick="rateRoom(1)">👍 <span id="like-count">0</span></button>
+                    <button onclick="rateRoom(-1)">👎 <span id="dislike-count">0</span></button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -47,9 +195,7 @@
             door: new Image(),
             doorway: new Image(),
             hero: new Image(),
-            kompass: new Image(),
-            thumbsUp: new Image(),
-            thumbsDown: new Image()
+            kompass: new Image()
         };
 
         assets.room.src = "EmptyRoom.png";
@@ -57,32 +203,30 @@
         assets.doorway.src = "DoorWay.png";
         assets.hero.src = "Hero.png";
         assets.kompass.src = "Kompass.png";
-        assets.thumbsUp.src = "ThumbsUp.png";
-        assets.thumbsDown.src = "ThumbsDown.png";
 
         // 2. STANDAARD KAMERS
         const defaultDungeon = {
             0: {
                 roomNo: 0, totRooms: 4,
-                doorWayStat: [2, 2, 0, 2], // Top, Right, Left open
+                doorWayStat: [2, 2, 0, 2], 
                 likes: [0, 0, 0, 0], puzzleSolved: [true, true, false, true],
                 targetRooms: { top: 1, right: 2, bottom: null, left: 3 }
             },
             1: {
                 roomNo: 1, totRooms: 4,
-                doorWayStat: [1, 0, 2, 0], // Top open, Bottom open (terug naar 0)
+                doorWayStat: [1, 0, 2, 0], 
                 likes: [0, 0, 0, 0], puzzleSolved: [false, false, true, false],
                 targetRooms: { top: null, right: null, bottom: 0, left: null }
             },
             2: {
                 roomNo: 2, totRooms: 4,
-                doorWayStat: [1, 0, 0, 2], // Top open, Left open (terug naar 0)
+                doorWayStat: [1, 0, 0, 2], 
                 likes: [0, 0, 0, 0], puzzleSolved: [false, false, false, true],
                 targetRooms: { top: null, right: null, bottom: null, left: 0 }
             },
             3: {
                 roomNo: 3, totRooms: 4,
-                doorWayStat: [1, 2, 0, 0], // Top open, Right open (terug naar 0)
+                doorWayStat: [1, 2, 0, 0], 
                 likes: [0, 0, 0, 0], puzzleSolved: [false, true, false, false],
                 targetRooms: { top: null, right: 0, bottom: null, left: null }
             }
@@ -90,10 +234,20 @@
 
         let rooms = JSON.parse(localStorage.getItem("dungeon_rooms")) || defaultDungeon;
         let currentRoomId = 0;
-        let entrySide = 2; // Standaard onderaan binnenkomen
+        let entrySide = 2;
+        let puzzleActive = false;
+        let failedAttempts = 0;
 
         function saveDungeonData() {
             localStorage.setItem("dungeon_rooms", JSON.stringify(rooms));
+        }
+
+        // Functie om de game volledig te resetten via de knop bovenin
+        function resetGameData() {
+            if (confirm("Weet je zeker dat je alle voortgang wilt resetten?")) {
+                localStorage.removeItem("dungeon_rooms");
+                location.reload();
+            }
         }
 
         let loadedImages = 0;
@@ -115,42 +269,37 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // A. Achtergrond kamer
-            ctx.drawImage(assets.room, 150, 200, 300, 300);
+            ctx.drawImage(assets.room, 150, 325, 300, 200);
 
             // B. Muren tekenen
             for (let side = 0; side < 4; side++) {
                 drawWall(side, room.doorWayStat[side], room.likes[side]);
             }
 
-            // C. Held plaatsen en laten meedraaien op basis van de ingang
-            let heroX = 277, heroY = 430;
-            let heroAngle = 0; // Standaard omhoog (North)
+            // C. Held plaatsen
+            let heroX = 267, heroY = 350;
+            let heroAngle = 0;
 
-            if (entry === 0) { // Binnengekomen via bovenste deur -> staat boven, kijkt omlaag (South)
-                heroX = 267; heroY = 225; heroAngle = Math.PI;
-            } else if (entry === 1) { // Binnengekomen via rechter deur -> staat rechts, kijkt naar links (West)
-                heroX = 380; heroY = 320; heroAngle = -Math.PI / 2;
-            } else if (entry === 2) { // Binnengekomen via onderste deur -> staat onder, kijkt omhoog (North)
-                heroX = 282; heroY = 430; heroAngle = 0;
-            } else if (entry === 3) { // Binnengekomen via linker deur -> staat links, kijkt naar rechts (East)
-                heroX = 170; heroY = 330; heroAngle = Math.PI / 2;
-            }
+            if (entry === 0) { heroX = 267; heroY = 350; heroAngle = Math.PI; }
+            else if (entry === 1) { heroX = 380; heroY = 395; heroAngle = -Math.PI / 2; }
+            else if (entry === 2) { heroX = 282; heroY = 455; heroAngle = 0; }
+            else if (entry === 3) { heroX = 170; heroY = 405; heroAngle = Math.PI / 2; }
 
             ctx.save();
-            ctx.translate(heroX + 26, heroY + 25); // Verplaats naar het midden van de held
-            ctx.rotate(heroAngle);                  // Draai de held in de juiste richting
-            ctx.drawImage(assets.hero, -26, -25, 42, 40); // Teken gecentreerd
+            ctx.translate(heroX + 26, heroY + 25);
+            ctx.rotate(heroAngle);
+            ctx.drawImage(assets.hero, -26, -25, 42, 40);
             ctx.restore();
 
             // D. Kompas
-            ctx.drawImage(assets.kompass, 180, 235, 55, 55);
+            ctx.drawImage(assets.kompass, 480, 335, 55, 55);
 
             // E. HUD / Kamer informatie
             ctx.font = "bold 18px monospace";
             ctx.fillStyle = "#ffcc00";
             ctx.textAlign = "left";
-            ctx.fillText("Room: " + room.roomNo, 155, 515);
-            ctx.fillText("Tot: " + room.totRooms, 320, 515);
+            ctx.fillText("Room: " + room.roomNo, 155, 540);
+            ctx.fillText("Tot: " + room.totRooms, 320, 540);
         }
 
         // 4. HULPFUNCTIE VOOR MUREN
@@ -161,95 +310,142 @@
 
             if (side === 0) { // TOP MUUR
                 if (type === 2) {
-                    ctx.drawImage(assets.doorway, 275, 193, 50, 50);
+                    ctx.drawImage(assets.doorway, 275, 318, 50, 50);
                 } else if (type === 1) {
-                    ctx.drawImage(assets.door, 275, 193, 50, 50);
-                    ctx.drawImage(assets.thumbsUp, 290, 170, 20, 20);
-                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
-                    ctx.fillText(likes, 315, 185);
+                    ctx.drawImage(assets.door, 275, 318, 50, 50);
                 }
             } 
             else if (side === 1) { // RIGHT MUUR
-                ctx.translate(432, 375); ctx.rotate(Math.PI / 2);
+                ctx.translate(432, 450); ctx.rotate(Math.PI / 2);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, -25, 50, 50);
                 }
                 ctx.restore();
-                if (type === 1) {
-                    ctx.drawImage(assets.thumbsUp, 450, 340, 20, 20);
-                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
-                    ctx.fillText(likes, 475, 355);
-                }
             } 
             else if (side === 2) { // BOTTOM MUUR
-                ctx.translate(275, 532); ctx.rotate(Math.PI);
+                ctx.translate(275, 557); ctx.rotate(Math.PI);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, 25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, 25, 50, 50);
                 }
                 ctx.restore();
-                if (type === 1) {
-                    ctx.drawImage(assets.thumbsDown, 250, 510, 20, 20);
-                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
-                    ctx.fillText(likes, 275, 525);
-                }
             } 
             else if (side === 3) { // LEFT MUUR
-                ctx.translate(168, 325); ctx.rotate(-Math.PI / 2);
+                ctx.translate(168, 400); ctx.rotate(-Math.PI / 2);
                 if (type === 2) {
                     ctx.drawImage(assets.doorway, -50, -25, 50, 50);
                 } else if (type === 1) {
                     ctx.drawImage(assets.door, -50, -25, 50, 50);
                 }
                 ctx.restore();
-                if (type === 1) {
-                    ctx.drawImage(assets.thumbsUp, 130, 340, 20, 20);
-                    ctx.fillStyle = "#fff"; ctx.font = "14px monospace"; ctx.textAlign = "left";
-                    ctx.fillText(likes, 115, 355);
-                }
             }
             ctx.restore();
         }
 
         // 5. KLIK-DETECTIE
         canvas.addEventListener("click", function(event) {
+            if (puzzleActive) return;
+
             const rect = canvas.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
             const room = rooms[currentRoomId];
 
             let clickedSide = -1;
-            if (mouseX >= 250 && mouseX <= 350 && mouseY >= 200 && mouseY <= 250) clickedSide = 0;
-            else if (mouseX >= 400 && mouseX <= 450 && mouseY >= 340 && mouseY <= 390) clickedSide = 1;
-            else if (mouseX >= 250 && mouseX <= 350 && mouseY >= 490 && mouseY <= 540) clickedSide = 2;
-            else if (mouseX >= 140 && mouseX <= 190 && mouseY >= 340 && mouseY <= 390) clickedSide = 3;
+            if (mouseX >= 270 && mouseX <= 330 && mouseY >= 325 && mouseY <= 360) clickedSide = 0;
+            else if (mouseX >= 400 && mouseX <= 450 && mouseY >= 395 && mouseY <= 455) clickedSide = 1;
+            else if (mouseX >= 270 && mouseX <= 330 && mouseY >= 495 && mouseY <= 530) clickedSide = 2;
+            else if (mouseX >= 140 && mouseX <= 190 && mouseY >= 395 && mouseY <= 455) clickedSide = 3;
 
-            if (clickedSide !== -1 && room.doorWayStat[clickedSide] === 2) {
-                let nextRoomId = null;
-                let newEntrySide = 2;
+            if (clickedSide !== -1) {
+                // RAADSEL ACTIVEREN VOOR KAMER 1 (Top deur)
+                if (currentRoomId === 1 && clickedSide === 0 && !room.puzzleSolved[0]) {
+                    puzzleActive = true;
+                    failedAttempts = 0;
+                    document.getElementById("puzzle-question").innerText = "Een oude stem fluistert:\n'Wat volgt je overal waar je gaat, maar verdwijnt zodra het licht uitgaat?'";
+                    document.getElementById("puzzle-input").value = "";
+                    document.getElementById("puzzle-feedback").innerText = "";
+                    document.getElementById("puzzle-hint").innerText = "";
+                    
+                    // Verberg de rating sectie totdat de puzzel is opgelost
+                    document.getElementById("rating-section").style.display = "none";
 
-                if (clickedSide === 0) {
-                    nextRoomId = room.targetRooms.top;
-                    newEntrySide = 2; // Binnenkomend via onderste deur in de volgende kamer
-                } else if (clickedSide === 1) {
-                    nextRoomId = room.targetRooms.right;
-                    newEntrySide = 3; // Binnenkomend via linker deur in de volgende kamer
-                } else if (clickedSide === 2) {
-                    nextRoomId = room.targetRooms.bottom;
-                    newEntrySide = 0; // Binnenkomend via bovenste deur in de volgende kamer
-                } else if (clickedSide === 3) {
-                    nextRoomId = room.targetRooms.left;
-                    newEntrySide = 1; // Binnenkomend via rechter deur in de volgende kamer
+                    document.getElementById("puzzle-box").style.display = "block";
+                    document.getElementById("puzzle-input").focus();
+                    return;
                 }
 
-                if (nextRoomId !== null && rooms[nextRoomId] !== undefined) {
-                    changeRoom(nextRoomId, newEntrySide);
+                if (room.doorWayStat[clickedSide] === 2) {
+                    let nextRoomId = null;
+                    let newEntrySide = 2;
+
+                    if (clickedSide === 0) { nextRoomId = room.targetRooms.top; newEntrySide = 2; }
+                    else if (clickedSide === 1) { nextRoomId = room.targetRooms.right; newEntrySide = 3; }
+                    else if (clickedSide === 2) { nextRoomId = room.targetRooms.bottom; newEntrySide = 0; }
+                    else if (clickedSide === 3) { nextRoomId = room.targetRooms.left; newEntrySide = 1; }
+
+                    if (nextRoomId !== null && rooms[nextRoomId] !== undefined) {
+                        changeRoom(nextRoomId, newEntrySide);
+                    }
                 }
             }
         });
+
+        // 6. CONTROLEER HET ANTWOORD
+        function checkPuzzleAnswer() {
+            let antwoord = document.getElementById("puzzle-input").value.trim().toLowerCase();
+            let room = rooms[currentRoomId];
+            let feedback = document.getElementById("puzzle-feedback");
+            let hint = document.getElementById("puzzle-hint");
+
+            if (antwoord === "schaduw") {
+                feedback.style.color = "#00ff00";
+                feedback.innerText = "Juist! De deur opent zich...";
+                hint.innerText = "";
+                
+                // Toon pas na succes de like/dislike knoppen en update tellingen
+                let currentLikes = room.likes[0] > 0 ? room.likes[0] : 0;
+                let currentDislikes = room.likes[1] < 0 ? Math.abs(room.likes[1]) : 0;
+                document.getElementById("like-count").innerText = currentLikes;
+                document.getElementById("dislike-count").innerText = currentDislikes;
+                document.getElementById("rating-section").style.display = "block";
+
+                room.puzzleSolved[0] = true;
+                room.doorWayStat[0] = 2; // Zet deur op open doorgang
+                saveDungeonData();
+                drawRoom(currentRoomId, entrySide);
+            } else {
+                failedAttempts++;
+                feedback.style.color = "#ff4d4d";
+                feedback.innerText = "Dat is niet juist! De deur blijft gesloten.";
+
+                if (failedAttempts >= 1) {
+                    hint.innerText = "Hint: Denk aan de zon en een donkere muur...";
+                }
+
+                document.getElementById("puzzle-input").value = "";
+                document.getElementById("puzzle-input").focus();
+            }
+        }
+
+        // Sluit het raadsel via het rode kruisje rechtsboven
+        function closePuzzle() {
+            document.getElementById("puzzle-box").style.display = "none";
+            puzzleActive = false;
+        }
+
+        // Like of Dislike toekennen aan de kamer / opdracht
+        function rateRoom(value) {
+            let room = rooms[currentRoomId];
+            room.likes[0] += value; 
+            saveDungeonData();
+            
+            document.getElementById("like-count").innerText = room.likes[0] > 0 ? room.likes[0] : 0;
+            document.getElementById("dislike-count").innerText = room.likes[1] < 0 ? Math.abs(room.likes[1]) : 0;
+        }
 
         function changeRoom(newId, newEntry) {
             canvas.style.opacity = 0;
