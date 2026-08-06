@@ -175,6 +175,46 @@
             font-size: 14px;
             margin-left: 5px;
         }
+		
+		#puzzle-box {
+            display: none;
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            width: 580px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #ffcc00;
+            padding: 0 15px 15px 15px; /* Padding bovenkant op 0 gezet voor de sleepbalk */
+            box-sizing: border-box;
+            font-family: monospace;
+            color: #fff;
+            z-index: 10;
+        }
+        #puzzle-handle {
+            display: flex;
+            align-items: center;
+            background-color: #333;
+            margin: 0 -15px 15px -15px; /* Loopt nu mooi van rand tot rand */
+            padding: 8px 12px;
+            cursor: grab;
+            border-bottom: 2px solid #ffcc00;
+        }
+        #puzzle-handle:active {
+            cursor: grabbing;
+        }
+        .handle-dot {
+            width: 14px;
+            height: 14px;
+            background-color: #ffd700;
+            border-radius: 50%; /* Het sleeprondje */
+            margin-right: 10px;
+        }
+        .window-title {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 14px;
+        }
+		
     </style>
 </head>
 <body>
@@ -191,8 +231,12 @@
         <div id="game-container">
             <canvas id="gameCanvas" width="600" height="550"></canvas>
             
-            <div id="puzzle-box">
-                <button id="close-btn" onclick="closePuzzle()">×</button>
+<div id="puzzle-box">
+                <div id="puzzle-handle">
+                    <span class="handle-dot"></span>
+                    <span class="window-title">Raadsels & Opdrachten</span>
+                </div>
+                <button id="close-btn" onclick="closePuzzle()">X</button>
                 <p id="puzzle-question"></p>
                 <div class="action-row" id="puzzle-input-row">
                     <input type="text" id="puzzle-input" placeholder="Typ je antwoord...">
@@ -207,14 +251,12 @@
                 <div class="rating-container" id="rating-section">
                     <span id="rating-text">Waardeer deze kamer:</span>
                     <span id="voting-buttons">
-                        <button onclick="rateRoom(1)">👍 +1</button>
-                        <button onclick="rateRoom(-1)">👎 -1</button>
+                        <button onclick="rateRoom(1)">+1</button>
+                        <button onclick="rateRoom(-1)">-1</button>
                     </span>
                     <span id="rating-score">0</span>
                 </div>
             </div>
-        </div>
-    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -702,6 +744,41 @@
                 saveGameData();
                 canvas.style.opacity = 1;
             }, 200);
+        }
+		
+		// Sleepfunctionaliteit voor het puzzle/info-venster
+        const puzzleBox = document.getElementById('puzzle-box');
+        const puzzleHandle = document.getElementById('puzzle-handle');
+
+        let isDraggingBox = false;
+        let startXBox, startYBox;
+
+        puzzleHandle.addEventListener('mousedown', (e) => {
+            // Zorg ervoor dat de sluitknop wel gewoon aanklikbaar blijft
+            if (e.target.id === 'close-btn') return;
+            
+            isDraggingBox = true;
+            startXBox = e.clientX - puzzleBox.offsetLeft;
+            startYBox = e.clientY - puzzleBox.offsetTop;
+            
+            document.addEventListener('mousemove', onBoxMouseMove);
+            document.addEventListener('mouseup', onBoxMouseUp);
+        });
+
+        function onBoxMouseMove(e) {
+            if (!isDraggingBox) return;
+            
+            let newX = e.clientX - startXBox;
+            let newY = e.clientY - startYBox;
+            
+            puzzleBox.style.left = newX + 'px';
+            puzzleBox.style.top = newY + 'px';
+        }
+
+        function onBoxMouseUp() {
+            isDraggingBox = false;
+            document.removeEventListener('mousemove', onBoxMouseMove);
+            document.removeEventListener('mouseup', onBoxMouseUp);
         }
     </script>
 
