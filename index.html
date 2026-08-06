@@ -721,16 +721,16 @@
             }, 200);
         }
 
-        // Sleepfunctionaliteit voor het puzzle/info-venster
+// Sleepfunctionaliteit voor het puzzle/info-venster (voor muis én touchscreen)
         const puzzleBox = document.getElementById('puzzle-box');
         const puzzleHandle = document.getElementById('puzzle-handle');
 
         let isDraggingBox = false;
         let startXBox, startYBox;
 
+        // Start verslepen (Muis)
         puzzleHandle.addEventListener('mousedown', (e) => {
             if (e.target.id === 'close-btn') return;
-            
             isDraggingBox = true;
             startXBox = e.clientX - puzzleBox.offsetLeft;
             startYBox = e.clientY - puzzleBox.offsetTop;
@@ -739,20 +739,41 @@
             document.addEventListener('mouseup', onBoxMouseUp);
         });
 
+        // Start verslepen (Touchscreen / Tablet)
+        puzzleHandle.addEventListener('touchstart', (e) => {
+            if (e.target.id === 'close-btn') return;
+            isDraggingBox = true;
+            let touch = e.touches[0];
+            startXBox = touch.clientX - puzzleBox.offsetLeft;
+            startYBox = touch.clientY - puzzleBox.offsetTop;
+            
+            document.addEventListener('touchmove', onBoxTouchMove);
+            document.addEventListener('touchend', onBoxTouchEnd);
+        }, { passive: true });
+
         function onBoxMouseMove(e) {
             if (!isDraggingBox) return;
-            
-            let newX = e.clientX - startXBox;
-            let newY = e.clientY - startYBox;
-            
-            puzzleBox.style.left = newX + 'px';
-            puzzleBox.style.top = newY + 'px';
+            puzzleBox.style.left = (e.clientX - startXBox) + 'px';
+            puzzleBox.style.top = (e.clientY - startYBox) + 'px';
+        }
+
+        function onBoxTouchMove(e) {
+            if (!isDraggingBox) return;
+            let touch = e.touches[0];
+            puzzleBox.style.left = (touch.clientX - startXBox) + 'px';
+            puzzleBox.style.top = (touch.clientY - startYBox) + 'px';
         }
 
         function onBoxMouseUp() {
             isDraggingBox = false;
             document.removeEventListener('mousemove', onBoxMouseMove);
             document.removeEventListener('mouseup', onBoxMouseUp);
+        }
+
+        function onBoxTouchEnd() {
+            isDraggingBox = false;
+            document.removeEventListener('touchmove', onBoxTouchMove);
+            document.removeEventListener('touchend', onBoxTouchEnd);
         }
     </script>
 
