@@ -16,6 +16,7 @@
             margin: 0;
         }
         #game-wrapper {
+            position: relative;
             display: flex;
             flex-direction: column;
             width: 600px;
@@ -46,25 +47,56 @@
             padding: 0 5px;
             font-weight: bold;
         }
-
-
+        canvas {
+            display: block;
+            width: 600px;
+            height: 550px;
+            // border: 4px solid #333;
+            background-color: #8B0000; /* Achtergrond rood gemaakt i.p.v. groen */
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+        }
         #puzzle-box {
             display: none;
             position: absolute;
-            top: 30px;
+            top: 80px;
             left: 10px;
             width: 580px;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid #ffcc00;
-            padding: 15px;
+            padding: 0 15px 15px 15px;
             box-sizing: border-box;
             font-family: monospace;
             color: #fff;
             z-index: 10;
         }
+        #puzzle-handle {
+            display: flex;
+            align-items: center;
+            background-color: #333;
+            margin: 0 -15px 15px -15px;
+            padding: 8px 12px;
+            cursor: grab;
+            border-bottom: 2px solid #ffcc00;
+        }
+        #puzzle-handle:active {
+            cursor: grabbing;
+        }
+        .handle-dot {
+            width: 14px;
+            height: 14px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .window-title {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 14px;
+        }
         #close-btn {
             position: absolute;
-            top: 8px;
+            top: 6px;
             right: 12px;
             background: #cc0000;
             color: #fff;
@@ -77,6 +109,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 11;
         }
         #close-btn:hover {
             background: #ff1a1a;
@@ -163,46 +196,6 @@
             font-size: 14px;
             margin-left: 5px;
         }
-		
-		#puzzle-box {
-            display: none;
-            position: absolute;
-            top: 50px;
-            left: 10px;
-            width: 580px;
-            background: rgba(0, 0, 0, 0.95);
-            border: 3px solid #ffcc00;
-            padding: 0 15px 15px 15px; /* Padding bovenkant op 0 gezet voor de sleepbalk */
-            box-sizing: border-box;
-            font-family: monospace;
-            color: #fff;
-            z-index: 10;
-        }
-        #puzzle-handle {
-            display: flex;
-            align-items: center;
-            background-color: #333;
-            margin: 0 -15px 15px -15px; /* Loopt nu mooi van rand tot rand */
-            padding: 8px 12px;
-            cursor: grab;
-            border-bottom: 2px solid #ffcc00;
-        }
-        #puzzle-handle:active {
-            cursor: grabbing;
-        }
-        .handle-dot {
-            width: 14px;
-            height: 14px;
-            background-color: #ffd700;
-            border-radius: 50%; /* Het sleeprondje */
-            margin-right: 10px;
-        }
-        .window-title {
-            color: #ffd700;
-            font-weight: bold;
-            font-size: 14px;
-        }
-		
     </style>
 </head>
 <body>
@@ -216,35 +209,35 @@
             Inventory: <span id="inventory-content">Geen</span>
         </div>
 
-        <div id="game-container">
-            <canvas id="gameCanvas" width="600" height="550"></canvas>
-            
-<div id="puzzle-box">
-                <div id="puzzle-handle">
-                    <span class="handle-dot"></span>
-                    <span class="window-title">Raadsels & Opdrachten</span>
-                </div>
-                <button id="close-btn" onclick="closePuzzle()">X</button>
-                <p id="puzzle-question"></p>
-                <div class="action-row" id="puzzle-input-row">
-                    <input type="text" id="puzzle-input" placeholder="Typ je antwoord...">
-                    <button class="answer-btn" onclick="checkPuzzleAnswer()">Beantwoord</button>
-                </div>
-                <div id="puzzle-hint"></div>
-                <div id="solution-container">
-                    <button id="solution-btn" onclick="revealSolution()">Toon oplossing</button>
-                </div>
-                <div id="puzzle-feedback"></div>
-                
-                <div class="rating-container" id="rating-section">
-                    <span id="rating-text">Waardeer deze kamer:</span>
-                    <span id="voting-buttons">
-                        <button onclick="rateRoom(1)">+1</button>
-                        <button onclick="rateRoom(-1)">-1</button>
-                    </span>
-                    <span id="rating-score">0</span>
-                </div>
+        <canvas id="gameCanvas" width="600" height="550"></canvas>
+        
+        <div id="puzzle-box">
+            <div id="puzzle-handle">
+                <span class="handle-dot"></span>
+                <span class="window-title">Raadsels & Opdrachten</span>
             </div>
+            <button id="close-btn" onclick="closePuzzle()">×</button>
+            <p id="puzzle-question"></p>
+            <div class="action-row" id="puzzle-input-row">
+                <input type="text" id="puzzle-input" placeholder="Typ je antwoord...">
+                <button class="answer-btn" onclick="checkPuzzleAnswer()">Beantwoord</button>
+            </div>
+            <div id="puzzle-hint"></div>
+            <div id="solution-container">
+                <button id="solution-btn" onclick="revealSolution()">Toon oplossing</button>
+            </div>
+            <div id="puzzle-feedback"></div>
+            
+            <div class="rating-container" id="rating-section">
+                <span id="rating-text">Waardeer deze kamer:</span>
+                <span id="voting-buttons">
+                    <button onclick="rateRoom(1)">+1</button>
+                    <button onclick="rateRoom(-1)">-1</button>
+                </span>
+                <span id="rating-score">0</span>
+            </div>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -310,7 +303,7 @@
                 roomNo: 3, totRooms: 4,
                 doorWayStat: [1, 2, 0, 0], 
                 likes: 0, hasVoted: false, 
-                swordCollected: false, // Toegevoegd: status voor het zwaard in kamer 3
+                swordCollected: false,
                 puzzleSolved: [false, true, false, false],
                 targetRooms: { top: 5, right: 0, bottom: null, left: null }
             },
@@ -377,7 +370,6 @@
                 drawWall(side, room.doorWayStat[side]);
             }
 
-            // Teken monster of rode sleutel in kamer 2
             if (roomId === 2) {
                 if (!room.monsterDefeated) {
                     if (assets.monster.complete && assets.monster.naturalWidth !== 0) {
@@ -394,7 +386,6 @@
                 }
             }
 
-            // Teken het zwaard in kamer 3 indien nog niet opgepakt
             if (roomId === 3 && !room.swordCollected) {
                 if (assets.sword.complete && assets.sword.naturalWidth !== 0) {
                     ctx.drawImage(assets.sword, 285, 390, 30, 30);
@@ -463,7 +454,6 @@
             const mouseY = event.clientY - rect.top;
             const room = rooms[currentRoomId];
 
-            // Klik op monster in kamer 2
             if (currentRoomId === 2 && !room.monsterDefeated) {
                 if (mouseX >= 275 && mouseX <= 325 && mouseY >= 348 && mouseY <= 398) {
                     activeActivity = "monster";
@@ -481,7 +471,6 @@
                 }
             }
 
-            // Klik op rode sleutel in kamer 2
             if (currentRoomId === 2 && room.monsterDefeated && !room.keyCollected) {
                 if (mouseX >= 285 && mouseX <= 315 && mouseY >= 358 && mouseY <= 388) {
                     room.keyCollected = true;
@@ -504,7 +493,6 @@
                 }
             }
 
-            // Klik op het zwaard in kamer 3
             if (currentRoomId === 3 && !room.swordCollected) {
                 if (mouseX >= 285 && mouseX <= 315 && mouseY >= 390 && mouseY <= 420) {
                     room.swordCollected = true;
@@ -557,7 +545,6 @@
                     return;
                 }
 
-                // Grendel op de noordelijke deur (index 0) van kamer 3 voor de rode sleutel
                 if (currentRoomId === 3 && clickedSide === 0 && room.doorWayStat[0] === 1) {
                     if (inventory.includes("Rode Sleutel")) {
                         inventory = inventory.filter(item => item !== "Rode Sleutel");
@@ -733,8 +720,8 @@
                 canvas.style.opacity = 1;
             }, 200);
         }
-		
-		// Sleepfunctionaliteit voor het puzzle/info-venster
+
+        // Sleepfunctionaliteit voor het puzzle/info-venster
         const puzzleBox = document.getElementById('puzzle-box');
         const puzzleHandle = document.getElementById('puzzle-handle');
 
@@ -742,7 +729,6 @@
         let startXBox, startYBox;
 
         puzzleHandle.addEventListener('mousedown', (e) => {
-            // Zorg ervoor dat de sluitknop wel gewoon aanklikbaar blijft
             if (e.target.id === 'close-btn') return;
             
             isDraggingBox = true;
