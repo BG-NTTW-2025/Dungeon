@@ -12,7 +12,7 @@ body {
             display: flex;
             flex-direction: column;
             align-items: flex-start; /* Verandert van center naar links */
-            justify-content: flex-end; /* Zet de inhoud bovenaan i.p.v. precies midden-verticaal */
+            justify-content: flex-end; /* Zet de inhoud onderaan i.p.v. precies midden-verticaal */
             min-height: 85vh;
             margin: 0;
             padding: 40px; /* Geeft wat ruimte rondom de randen van het scherm */
@@ -100,19 +100,20 @@ body {
         }
         #close-btn {
             position: absolute;
-            top: 6px;
-            right: 12px;
+            top: 4px;
+            right: 4px;
             background: #cc0000;
             color: #fff;
             border: none;
             width: 26px;
             height: 26px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 24px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: center;  
+			padding-bottom:5px;
             z-index: 11;
         }
         #close-btn:hover {
@@ -207,7 +208,7 @@ body {
     <div id="game-wrapper">
         <div id="top-bar">
             <span>Dungeon Game</span>
-            <button onclick="resetGameData()">Reset Game</button>
+           <button onclick="resetGameData()">Reset Game</button>
         </div>
         <div id="inventory-bar">
             Inventory: <span id="inventory-content">Geen</span>
@@ -220,7 +221,7 @@ body {
                 <span class="handle-dot"></span>
                 <span class="window-title">Raadsels & Opdrachten</span>
             </div>
-            <button id="close-btn" onclick="closePuzzle()">×</button>
+            <button id="close-btn" onclick="closePuzzle()">X</button>
             <p id="puzzle-question"></p>
             <div class="action-row" id="puzzle-input-row">
                 <input type="text" id="puzzle-input" placeholder="Typ je antwoord...">
@@ -518,10 +519,12 @@ body {
                     return;
                 }
             }
+			
+			
 
             let clickedSide = -1;
             if (mouseX >= 120 && mouseX <= 180 && mouseY >= 0 && mouseY <= 35) clickedSide = 0;
-            else if (mouseX >= 265 && mouseX <= 300 && mouseY >= 70 && mouseY <= 130) clickedSide = 1;
+            else if (mouseX >= 270 && mouseX <=305 && mouseY >= 70 && mouseY <= 130) clickedSide = 1;
             else if (mouseX >= 120 && mouseX <= 180 && mouseY >= 170 && mouseY <= 200) clickedSide = 2;
             else if (mouseX >= 0 && mouseX <= 35 && mouseY >= 70 && mouseY <= 130) clickedSide = 3;
 
@@ -779,6 +782,35 @@ body {
             document.removeEventListener('touchmove', onBoxTouchMove);
             document.removeEventListener('touchend', onBoxTouchEnd);
         }
+		
+		
+		canvas.addEventListener("mousemove", function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            // Controleer dezelfde gebieden als bij je klik-event
+            let overSide = -1;
+            if (mouseX >= 120 && mouseX <= 180 && mouseY >= 0 && mouseY <= 35) overSide = 0;
+            else if (mouseX >= 270 && mouseX <= 305 && mouseY >= 70 && mouseY <= 130) overSide = 1;
+            else if (mouseX >= 120 && mouseX <= 180 && mouseY >= 170 && mouseY <= 200) overSide = 2;
+            else if (mouseX >= 0 && mouseX <= 35 && mouseY >= 70 && mouseY <= 130) overSide = 3;
+
+            // Ook optioneel: als je over het monster of voorwerp hovert (afhankelijk van je actieve kamer)
+            let room = rooms[currentRoomId];
+            let overInteractiveItem = false;
+            if (currentRoomId === 2 && !room.monsterDefeated && mouseX >= 135 && mouseX <= 165 && mouseY >= 33 && mouseY <= 63) {overInteractiveItem = true;}
+            if (currentRoomId === 2 && !room.keyCollected && mouseX >= 135 && mouseX <= 165 && mouseY >= 33 && mouseY <= 63) {overInteractiveItem = true;}
+            if (currentRoomId === 3 && !room.swordCollected && mouseX >= 135 && mouseX <= 165 && mouseY >= 65 && mouseY <= 95) {overInteractiveItem = true;}			
+			
+            if (overSide !== -1 || overInteractiveItem) {
+                canvas.style.cursor = "pointer";
+            } else {
+                canvas.style.cursor = "default";
+            }
+        });
+		
+
     </script>
 
 </body>
