@@ -812,6 +812,43 @@ body {
 		
 
     </script>
+	
+	<!-- Laad de Supabase bibliotheek -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // Wacht tot de hele pagina is geladen
+  window.addEventListener('DOMContentLoaded', () => {
+    // Controleer of de bibliotheek succesvol is geladen
+    if (typeof supabase === 'undefined') {
+      console.error("Supabase bibliotheek kon niet worden geladen (mogelijk geblokkeerd door een adblocker).");
+      return;
+    }
+
+    const supabaseUrl = 'https://clnacovbcipcoazuzrws.supabase.co'; 
+    const supabaseKey = 'sb_publishable_V8Xa02FQaCsXuZN1kSnBRA_aIkT1Jkn';
+    
+    // Gebruik een eigen variabele naam 'db' om botsingen te voorkomen
+    const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Testverbinding
+    async function testVerbinding() {
+      console.log("Bezig met verbinden...");
+      const { data, error } = await db
+        .from('Dungeon_Rooms')
+        .select('*')
+        .limit(1);
+
+      if (error) {
+        console.error("Helaas, verbinding mislukt:", error.message);
+      } else {
+        console.log("Succes! Verbinding met de database is gelukt:", data);
+      }
+    }
+
+    testVerbinding();
+  });
+</script>
 
 </body>
 </html>
