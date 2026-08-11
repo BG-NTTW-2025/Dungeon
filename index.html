@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Dungeon Editor - Zwaard in Kamer 3</title>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             background-color: #8B0000;
@@ -243,6 +245,11 @@
     </div>
 
     <script>
+        // Supabase Configuratie (Pas aan naar jouw gegevens)
+        const SUPABASE_URL = 'https://clnacovbcipcoazuzrws.supabase.co/';
+        const SUPABASE_KEY = 'sb_publishable_V8Xa02FQaCsXuZN1kSnBRA_aIkT1Jkn';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
@@ -324,27 +331,82 @@
             }
         };
 
-        let rooms = JSON.parse(localStorage.getItem("dungeon_rooms")) || defaultDungeon;
-        let inventory = JSON.parse(localStorage.getItem("dungeon_inventory")) || [];
+        let rooms = {};
+        let inventory = [];
         let currentRoomId = 0;
         let entrySide = 2;
         let activeActivity = null; 
         let failedAttempts = 0;
 
-        function saveGameData() {
-            localStorage.setItem("dungeon_rooms", JSON.stringify(rooms));
-            localStorage.setItem("dungeon_inventory", JSON.stringify(inventory));
+        // Gegevens ophalen uit Supabase
+        async function loadGameData() {
+            try {
+                // Kamers ophalen uit Dungeon_Rooms
+                const { data: roomData, error: roomError } = await supabaseClient
+                    .from('Dungeon_Rooms')
+                    .select('*');
+
+                if (roomError) throw roomError;
+
+                if (roomData && roomData.length > 0) {
+                    rooms = {};
+                    roomData.forEach(row => {
+                        // Pas aan op basis van hoe je kolommen in Supabase heten (bijv. id, room_data)
+                        // Hier gaan we ervan uit dat je per kamer opslaat of een JSON-kolom gebruikt.
+                        rooms[row.id] = row.room_data || row; 
+                    });
+                } else {
+                    rooms = defaultDungeon;
+                }
+
+                // Inventaris ophalen (bijv. uit een aparte tabel of een globale staatstabel)
+                const { data: invData, error: invError } = await supabaseClient
+                    .from('Dungeon_Rooms') // of een aparte 'Player_State' tabel indien gewenst
+                    .select('*')
+                    .eq('id', 'inventory');
+
+                if (!invError && invData && invData.length > 0) {
+                    inventory = invData[0].items || [];
+                }
+            } catch (err) {
+                console.warn("Kon data niet laden uit Supabase, standaardwaarden worden gebruikt:", err);
+                rooms = defaultDungeon;
+                inventory = [];
+            }
+
+            initAssets();
         }
 
-        function resetGameData() {
-            if (confirm("Weet je zeker dat je alle voortgang wilt resetten?")) {
-                localStorage.removeItem("dungeon_rooms");
-                localStorage.removeItem("dungeon_inventory");
-                location.reload();
+        async function saveGameData() {
+            try {
+                // Sla de huidige kamerstatus op in Supabase
+                const room = rooms[currentRoomId];
+                await supabaseClient
+                    .from('Dungeon_Rooms')
+                    .upsert({ id: currentRoomId, room_data: room });
+
+                // Sla inventaris op
+                await supabaseClient
+                    .from('Dungeon_Rooms')
+                    .upsert({ id: 'inventory', items: inventory });
+            } catch (err) {
+                console.error("Fout bij opslaan naar Supabase:", err);
             }
         }
 
-        initAssets();
+        async function resetGameData() {
+            if (confirm("Weet je zeker dat je alle voortgang in Supabase wilt resetten?")) {
+                try {
+                    await supabaseClient.from('Dungeon_Rooms').delete().neq('id', -999);
+                    location.reload();
+                } catch (err) {
+                    console.error("Fout bij resetten:", err);
+                }
+            }
+        }
+
+        // Start het laden van de game
+        loadGameData();
 
         function updateInventoryUI() {
             const invContent = document.getElementById("inventory-content");
@@ -359,6 +421,7 @@
 
         function drawRoom(roomId, entry) {
             const room = rooms[roomId];
+            if (!room) return;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -456,6 +519,7 @@
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
             const room = rooms[currentRoomId];
+            if (!room) return;
 
             if (currentRoomId === 2 && !room.monsterDefeated) {
                 if (mouseX >= 125 && mouseX <= 350 && mouseY >= 23 && mouseY <= 98) {
@@ -724,7 +788,7 @@
             }, 200);
         }
 
-        // Sleepfunctionaliteit voor het puzzle/info-venster (voor muis én touchscreen)
+        // Sleepfunctionaliteit voor het puzzle/info-venster
         const puzzleBox = document.getElementById('puzzle-box');
         const puzzleHandle = document.getElementById('puzzle-handle');
 
@@ -741,28 +805,10 @@
             document.addEventListener('mouseup', onBoxMouseUp);
         });
 
-        puzzleHandle.addEventListener('touchstart', (e) => {
-            if (e.target.id === 'close-btn') return;
-            isDraggingBox = true;
-            let touch = e.touches[0];
-            startXBox = touch.clientX - puzzleBox.offsetLeft;
-            startYBox = touch.clientY - puzzleBox.offsetTop;
-            
-            document.addEventListener('touchmove', onBoxTouchMove);
-            document.addEventListener('touchend', onBoxTouchEnd);
-        }, { passive: true });
-
         function onBoxMouseMove(e) {
             if (!isDraggingBox) return;
             puzzleBox.style.left = (e.clientX - startXBox) + 'px';
             puzzleBox.style.top = (e.clientY - startYBox) + 'px';
-        }
-
-        function onBoxTouchMove(e) {
-            if (!isDraggingBox) return;
-            let touch = e.touches[0];
-            puzzleBox.style.left = (touch.clientX - startXBox) + 'px';
-            puzzleBox.style.top = (touch.clientY - startYBox) + 'px';
         }
 
         function onBoxMouseUp() {
@@ -770,51 +816,6 @@
             document.removeEventListener('mousemove', onBoxMouseMove);
             document.removeEventListener('mouseup', onBoxMouseUp);
         }
-
-        function onBoxTouchEnd() {
-            isDraggingBox = false;
-            document.removeEventListener('touchmove', onBoxTouchMove);
-            document.removeEventListener('touchend', onBoxTouchEnd);
-        }
-        
-        // Muiscursor aanpassing bij hover over interactieve elementen
-        canvas.addEventListener("mousemove", function(event) {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            const room = rooms[currentRoomId];
-
-            let isHoverable = false;
-
-            // Monster / Sleutel in kamer 2
-            if (currentRoomId === 2) {
-                if (!room.monsterDefeated && mouseX >= 125 && mouseX <= 350 && mouseY >= 23 && mouseY <= 98) {
-                    isHoverable = true;
-                } else if (room.monsterDefeated && !room.keyCollected && mouseX >= 135 && mouseX <= 165 && mouseY >= 33 && mouseY <= 63) {
-                    isHoverable = true;
-                }
-            }
-
-            // Zwaard in kamer 3
-            if (currentRoomId === 3 && !room.swordCollected) {
-                if (mouseX >= 135 && mouseX <= 165 && mouseY >= 65 && mouseY <= 95) {
-                    isHoverable = true;
-                }
-            }
-
-            // Deuren / Muren
-            let clickedSide = -1;
-            if (mouseX >= 120 && mouseX <= 180 && mouseY >= 0 && mouseY <= 35) clickedSide = 0;
-            else if (mouseX >= 270 && mouseX <= 305 && mouseY >= 70 && mouseY <= 130) clickedSide = 1;
-            else if (mouseX >= 120 && mouseX <= 180 && mouseY >= 170 && mouseY <= 200) clickedSide = 2;
-            else if (mouseX >= 0 && mouseX <= 35 && mouseY >= 70 && mouseY <= 130) clickedSide = 3;
-
-            if (clickedSide !== -1 && room.doorWayStat[clickedSide] > 0) {
-                isHoverable = true;
-            }
-
-            canvas.style.cursor = isHoverable ? "pointer" : "default";
-        });
     </script>
 </body>
 </html>
