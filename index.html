@@ -3,297 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Supabase & Draggable UI</title>
+    <title>Puzzel Indienen</title>
+    <!-- Supabase JS Client -->
+	<!-- Supabase JS Client met cache-buster -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=999"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* Algemene stijl voor verplaatsbare vensters / panels */
-        .draggable-panel {
-            position: absolute;
-            background: #2b2b2b;
-            border: 2px solid #555;
-            border-radius: 6px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            cursor: default;
-            user-select: none;
-        }
-
-        /* Titelbalk om te verslepen */
-        .panel-header {
-            height: 30px;
-            background: #444;
-            color: #ffd700;
-            padding: 0 10px;
-            display: flex;
-            align-items: center;
-            font-weight: bold;
-            cursor: grab;
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-        }
-
-        .panel-header:active {
-            cursor: grabbing;
-        }
-
-        .panel-content {
-            padding: 0;
-        }
-
-        /* Speelveld container gepositioneerd */
-        #game-container {
-            top: 50px;
-            left: 50px;
-        }
-
-        /* Kamer afmetingen */
-        #room {
-            position: relative;
-            width: 300px;
-            height: 200px;
-            background-image: url('Empty_Room.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            overflow: hidden;
-        }
-
-        /* Dit element zorgt voor de vloeiende fade in/out */
-        #room-content {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 1;
-            transition: opacity 0.3s ease-in-out;
-        }
-
-        #room-content.fade-out {
-            opacity: 0;
-        }
-
-        /* Hero stijlen en rotaties */
-        #hero {
-            position: absolute;
-            width: 32px;
-            height: 32px;
-            background-image: url('Hero.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            pointer-events: none;
-            transition: left 0.1s, top 0.1s;
-        }
-
-        /* Overige panels */
-        .ui-panel {
-            width: 300px;
-            min-height: 150px;
-        }
-
-        #inventory-panel {
-            top: 50px;
-            left: 380px;
-        }
-
-        #quest-panel {
-            top: 250px;
-            left: 380px;
-        }
-		
-        .door-asset {
-            cursor: pointer;
-        }
+        body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; background-color: #fdfbf7; }
+        label, textarea, input { display: block; width: 100%; margin-bottom: 5px; }
+        textarea, input { margin-bottom: 15px; padding: 8px; box-sizing: border-box; }
+        .char-count { font-size: 0.8em; color: #666; margin-top: -10px; margin-bottom: 15px; text-align: right; }
+        button { background-color: #4a6fa5; color: white; padding: 10px; border: none; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
-
-    <!-- Speelveld Panel in Inventory stijl -->
-    <div id="game-container" class="draggable-panel ui-panel" data-id="game-container">
-        <div class="panel-header">Speelveld</div>
-        <div class="panel-content">
-            <div id="room">
-                <div id="room-content">
-                    <div id="hero"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Inventory Panel -->
-    <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header">Inventory</div>
-        <div class="panel-content" style="padding: 10px; font-size: 14px; color: #ccc;">Leeg (Laadt binnenkort uit Supabase)</div>
-    </div>
-
-    <!-- Communicatie / Opdracht Panel -->
-    <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
-        <div class="panel-header">Communicatie & Opdrachten</div>
-        <div class="panel-content" style="padding: 10px; font-size: 14px; color: #ccc;">Geen actieve opdrachten.</div>
-    </div>
-	
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <h2>Dien een nieuwe puzzel in</h2>
+    <form id="puzzleForm">
+        <label>Puzzelvraag (max 200 tekens):</label>
+        <textarea id="question" maxlength="200" rows="4" required></textarea>
+        <div id="qCount" class="char-count">0 / 200</div>
+        
+        <label>Oplossing (max 100 tekens):</label>
+        <input type="text" id="solution" maxlength="100" required>
+        <div id="sCount" class="char-count">0 / 100</div>
+        
+        <button type="submit">Puzzel Opslaan</button>
+    </form>
 
     <script>
-        // --- 1. Lokale Positie Opslaan & Laden (Draggable Logic) ---
-        const panels = document.querySelectorAll('.draggable-panel');
+	console.log("HÉ! IK LAAD DE NIEUWE VERSIE!");
+        // Initialiseer Supabase op de juiste manier
+        const supabaseUrl = 'https://mgqoxmnryqekrpjglffb.supabase.co/';
+        const supabaseKey = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+	 //	  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+	 
+	
 
-        panels.forEach(panel => {
-            const panelId = panel.getAttribute('data-id');
-            
-            const savedPos = localStorage.getItem(`panel_pos_${panelId}`);
-            if (savedPos) {
-                const pos = JSON.parse(savedPos);
-                panel.style.left = pos.left + 'px';
-                panel.style.top = pos.top + 'px';
-            }
+        // Live teken tellers voor extra gebruiksgemak
+        const qInput = document.getElementById('question');
+        const sInput = document.getElementById('solution');
+        const qCount = document.getElementById('qCount');
+        const sCount = document.getElementById('sCount');
 
-            const handle = panel.querySelector('.panel-header');
-            let isDragging = false;
-            let startX, startY;
-
-            handle.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.clientX - panel.offsetLeft;
-                startY = e.clientY - panel.offsetTop;
-                
-                panel.style.zIndex = 1000;
-                panels.forEach(p => { if(p !== panel) p.style.zIndex = 1; });
-
-                e.preventDefault();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                
-                let newX = e.clientX - startX;
-                let newY = e.clientY - startY;
-
-                panel.style.left = newX + 'px';
-                panel.style.top = newY + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    const pos = {
-                        left: panel.offsetLeft,
-                        top: panel.offsetTop
-                    };
-                    localStorage.setItem(`panel_pos_${panelId}`, JSON.stringify(pos));
-                }
-            });
+        qInput.addEventListener('input', () => {
+            qCount.textContent = `${qInput.value.length} / 200`;
+        });
+        sInput.addEventListener('input', () => {
+            sCount.textContent = `${sInput.value.length} / 100`;
         });
 
-        // --- 2. Supabase Koppeling & Kamer Laden met Fade Effect ---
-        const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co/';
-        const SUPABASE_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        document.getElementById('puzzleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const question = document.getElementById('question').value;
+            const solution = document.getElementById('solution').value;
 
-        async function loadRoom(roomId, spawnSide = null) {
-            const roomContent = document.getElementById('room-content');
+            console.log("Bezig met verzenden...", question, solution);
 
-            // Functie om de data op te halen en te tekenen in de wrapper
-            const updateRoomContent = async () => {
-                try {
-                    const { data, error } = await supabaseClient
-                        .from('rooms_md')
-                        .select('*')
-                        .eq('room_id', roomId)
-                        .single();
+            const { data, error } = await supabase
+                .from('Puzzle_Labyrinth')
+                .insert([{ 
+                    question: question, 
+                    solution: solution, 
+                    likes: 0,
+                    is_obsolete: false
+                }]);
 
-                    if (error) throw error;
-
-                    document.querySelector('#game-container .panel-header').textContent = `Speelveld - Kamer ${data.room_id}`;
-
-                    const hero = document.getElementById('hero');
-                    roomContent.innerHTML = ''; 
-                    roomContent.appendChild(hero);
-
-                    let hLeft = 132;
-                    let hTop = 143;
-                    let hRotation = '0deg';
-
-                    if (spawnSide === 0) { 
-                        hLeft = 134; hTop = 25; hRotation = '180deg'; 
-                    } else if (spawnSide === 1) { 
-                        hLeft = 245; hTop = 84; hRotation = '-90deg'; 
-                    } else if (spawnSide === 2) { 
-                        hLeft = 134; hTop = 145; hRotation = '0deg'; 
-                    } else if (spawnSide === 3) { 
-                        hLeft = 25; hTop = 84; hRotation = '90deg'; 
-                    }
-
-                    hero.style.left = hLeft + 'px';
-                    hero.style.top = hTop + 'px';
-                    hero.style.transform = `rotate(${hRotation})`;
-
-                    data.door_way_stat.forEach((type, side) => {
-                        if (type === 0) return;
-
-                        const img = document.createElement('img');
-                        img.src = (type === 2) ? 'DoorWay.png' : 'Door.png';
-                        img.className = 'door-asset';
-                        img.style.position = 'absolute';
-                        img.style.width = '50px';
-                        img.style.height = '50px';
-
-                        const sidesMap = ['top', 'right', 'bottom', 'left'];
-                        const currentSideName = sidesMap[side];
-                        
-                        const targetRoomId = (data.target_rooms && data.target_rooms[currentSideName] !== undefined) 
-                            ? data.target_rooms[currentSideName] 
-                            : 0;
-
-                        img.addEventListener('click', () => {
-                            if (targetRoomId !== undefined && targetRoomId !== -1) {
-                                const oppositeSides = { 0: 2, 1: 3, 2: 0, 3: 1 };
-                                const nextSpawnSide = oppositeSides[side];
-
-                                loadRoom(targetRoomId, nextSpawnSide);
-                            } else {
-                                console.log("Deze deur is dicht of heeft geen bestemming.");
-                            }
-                        });
-
-                        switch(side) {
-                            case 0: img.style.top = '-7px'; img.style.left = '125px'; break;
-                            case 1: img.style.top = '75px'; img.style.right = '-7px'; img.style.transform = 'rotate(90deg)'; break;
-                            case 2: img.style.bottom = '-7px'; img.style.left = '125px'; img.style.transform = 'rotate(180deg)'; break;
-                            case 3: img.style.top = '75px'; img.style.left = '-7px'; img.style.transform = 'rotate(-90deg)'; break;
-                        }
-                        roomContent.appendChild(img);
-                    });
-
-                } catch (err) {
-                    console.error("Fout bij laden van kamer:", err);
-                }
-            };
-
-            // Als het de eerste keer opstarten is, direct inladen zonder fade
-            if (spawnSide === null) {
-                await updateRoomContent();
-                return;
+            if (error) {
+                console.error("Supabase Error:", error);
+                alert('Oeps, fout van Supabase: ' + error.message);
+            } else {
+                console.log("Succes!", data);
+                alert('Puzzel succesvol opgeslagen in Supabase!');
+                document.getElementById('puzzleForm').reset();
+                qCount.textContent = "0 / 200";
+                sCount.textContent = "0 / 100";
             }
-
-            // 1. Fade de huidige kamer uit
-            roomContent.classList.add('fade-out');
-
-            // 2. Wacht tot de animatie klaar is (300ms), wissel de data en fade weer in
-            setTimeout(async () => {
-                await updateRoomContent();
-                roomContent.classList.remove('fade-out');
-            }, 300);
-        }
-
-        // Start het spel door Kamer 0 in te laden
-        loadRoom(0);
+        });
     </script>
 </body>
 </html>
