@@ -47,7 +47,16 @@
             padding: 0;
         }
 
-        #game-container { top: 50px; left: 50px; }
+        #game-container { top: 50px; left: 50px; width: 340px; }
+
+        /* Speelveld netjes gecentreerd binnen het paneel */
+        .room-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 220px;
+        }
 
         /* Kamer afmetingen (300x200) */
         #room {
@@ -85,9 +94,9 @@
             z-index: 10;
         }
 
-        .ui-panel { width: 300px; min-height: 150px; }
-        #inventory-panel { top: 50px; left: 380px; }
-        #quest-panel { top: 250px; left: 380px; }
+        .ui-panel { width: 320px; min-height: 150px; }
+        #inventory-panel { top: 50px; left: 410px; width: 300px; }
+        #quest-panel { top: 220px; left: 410px; width: 350px; max-height: 480px; overflow-y: auto; }
         
         .door-asset { 
             cursor: pointer; 
@@ -95,6 +104,11 @@
             width: 40px; 
             height: 40px; 
             z-index: 5; 
+            transition: filter 0.2s;
+        }
+
+        .door-asset.selected {
+            filter: drop-shadow(0 0 6px #ffd700);
         }
 
         .reset-btn {
@@ -107,19 +121,47 @@
             cursor: pointer;
         }
         .reset-btn:hover { background: #e74c3c; }
+
+        .quest-box {
+            padding: 12px;
+            font-size: 13px;
+            color: #ddd;
+            line-height: 1.4;
+        }
+
+        .quest-box button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 6px;
+            font-weight: bold;
+        }
+        .quest-box button:hover { background: #2980b9; }
+
+        .quest-box button.danger {
+            background: #c0392b;
+        }
+        .quest-box button.danger:hover {
+            background: #e74c3c;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container" class="draggable-panel ui-panel" data-id="game-container">
+    <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
             <span>Speelveld</span>
             <button class="reset-btn" onclick="resetGameCache()" title="Wis lokale cache en herlaad">Reset Cache</button>
         </div>
         <div class="panel-content">
-            <div id="room">
-                <div id="room-content">
-                    <div id="hero"></div>
+            <div class="room-wrapper">
+                <div id="room">
+                    <div id="room-content">
+                        <div id="hero"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -132,13 +174,13 @@
 
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
         <div class="panel-header"><span>Communicatie & Opdrachten</span></div>
-        <div id="quest-content" class="panel-content" style="padding: 10px; font-size: 14px; color: #ccc;">Klik op een deur om de puzzel te starten.</div>
+        <div id="quest-content" class="panel-content quest-box">Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.</div>
     </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Draggable Logic ---
+        // --- Draggable Logic (Desktop & Touch) ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
@@ -152,27 +194,42 @@
             const handle = panel.querySelector('.panel-header');
             let isDragging = false, startX, startY;
 
+            function startDrag(clientX, clientY) {
+                isDragging = true;
+                startX = clientX - panel.offsetLeft;
+                startY = clientY - panel.offsetTop;
+                panel.style.zIndex = 1000;
+            }
+
+            function onDrag(clientX, clientY) {
+                if (!isDragging) return;
+                panel.style.left = (clientX - startX) + 'px';
+                panel.style.top = (clientY - startY) + 'px';
+            }
+
             handle.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'BUTTON') return;
-                isDragging = true;
-                startX = e.clientX - panel.offsetLeft;
-                startY = e.clientY - panel.offsetTop;
-                panel.style.zIndex = 1000;
+                startDrag(e.clientX, e.clientY);
                 e.preventDefault();
             });
+            document.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
+            document.addEventListener('mouseup', () => { isDragging = false; savePos(); });
 
-            document.addEventListener('mousemove', (e) => {
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                const touch = e.touches[0];
+                startDrag(touch.clientX, touch.clientY);
+            });
+            document.addEventListener('touchmove', (e) => {
                 if (!isDragging) return;
-                panel.style.left = (e.clientX - startX) + 'px';
-                panel.style.top = (e.clientY - startY) + 'px';
+                const touch = e.touches[0];
+                onDrag(touch.clientX, touch.clientY);
             });
+            document.addEventListener('touchend', () => { isDragging = false; savePos(); });
 
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    localStorage.setItem(`panel_pos_${panelId}`, JSON.stringify({left: panel.offsetLeft, top: panel.offsetTop}));
-                }
-            });
+            function savePos() {
+                localStorage.setItem(`panel_pos_${panelId}`, JSON.stringify({left: panel.offsetLeft, top: panel.offsetTop}));
+            }
         });
 
         // --- Cache Reset Functie ---
@@ -184,11 +241,13 @@
         }
 
         // --- Supabase Koppeling ---
-        const supabaseUrl = 'https://mgqoxmnryqekrpjglffb.supabase.co/';
+        const supabaseUrl = 'https://mgqoxmnryqekrpjglffb.supabase.co';
         const supabaseKey = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
         const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
+
+        const wrongAttemptsTracker = {};
 
         function getLocalDoorStatus(x, y, wallSide) {
             const savedState = localStorage.getItem(`dungeon_unlocked_doors`);
@@ -196,15 +255,12 @@
             return !!stateMap[`${x}_${y}_${wallSide}`];
         }
 
-        // Slaat de deur open op HUIDIGE coördinaat ÉN direct aan de andere kant bij de buurman!
         function setLocalDoorStatus(posX, posY, wallSide) {
             const savedState = localStorage.getItem(`dungeon_unlocked_doors`);
             const stateMap = savedState ? JSON.parse(savedState) : {};
             
-            // 1. Markeer open op huidige kamer
             stateMap[`${posX}_${posY}_${wallSide}`] = true;
 
-            // 2. Bepaal doelcoördinaat en tegenspeler-muur om ook die kant direct te openen
             let targetX = posX;
             let targetY = posY;
             if (wallSide === 'north') targetY += 1;
@@ -218,8 +274,22 @@
             localStorage.setItem(`dungeon_unlocked_doors`, JSON.stringify(stateMap));
         }
 
+        function getFailAction(puzzle) {
+            const val = puzzle.fail_action || puzzle.reveal_answer;
+            if (val === 'no_answer' || val === 'no_reveal' || val === false || val === 'false') {
+                return 'no_answer';
+            }
+            if (val === 'paid_answer' || val === 'paid') {
+                return 'paid_answer';
+            }
+            return 'free_answer';
+        }
+
+        let selectedDoorKey = null;
+
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
             const roomContent = document.getElementById('room-content');
+            selectedDoorKey = null;
             
             const updateRoomContent = async () => {
                 try {
@@ -232,7 +302,7 @@
                     if (puzzleError) throw puzzleError;
 
                     const headerSpan = document.querySelector('#game-container .panel-header span');
-                    if(headerSpan) headerSpan.textContent = `(${posX}, ${posY}) Kamer ${puzzles?.[0]?.room_id || '?'}`;
+                    if(headerSpan) headerSpan.textContent = ` Kamer ${puzzles?.[0]?.room_id || '?'}`;
                     
                     const hero = document.getElementById('hero');
                     roomContent.innerHTML = ''; 
@@ -244,6 +314,8 @@
                         puzzles.forEach(puzzle => {
                             const img = document.createElement('img');
                             const wallSide = puzzle.wall_side;
+                            const doorKey = `${posX}_${posY}_${wallSide}`;
+                            img.setAttribute('data-doorkey', doorKey);
 
                             let targetX = posX;
                             let targetY = posY;
@@ -263,7 +335,7 @@
                             img.addEventListener('click', async () => {
                                 const { data: freshData } = await dbClient
                                     .from('Puzzle_Labyrinth')
-                                    .select('question')
+                                    .select('*')
                                     .eq('pos_x', posX)
                                     .eq('pos_y', posY)
                                     .eq('wall_side', wallSide)
@@ -272,22 +344,29 @@
                                 const liveHasPuzzle = freshData && freshData.question && freshData.question.trim() !== "";
                                 const liveSolved = !liveHasPuzzle || getLocalDoorStatus(posX, posY, wallSide);
 
-                                if (!liveSolved) {
-                                    triggerDoorPuzzle(puzzle, (success) => {
-                                        if (success) {
-                                            setLocalDoorStatus(posX, posY, wallSide);
-                                            img.src = 'DoorWay.png';
-                                        }
-                                    });
-                                } else {
+                                document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
+
+                                if (liveSolved) {
                                     loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
+                                } else {
+                                    if (selectedDoorKey !== doorKey) {
+                                        selectedDoorKey = doorKey;
+                                        img.classList.add('selected');
+                                        showDoorInfo(freshData, doorKey);
+                                    } else {
+                                        triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                            if (success) {
+                                                setLocalDoorStatus(posX, posY, wallSide);
+                                                img.src = 'DoorWay.png';
+                                                selectedDoorKey = null;
+                                            }
+                                        });
+                                    }
                                 }
                             });
 
                             roomContent.appendChild(img);
                         });
-                    } else {
-                        console.log(`Geen muren/puzzels gevonden voor coördinaat (${posX}, ${posY})`);
                     }
 
                 } catch (err) { 
@@ -306,67 +385,192 @@
             }
         }
 
+        function showDoorInfo(puzzle, doorKey) {
+            let hintCount = 0;
+            if (puzzle.hint_1 && puzzle.hint_1.trim() !== "") hintCount++;
+            if (puzzle.hint_2 && puzzle.hint_2.trim() !== "") hintCount++;
+
+            const failAction = getFailAction(puzzle);
+            let failActionText = "Antwoord wordt gratis onthuld";
+            if (failAction === "no_answer") {
+                failActionText = "Antwoord blijft geheim";
+            } else if (failAction === "paid_answer") {
+                failActionText = "Antwoord tegen betaling (Credits)";
+            }
+
+            const googleTimer = parseInt(puzzle.google_timer) || 0;
+            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
+            const wrongPenalty = parseInt(puzzle.wrong_penalty) || 0;
+            const maxReward = puzzle.max_reward !== undefined && puzzle.max_reward !== null ? puzzle.max_reward : 30;
+
+            const questContent = document.getElementById('quest-content');
+            
+            questContent.innerHTML = `
+                <p><strong>Deur gevonden (${puzzle.wall_side})</strong></p>
+                <p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Bekijk de eigenschappen. Klik nogmaals op de deur om de puzzel te starten.</p>
+                <ul style="padding-left: 15px; margin: 0; font-size: 12px; color: #ccc;">
+                    ${googleTimer > 0 ? `<li><strong>Timer:</strong> ${googleTimer}s</li>` : ''}
+                    <li><strong>Max Beloning:</strong> ${maxReward}</li>
+                    ${chickenPenalty > 0 ? `<li><strong>Chicken Penalty:</strong> ${chickenPenalty}</li>` : ''}
+                    ${wrongPenalty > 0 ? `<li><strong>Fout Penalty:</strong> ${wrongPenalty}</li>` : ''}
+                    <li><strong>Na 3 fouten:</strong> ${failActionText}</li>
+                    <li><strong>Hints beschikbaar:</strong> ${hintCount}</li>
+                </ul>
+                <button onclick="confirmStartPuzzle()">Start Puzzel</button>
+            `;
+        }
+
+        function confirmStartPuzzle() {
+            const selectedImg = document.querySelector('.door-asset.selected');
+            if (selectedImg) selectedImg.click();
+        }
+
         function setHeroPosition(hero, side) {
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
             switch(side) {
-                case 'north': 
-                    hero.style.left = '134px'; hero.style.top = '25px'; break;
-                case 'east': 
-                    hero.style.left = '235px'; hero.style.top = '84px'; break;
-                case 'south': 
-                    hero.style.left = '134px'; hero.style.top = '140px'; break;
-                case 'west': 
-                    hero.style.left = '30px'; hero.style.top = '84px'; break;
+                case 'north': hero.style.left = '134px'; hero.style.top = '25px'; break;
+                case 'east': hero.style.left = '235px'; hero.style.top = '84px'; break;
+                case 'south': hero.style.left = '134px'; hero.style.top = '140px'; break;
+                case 'west': hero.style.left = '30px'; hero.style.top = '84px'; break;
             }
             hero.style.transform = `rotate(${rotations[side] || '0deg'})`;
         }
 
         function setDoorPositionAndStyle(img, wallSide) {
             switch(wallSide) {
-                case 'north':
-                    img.style.top = '-5px';
-                    img.style.left = '130px';
-                    img.style.transform = 'rotate(0deg)';
-                    break;
-                case 'east':
-                    img.style.top = '80px';
-                    img.style.left = '265px';
-                    img.style.transform = 'rotate(90deg)';
-                    break;
-                case 'south':
-                    img.style.top = '165px';
-                    img.style.left = '130px';
-                    img.style.transform = 'rotate(180deg)';
-                    break;
-                case 'west':
-                    img.style.top = '80px';
-                    img.style.left = '-5px';
-                    img.style.transform = 'rotate(-90deg)';
-                    break;
+                case 'north': img.style.top = '0px'; img.style.left = '130px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '80px'; img.style.left = '260px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '160px'; img.style.left = '130px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '80px'; img.style.left = '0px'; img.style.transform = 'rotate(-90deg)'; break;
             }
         }
 
-        function triggerDoorPuzzle(puzzle, callback) {
+        function triggerDoorPuzzle(puzzle, doorKey, callback) {
             const questContent = document.getElementById('quest-content');
             const q = puzzle.question || "Los de puzzel op:";
-            const a = puzzle.solution || "open";
+            const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
+            const failAction = getFailAction(puzzle);
+            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
 
-            questContent.innerHTML = `
-                <p><strong>Vraag:</strong> ${q}</p>
-                <input type="text" id="p-ans" placeholder="Jouw antwoord..." style="width: 80%; padding: 5px; margin-bottom: 5px;"><br>
-                <button id="btn-ans" style="padding: 5px 10px; cursor: pointer;">Beantwoord</button>
-            `;
+            if (wrongAttemptsTracker[doorKey] === undefined) {
+                wrongAttemptsTracker[doorKey] = 0;
+            }
 
-            document.getElementById('btn-ans').onclick = () => {
-                const userAnswer = document.getElementById('p-ans').value.trim();
-                if(userAnswer.toLowerCase() === a.toLowerCase()) {
-                    questContent.innerHTML = "<span style='color: #4cd137;'>Juist! De deur is nu een open doorgang. Klik nogmaals om door te lopen.</span>";
-                    callback(true);
-                } else {
-                    questContent.innerHTML += "<br><span style='color: #ff6b6b;'>Fout antwoord! Probeer opnieuw.</span>";
-                    callback(false);
+            function renderPuzzleScreen() {
+                let wrongCount = wrongAttemptsTracker[doorKey];
+                let hintsHtml = '';
+                
+                if (wrongCount >= 1 && puzzle.hint_1 && puzzle.hint_1.trim() !== "") {
+                    hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 1:</strong> ${puzzle.hint_1} (${puzzle.hint_1_option || ''})</p>`;
                 }
-            };
+                if (wrongCount >= 2 && puzzle.hint_2 && puzzle.hint_2.trim() !== "") {
+                    hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
+                }
+
+                if (wrongCount >= 3) {
+                    let maxActionsHtml = `<p style='color: #ff6b6b; font-weight: bold;'>Je hebt 3 fouten gemaakt!</p>`;
+                    
+                    if (failAction === "free_answer") {
+                        maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}')">Onthul Antwoord (Gratis)</button><br>`;
+                    } else if (failAction === "paid_answer") {
+                        maxActionsHtml += `<button onclick="alert('Credits systeem volgt nog!')">Koop Antwoord (Credits)</button><br>`;
+                    } else {
+                        maxActionsHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
+                    }
+                    
+                    const penaltyText = chickenPenalty > 0 ? ` (Chicken Penalty: ${chickenPenalty})` : '';
+                    maxActionsHtml += `<button class="danger" onclick="abandonPuzzle(${chickenPenalty})">Verlaat Kamer${penaltyText}</button>`;
+
+                    questContent.innerHTML = `
+                        <p><strong>Vraag:</strong> ${q}</p>
+                        ${hintsHtml}
+                        ${maxActionsHtml}
+                        <div id="feedback-msg" style="margin-top: 6px;"></div>
+                    `;
+                    return;
+                }
+
+                questContent.innerHTML = `
+                    <p><strong>Vraag:</strong> ${q}</p>
+                    <div id="hint-container">${hintsHtml}</div>
+                    <input type="text" id="p-ans" placeholder="Jouw antwoord..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
+                    <button id="btn-ans">Beantwoord</button>
+                    <button class="danger" onclick="abandonPuzzle(${chickenPenalty})" style="margin-left: 5px;">Verlaat</button>
+                    <div id="feedback-msg" style="margin-top: 6px;"></div>
+                `;
+
+                document.getElementById('btn-ans').onclick = () => {
+                    const ansInput = document.getElementById('p-ans');
+                    const feedbackDiv = document.getElementById('feedback-msg');
+                    const userAnswer = ansInput.value.trim();
+
+                    if(userAnswer.toLowerCase() === a.toLowerCase()) {
+                        questContent.innerHTML = "<span style='color: #4cd137;'>Juist! De deur is nu een open doorgang. Klik nogmaals op de deur om door te lopen.</span>";
+                        wrongAttemptsTracker[doorKey] = 0;
+                        callback(true);
+                    } else {
+                        wrongAttemptsTracker[doorKey]++;
+                        let currentWrong = wrongAttemptsTracker[doorKey];
+
+                        let feedbackMsg = `<span style='color: #ff6b6b;'>Fout antwoord! (Fouten: ${currentWrong}/3)</span>`;
+                        if (currentWrong === 1 && puzzle.hint_1) {
+                            feedbackMsg += `<br><span style='color: #3498db;'>💡 Hint 1 is vrijgegeven!</span>`;
+                        } else if (currentWrong === 2 && puzzle.hint_2) {
+                            feedbackMsg += `<br><span style='color: #3498db;'>💡 Hint 2 is vrijgegeven!</span>`;
+                        }
+
+                        feedbackDiv.innerHTML = feedbackMsg;
+                        ansInput.value = '';
+
+                        if (currentWrong >= 3) {
+                            renderPuzzleScreen();
+                        } else {
+                            let updatedHintsHtml = '';
+                            if (currentWrong >= 1 && puzzle.hint_1 && puzzle.hint_1.trim() !== "") {
+                                updatedHintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 1:</strong> ${puzzle.hint_1} (${puzzle.hint_1_option || ''})</p>`;
+                            }
+                            if (currentWrong >= 2 && puzzle.hint_2 && puzzle.hint_2.trim() !== "") {
+                                updatedHintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
+                            }
+                            const hintContainer = document.getElementById('hint-container');
+                            if(hintContainer) hintContainer.innerHTML = updatedHintsHtml;
+                        }
+
+                        callback(false);
+                    }
+                };
+            }
+
+            renderPuzzleScreen();
+        }
+
+        function revealDoorAnswer(correctAnswer, doorKey) {
+            const questContent = document.getElementById('quest-content');
+            questContent.innerHTML = `<span style='color: #ffd700;'>Het juiste antwoord is: <strong>${correctAnswer}</strong>. De deur is nu geopend! Je kunt nu doorlopen.</span>`;
+            
+            wrongAttemptsTracker[doorKey] = 0;
+            
+            const parts = doorKey.split('_');
+            const posX = parseInt(parts[0]);
+            const posY = parseInt(parts[1]);
+            const wallSide = parts[2];
+
+            // Sla de open status op in localStorage (inclusief target kamer)
+            setLocalDoorStatus(posX, posY, wallSide);
+
+            // Zoek direct de deur in de huidige kamer op basis van de doorKey en pas de afbeelding aan naar DoorWay.png
+            const doorElement = document.querySelector(`[data-doorkey="${doorKey}"]`);
+            if (doorElement) {
+                doorElement.src = 'DoorWay.png';
+            }
+        }
+
+        function abandonPuzzle(penalty = 0) {
+            const questContent = document.getElementById('quest-content');
+            const penMsg = penalty > 0 ? ` (Chicken Penalty: ${penalty} toegepast)` : '';
+            questContent.innerHTML = `<span style='color: #ff6b6b;'>Je hebt de puzzel verlaten${penMsg}. Klik op een andere deur om verder te gaan.</span>`;
+            document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
+            selectedDoorKey = null;
         }
 
         // Start het spel op coördinaat (0, 0)
