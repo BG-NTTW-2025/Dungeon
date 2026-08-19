@@ -275,6 +275,7 @@
             if(confirm('Weet je zeker dat je alle lokale deurstatussen wilt wissen?')) {
                 localStorage.removeItem('dungeon_unlocked_doors');
                 localStorage.removeItem('dungeon_timer_states');
+                localStorage.removeItem('dungeon_voted_doors');
                 location.reload();
             }
         }
@@ -303,6 +304,22 @@
         function getTimerState(doorKey) {
             const map = getTimerStateMap();
             return map[doorKey] || null;
+        }
+
+        function getVotedDoorsMap() {
+            const saved = localStorage.getItem('dungeon_voted_doors');
+            return saved ? JSON.parse(saved) : {};
+        }
+
+        function markDoorVoted(doorKey) {
+            const map = getVotedDoorsMap();
+            map[doorKey] = true;
+            localStorage.setItem('dungeon_voted_doors', JSON.stringify(map));
+        }
+
+        function hasVotedDoor(doorKey) {
+            const map = getVotedDoorsMap();
+            return !!map[doorKey];
         }
 
         function getLocalDoorStatus(x, y, wallSide) {
@@ -411,18 +428,28 @@
                                 if (liveSolved) {
                                     loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                                 } else {
-                                    if (selectedDoorKey !== doorKey) {
+                                    const timerState = getTimerState(doorKey);
+                                    const isTimerExpired = timerState && timerState.expired;
+
+                                    if (isTimerExpired) {
+                                        // Als de timer al verlopen is: direct door naar het eindscherm (afb. 2 logica)
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
-                                        showDoorInfo(freshData, doorKey);
+                                        triggerDoorPuzzle(freshData, doorKey, () => {});
                                     } else {
-                                        triggerDoorPuzzle(freshData, doorKey, (success) => {
-                                            if (success) {
-                                                setLocalDoorStatus(posX, posY, wallSide);
-                                                img.src = 'DoorWay.png';
-                                                selectedDoorKey = null;
-                                            }
-                                        });
+                                        if (selectedDoorKey !== doorKey) {
+                                            selectedDoorKey = doorKey;
+                                            img.classList.add('selected');
+                                            showDoorInfo(freshData, doorKey);
+                                        } else {
+                                            triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                                if (success) {
+                                                    setLocalDoorStatus(posX, posY, wallSide);
+                                                    img.src = 'DoorWay.png';
+                                                    selectedDoorKey = null;
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             });
@@ -460,9 +487,6 @@
                 failActionText = "Antwoord tegen betaling (Rinths)";
             }
 
-            const timerState = getTimerState(doorKey);
-            const isTimerExpired = timerState && timerState.expired;
-
             const googleTimer = parseInt(puzzle.google_timer) || 0;
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
             const wrongPenalty = parseInt(puzzle.wrong_penalty) || 0;
@@ -472,10 +496,9 @@
             
             questContent.innerHTML = `
                 <p><strong>Deur gevonden (${puzzle.wall_side})</strong></p>
-                ${isTimerExpired ? `<p style="color: #ff6b6b; font-weight: bold; font-size: 12px;">⚠️ Google Timer is reeds verlopen voor deze deur!</p>` : ''}
                 <p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Bekijk de eigenschappen. Klik nogmaals op de deur om de puzzel te starten.</p>
                 <ul style="padding-left: 15px; margin: 0; font-size: 12px; color: #ccc;">
-                    ${googleTimer > 0 ? `<li><strong>Timer:</strong> ${isTimerExpired ? '0s (Verlopen)' : googleTimer + 's'}</li>` : ''}
+                    ${googleTimer > 0 ? `<li><strong>Timer:</strong> ${googleTimer}s</li>` : ''}
                     <li><strong>Max Beloning:</strong> ${maxReward}</li>
                     ${chickenPenalty > 0 ? `<li><strong>Chicken Penalty:</strong> ${chickenPenalty}</li>` : ''}
                     ${wrongPenalty > 0 ? `<li><strong>Fout Penalty:</strong> ${wrongPenalty}</li>` : ''}
@@ -561,13 +584,19 @@
                         expiredHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
                     }
 
-                    expiredHtml += `
-                        <p style="margin-top:12px; font-size:12px;">Beoordeel deze puzzel:</p>
-                        <div id="rating-buttons">
-                            <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1)"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
-                            <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1)"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
-                        </div>
-                    `;
+                    // Controleer of de speler al gestemd heeft voor deze deur
+                    const alreadyVoted = hasVotedDoor(doorKey);
+                    if (!alreadyVoted) {
+                        expiredHtml += `
+                            <p style="margin-top:12px; font-size:12px;">Beoordeel deze puzzel:</p>
+                            <div id="rating-buttons">
+                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
+                            </div>
+                        `;
+                    } else {
+                        expiredHtml += `<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`;
+                    }
 
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
@@ -620,7 +649,6 @@
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
-                // Start timer als deze actief is en nog niet verlopen
                 if (initialTimer > 0 && !activeTimerInterval && !isExpired) {
                     activeTimerInterval = setInterval(() => {
                         timeLeft--;
@@ -653,13 +681,17 @@
                         playerState.score += maxReward;
                         updateHeaderScore();
 
+                        const alreadyVoted = hasVotedDoor(doorKey);
+
                         questContent.innerHTML = `
                             <span style='color: #4cd137;'>Juist! Je hebt ${maxReward} punten verdiend. De deur is nu open.</span><br>
-                            <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
-                            <div id="rating-buttons">
-                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1)"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
-                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1)"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
-                            </div>
+                            ${!alreadyVoted ? `
+                                <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
+                                <div id="rating-buttons">
+                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
+                                </div>
+                            ` : `<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`}
                         `;
                         wrongAttemptsTracker[doorKey] = 0;
                         callback(true);
@@ -713,13 +745,16 @@
             }
         }
 
-        async function ratePuzzle(puzzleId, vote) {
+        async function ratePuzzle(puzzleId, vote, doorKey) {
             try {
                 const { data: current } = await dbClient.from('Puzzle_Labyrinth').select('likes').eq('id', puzzleId).single();
                 if (current) {
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
+                    // Markeer lokaal dat deze deur gestemd heeft
+                    markDoorVoted(doorKey);
+
                     const ratingDiv = document.getElementById('rating-buttons');
                     if (ratingDiv) {
                         ratingDiv.innerHTML = "<span style='color: #4cd137; font-size: 12px;'>Bedankt voor je beoordeling!</span>";
