@@ -49,7 +49,6 @@
 
         #game-container { top: 50px; left: 50px; width: 340px; }
 
-        /* Speelveld netjes gecentreerd binnen het paneel */
         .room-wrapper {
             display: flex;
             justify-content: center;
@@ -58,7 +57,6 @@
             height: 220px;
         }
 
-        /* Kamer afmetingen (300x200) */
         #room {
             position: relative;
             width: 300px;
@@ -147,13 +145,27 @@
         .quest-box button.danger:hover {
             background: #e74c3c;
         }
+
+        .inventory-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #4cd137;
+        }
+
+        .inventory-item img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
 
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
-            <span>Speelveld</span>
+            <span id="game-header-title">Speelveld</span>
             <button class="reset-btn" onclick="resetGameCache()" title="Wis lokale cache en herlaad">Reset Cache</button>
         </div>
         <div class="panel-content">
@@ -168,8 +180,13 @@
     </div>
 
     <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header"><span>Inventory</span></div>
-        <div class="panel-content" style="padding: 10px; font-size: 14px; color: #ccc;">Leeg</div>
+        <div class="panel-header"><span>Inventory & Valuta</span></div>
+        <div id="inventory-content" class="panel-content" style="padding: 12px; font-size: 14px; color: #ccc;">
+            <div class="inventory-item">
+                <img src="rinth_symb.png" alt="Rinth" onerror="this.style.display='none'">
+                <span>Rinths: <strong id="rinth-count" style="color: #ffd700;">0</strong></span>
+            </div>
+        </div>
     </div>
 
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
@@ -180,6 +197,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        // --- Speler Status & Valuta ---
+        let playerState = {
+            score: 0,
+            rinths: 10 // Start met 10 Rinths als test
+        };
+
+        function updatePlayerUI() {
+            const rinthElem = document.getElementById('rinth-count');
+            if (rinthElem) rinthElem.textContent = playerState.rinths;
+        }
+        updatePlayerUI();
+
         // --- Draggable Logic (Desktop & Touch) ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
@@ -301,8 +330,11 @@
 
                     if (puzzleError) throw puzzleError;
 
-                    const headerSpan = document.querySelector('#game-container .panel-header span');
-                    if(headerSpan) headerSpan.textContent = ` Kamer ${puzzles?.[0]?.room_id || '?'}`;
+                    const headerSpan = document.getElementById('game-header-title');
+                    if(headerSpan) {
+                        const roomId = puzzles?.[0]?.room_id || '?';
+                        headerSpan.innerHTML = `Kamer ${roomId} | Score: <strong style="color: #4cd137;">${playerState.score}</strong>`;
+                    }
                     
                     const hero = document.getElementById('hero');
                     roomContent.innerHTML = ''; 
@@ -395,7 +427,7 @@
             if (failAction === "no_answer") {
                 failActionText = "Antwoord blijft geheim";
             } else if (failAction === "paid_answer") {
-                failActionText = "Antwoord tegen betaling (Credits)";
+                failActionText = "Antwoord tegen betaling (Rinths)";
             }
 
             const googleTimer = parseInt(puzzle.google_timer) || 0;
@@ -409,9 +441,9 @@
                 <p><strong>Deur gevonden (${puzzle.wall_side})</strong></p>
                 <p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Bekijk de eigenschappen. Klik nogmaals op de deur om de puzzel te starten.</p>
                 <ul style="padding-left: 15px; margin: 0; font-size: 12px; color: #ccc;">
-                    ${googleTimer > 0 ? `<li><strong>Timer:</strong> ${googleTimer}s</li>` : ''}
+                    ${googleTimer > 0 ? `<li><strong>Timer:</strong> <img src="google_symb.png" style="width:14px; vertical-align:middle;" onerror="this.style.display='none'">${googleTimer}s</li>` : ''}
                     <li><strong>Max Beloning:</strong> ${maxReward}</li>
-                    ${chickenPenalty > 0 ? `<li><strong>Chicken Penalty:</strong> ${chickenPenalty}</li>` : ''}
+                    ${chickenPenalty > 0 ? `<li><strong>Chicken Penalty:</strong> <img src="Chicken_symb.png" style="width:14px; vertical-align:middle;" onerror="this.style.display='none'">${chickenPenalty}</li>` : ''}
                     ${wrongPenalty > 0 ? `<li><strong>Fout Penalty:</strong> ${wrongPenalty}</li>` : ''}
                     <li><strong>Na 3 fouten:</strong> ${failActionText}</li>
                     <li><strong>Hints beschikbaar:</strong> ${hintCount}</li>
@@ -451,6 +483,7 @@
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
             const failAction = getFailAction(puzzle);
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
+            const maxReward = parseInt(puzzle.max_reward) || 30;
 
             if (wrongAttemptsTracker[doorKey] === undefined) {
                 wrongAttemptsTracker[doorKey] = 0;
@@ -471,15 +504,15 @@
                     let maxActionsHtml = `<p style='color: #ff6b6b; font-weight: bold;'>Je hebt 3 fouten gemaakt!</p>`;
                     
                     if (failAction === "free_answer") {
-                        maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}')">Onthul Antwoord (Gratis)</button><br>`;
+                        maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Onthul Antwoord (Gratis)</button><br>`;
                     } else if (failAction === "paid_answer") {
-                        maxActionsHtml += `<button onclick="alert('Credits systeem volgt nog!')">Koop Antwoord (Credits)</button><br>`;
+                        maxActionsHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', 5, ${maxReward})">Koop Antwoord (5 Rinths)</button><br>`;
                     } else {
                         maxActionsHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
                     }
                     
                     const penaltyText = chickenPenalty > 0 ? ` (Chicken Penalty: ${chickenPenalty})` : '';
-                    maxActionsHtml += `<button class="danger" onclick="abandonPuzzle(${chickenPenalty})">Verlaat Kamer${penaltyText}</button>`;
+                    maxActionsHtml += `<button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})">Verlaat Kamer${penaltyText}</button>`;
 
                     questContent.innerHTML = `
                         <p><strong>Vraag:</strong> ${q}</p>
@@ -495,7 +528,7 @@
                     <div id="hint-container">${hintsHtml}</div>
                     <input type="text" id="p-ans" placeholder="Jouw antwoord..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
                     <button id="btn-ans">Beantwoord</button>
-                    <button class="danger" onclick="abandonPuzzle(${chickenPenalty})" style="margin-left: 5px;">Verlaat</button>
+                    <button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})" style="margin-left: 5px;">Verlaat</button>
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
@@ -504,15 +537,33 @@
                     const feedbackDiv = document.getElementById('feedback-msg');
                     const userAnswer = ansInput.value.trim();
 
+                    // Validatie: minimaal 1 teken vereist
+                    if (userAnswer.length === 0) {
+                        feedbackDiv.innerHTML = `<span style='color: #ff9800;'>Vul ten minste 1 teken in!</span>`;
+                        return;
+                    }
+
                     if(userAnswer.toLowerCase() === a.toLowerCase()) {
-                        questContent.innerHTML = "<span style='color: #4cd137;'>Juist! De deur is nu een open doorgang. Klik nogmaals op de deur om door te lopen.</span>";
+                        playerState.score += maxReward;
+                        updateHeaderScore();
+
+                        questContent.innerHTML = `
+                            <span style='color: #4cd137;'>Juist! Je hebt ${maxReward} punten verdiend. De deur is nu open.</span><br>
+                            <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
+                            <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1)"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                            <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1)"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
+                        `;
                         wrongAttemptsTracker[doorKey] = 0;
                         callback(true);
                     } else {
                         wrongAttemptsTracker[doorKey]++;
                         let currentWrong = wrongAttemptsTracker[doorKey];
+                        const wrongPenalty = parseInt(puzzle.wrong_penalty) || 10;
+                        
+                        playerState.score -= wrongPenalty;
+                        updateHeaderScore();
 
-                        let feedbackMsg = `<span style='color: #ff6b6b;'>Fout antwoord! (Fouten: ${currentWrong}/3)</span>`;
+                        let feedbackMsg = `<span style='color: #ff6b6b;'>Fout antwoord! (-${wrongPenalty} pts, Fouten: ${currentWrong}/3)</span>`;
                         if (currentWrong === 1 && puzzle.hint_1) {
                             feedbackMsg += `<br><span style='color: #3498db;'>💡 Hint 1 is vrijgegeven!</span>`;
                         } else if (currentWrong === 2 && puzzle.hint_2) {
@@ -544,9 +595,31 @@
             renderPuzzleScreen();
         }
 
-        function revealDoorAnswer(correctAnswer, doorKey) {
+        function updateHeaderScore() {
+            const headerSpan = document.getElementById('game-header-title');
+            if(headerSpan) {
+                const parts = headerSpan.textContent.split('|');
+                const roomPart = parts[0] ? parts[0].trim() : 'Speelveld';
+                headerSpan.innerHTML = `${roomPart} | Score: <strong style="color: #4cd137;">${playerState.score}</strong>`;
+            }
+        }
+
+        async function ratePuzzle(puzzleId, vote) {
+            try {
+                const { data: current } = await dbClient.from('Puzzle_Labyrinth').select('likes').eq('id', puzzleId).single();
+                if (current) {
+                    const newLikes = (current.likes || 0) + vote;
+                    await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
+                    alert("Bedankt voor je beoordeling!");
+                }
+            } catch (err) {
+                console.error("Fout bij waarderen:", err);
+            }
+        }
+
+        function revealDoorAnswer(correctAnswer, doorKey, maxReward) {
             const questContent = document.getElementById('quest-content');
-            questContent.innerHTML = `<span style='color: #ffd700;'>Het juiste antwoord is: <strong>${correctAnswer}</strong>. De deur is nu geopend! Je kunt nu doorlopen.</span>`;
+            questContent.innerHTML = `<span style='color: #ffd700;'>Het juiste antwoord is: <strong>${correctAnswer}</strong>. De deur is nu geopend!</span>`;
             
             wrongAttemptsTracker[doorKey] = 0;
             
@@ -555,19 +628,30 @@
             const posY = parseInt(parts[1]);
             const wallSide = parts[2];
 
-            // Sla de open status op in localStorage (inclusief target kamer)
             setLocalDoorStatus(posX, posY, wallSide);
 
-            // Zoek direct de deur in de huidige kamer op basis van de doorKey en pas de afbeelding aan naar DoorWay.png
             const doorElement = document.querySelector(`[data-doorkey="${doorKey}"]`);
             if (doorElement) {
                 doorElement.src = 'DoorWay.png';
             }
         }
 
-        function abandonPuzzle(penalty = 0) {
+        function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
+            if (playerState.rinths < cost) {
+                alert("Je hebt niet genoeg Rinths om dit antwoord te kopen!");
+                return;
+            }
+            playerState.rinths -= cost;
+            updatePlayerUI();
+            revealDoorAnswer(correctAnswer, doorKey, maxReward);
+        }
+
+        function abandonPuzzle(penalty = 0, maxReward = 30) {
+            playerState.score -= penalty;
+            updateHeaderScore();
+
             const questContent = document.getElementById('quest-content');
-            const penMsg = penalty > 0 ? ` (Chicken Penalty: ${penalty} toegepast)` : '';
+            const penMsg = penalty > 0 ? ` (Chicken Penalty: -${penalty} punten)` : '';
             questContent.innerHTML = `<span style='color: #ff6b6b;'>Je hebt de puzzel verlaten${penMsg}. Klik op een andere deur om verder te gaan.</span>`;
             document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
             selectedDoorKey = null;
