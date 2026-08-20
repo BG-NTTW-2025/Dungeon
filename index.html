@@ -590,7 +590,7 @@
                         expiredHtml += `
                             <p style="margin-top:12px; font-size:12px;">Beoordeel deze puzzel:</p>
                             <div id="rating-buttons">
-                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="Like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                 <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                             </div>
                         `;
@@ -688,7 +688,7 @@
                             ${!alreadyVoted ? `
                                 <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
                                 <div id="rating-buttons">
-                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="Like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                     <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                                 </div>
                             ` : `<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`}
