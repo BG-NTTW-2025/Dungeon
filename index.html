@@ -364,7 +364,7 @@
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
 
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
             document.getElementById('quest-content').innerHTML = "Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.";
             
             const updateRoomContent = async () => {
@@ -432,7 +432,6 @@
                                     const isTimerExpired = timerState && timerState.expired;
 
                                     if (isTimerExpired) {
-                                        // Als de timer al verlopen is: direct door naar het eindscherm (afb. 2 logica)
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
                                         triggerDoorPuzzle(freshData, doorKey, () => {});
@@ -484,7 +483,8 @@
             if (failAction === "no_answer") {
                 failActionText = "Antwoord blijft geheim";
             } else if (failAction === "paid_answer") {
-                failActionText = "Antwoord tegen betaling (Rinths)";
+                const cost = puzzle.credits_cost || 5;
+                failActionText = `Antwoord tegen betaling (${cost} Rinths)`;
             }
 
             const googleTimer = parseInt(puzzle.google_timer) || 0;
@@ -541,6 +541,7 @@
             const failAction = getFailAction(puzzle);
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
             const maxReward = parseInt(puzzle.max_reward) || 30;
+            const creditsCost = parseInt(puzzle.credits_cost) || 5;
             
             const initialTimer = parseInt(puzzle.google_timer) || 0;
             let timerState = getTimerState(doorKey);
@@ -557,7 +558,7 @@
                 wrongAttemptsTracker[doorKey] = 0;
             }
 
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
 
             function renderPuzzleScreen() {
                 let wrongCount = wrongAttemptsTracker[doorKey];
@@ -570,27 +571,26 @@
                     hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
                 }
 
-                // Als de timer al verlopen is of op 0 staat
-                if (isExpired || timeLeft <= 0) {
-                    if (activeTimerInterval) clearInterval(activeTimerInterval);
+                // Als de timer aan staat (> 0) en verlopen is
+                if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
+                    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
                     
                     let expiredHtml = `<p style='color: #ff6b6b; font-weight: bold;'>De Google Timer is verlopen! Antwoorden niet meer mogelijk.</p>`;
                     
                     if (failAction === "free_answer") {
                         expiredHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Onthul Antwoord (Gratis)</button><br>`;
                     } else if (failAction === "paid_answer") {
-                        expiredHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', 5, ${maxReward})">Koop Antwoord (5 Rinths)</button><br>`;
+                        expiredHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', ${creditsCost}, ${maxReward})">Koop Antwoord (${creditsCost} Rinths)</button><br>`;
                     } else {
                         expiredHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
                     }
 
-                    // Controleer of de speler al gestemd heeft voor deze deur
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += `
                             <p style="margin-top:12px; font-size:12px;">Beoordeel deze puzzel:</p>
                             <div id="rating-buttons">
-                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="Like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                 <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                             </div>
                         `;
@@ -601,7 +601,7 @@
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
                             <span><strong>Vraag:</strong> ${q}</span>
-                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>` : ''}
+                            <span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>
                         </div>
                         ${hintsHtml}
                         ${expiredHtml}
@@ -610,13 +610,13 @@
                 }
 
                 if (wrongCount >= 3) {
-                    if (activeTimerInterval) clearInterval(activeTimerInterval);
+                    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
                     let maxActionsHtml = `<p style='color: #ff6b6b; font-weight: bold;'>Je hebt 3 fouten gemaakt!</p>`;
                     
                     if (failAction === "free_answer") {
                         maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Onthul Antwoord (Gratis)</button><br>`;
                     } else if (failAction === "paid_answer") {
-                        maxActionsHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', 5, ${maxReward})">Koop Antwoord (5 Rinths)</button><br>`;
+                        maxActionsHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', ${creditsCost}, ${maxReward})">Koop Antwoord (${creditsCost} Rinths)</button><br>`;
                     } else {
                         maxActionsHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
                     }
@@ -627,7 +627,7 @@
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
                             <span><strong>Vraag:</strong> ${q}</span>
-                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
+                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                         </div>
                         ${hintsHtml}
                         ${maxActionsHtml}
@@ -639,7 +639,7 @@
                 questContent.innerHTML = `
                     <div class="quest-header-flex">
                         <span><strong>Vraag:</strong> ${q}</span>
-                        ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
+                        ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                     </div>
                     <div id="hint-container">${hintsHtml}</div>
                     <input type="text" id="p-ans" placeholder="Jouw antwoord..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
@@ -649,6 +649,7 @@
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
+                // Start timer alleen als initialTimer groter is dan 0
                 if (initialTimer > 0 && !activeTimerInterval && !isExpired) {
                     activeTimerInterval = setInterval(() => {
                         timeLeft--;
@@ -658,8 +659,7 @@
                         setTimerState(doorKey, { expired: timeLeft <= 0, timeLeft: timeLeft });
 
                         if (timeLeft <= 0) {
-                            clearInterval(activeTimerInterval);
-                            activeTimerInterval = null;
+                            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
                             isExpired = true;
                             renderPuzzleScreen();
                         }
@@ -688,7 +688,7 @@
                             ${!alreadyVoted ? `
                                 <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
                                 <div id="rating-buttons">
-                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
+                                    <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="Like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                     <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                                 </div>
                             ` : `<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`}
@@ -752,7 +752,6 @@
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
-                    // Markeer lokaal dat deze deur gestemd heeft
                     markDoorVoted(doorKey);
 
                     const ratingDiv = document.getElementById('rating-buttons');
@@ -787,7 +786,7 @@
 
         function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
             if (playerState.rinths < cost) {
-                alert("Je hebt niet genoeg Rinths om dit antwoord te kopen!");
+                alert(`Je hebt niet genoeg Rinths (${cost} nodig) om dit antwoord te kopen!`);
                 return;
             }
             playerState.rinths -= cost;
