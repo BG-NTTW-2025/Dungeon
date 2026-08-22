@@ -200,7 +200,7 @@
 
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
         <div class="panel-header"><span>Communicatie & Assignments</span></div>
-        <div id="quest-content" class="panel-content quest-box">Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.</div>
+        <div id="quest-content" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
     </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -272,7 +272,7 @@
 
         // --- Cache Reset Functie ---
         function resetGameCache() {
-            if(confirm('Weet je zeker dat je alle lokale deurstatussen wilt wissen?')) {
+            if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
                 localStorage.removeItem('dungeon_unlocked_doors');
                 localStorage.removeItem('dungeon_timer_states');
                 localStorage.removeItem('dungeon_voted_doors');
@@ -365,7 +365,7 @@
             selectedDoorKey = null;
 
             if (activeTimerInterval) clearInterval(activeTimerInterval);
-            document.getElementById('quest-content').innerHTML = "Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.";
+            document.getElementById('quest-content').innerHTML = "Click on a door to view the details. Click again to play the puzzle.";
             
             const updateRoomContent = async () => {
                 try {
@@ -495,8 +495,8 @@
             const questContent = document.getElementById('quest-content');
             
             questContent.innerHTML = `
-                <p><strong>Deur gevonden (${puzzle.wall_side})</strong></p>
-                <p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Bekijk de eigenschappen. Klik nogmaals op de deur om de puzzel te starten.</p>
+                <p><strong>Door found (${puzzle.wall_side})</strong></p>
+                <p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">View the properties. Click the door again to start the puzzle.</p>
                 <ul style="padding-left: 15px; margin: 0; font-size: 12px; color: #ccc;">
                     ${googleTimer > 0 ? `<li><strong>Timer:</strong> ${googleTimer}s</li>` : ''}
                     <li><strong>Max Beloning:</strong> ${maxReward}</li>
@@ -684,7 +684,7 @@
                         const alreadyVoted = hasVotedDoor(doorKey);
 
                         questContent.innerHTML = `
-                            <span style='color: #4cd137;'>Juist! Je hebt ${maxReward} punten verdiend. De deur is nu open.</span><br>
+                            <span style='color: #4cd137;'>Correct! You have earned ${maxReward} points. The door is open now.</span><br>
                             ${!alreadyVoted ? `
                                 <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
                                 <div id="rating-buttons">
@@ -752,7 +752,7 @@
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
-                    // Markeer lokaal dat deze deur gestemd heeft
+                    // Markeer lokaal dat er op deze deur gestemd is
                     markDoorVoted(doorKey);
 
                     const ratingDiv = document.getElementById('rating-buttons');
@@ -768,7 +768,7 @@
         function revealDoorAnswer(correctAnswer, doorKey, maxReward) {
             if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
             const questContent = document.getElementById('quest-content');
-            questContent.innerHTML = `<span style='color: #ffd700;'>The correct answer is: <strong>${correctAnswer}</strong>. De deur is nu geopend!</span>`;
+            questContent.innerHTML = `<span style='color: #ffd700;'>The correct answer is: <strong>${correctAnswer}</strong>. The door is now open!</span>`;
             
             wrongAttemptsTracker[doorKey] = 0;
             
@@ -802,7 +802,7 @@
 
             const questContent = document.getElementById('quest-content');
             const penMsg = penalty > 0 ? ` (Chicken Penalty: -${penalty} punten)` : '';
-            questContent.innerHTML = `<span style='color: #ff6b6b;'>Je hebt de puzzel verlaten${penMsg}. Klik op een andere deur om verder te gaan.</span>`;
+            questContent.innerHTML = `<span style='color: #ff6b6b;'>You have left the puzzle.${penMsg}. Click on another door to continue.</span>`;
             document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
             selectedDoorKey = null;
         }
