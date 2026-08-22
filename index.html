@@ -505,7 +505,7 @@
                     <li><strong>After 3 errors / time's up:</strong> ${failActionText}</li>
                     <li><strong>Hints available:</strong> ${hintCount}</li>
                 </ul>
-                <button onclick="confirmStartPuzzle()">Start Puzzel</button>
+                <button onclick="confirmStartPuzzle()">Start Puzzle</button>
             `;
         }
 
@@ -536,7 +536,7 @@
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
             const questContent = document.getElementById('quest-content');
-            const q = puzzle.question || "Los de puzzel op:";
+            const q = puzzle.question || "Los de puzzle op:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
             const failAction = getFailAction(puzzle);
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
@@ -757,7 +757,7 @@
 
                     const ratingDiv = document.getElementById('rating-buttons');
                     if (ratingDiv) {
-                        ratingDiv.innerHTML = "<span style='color: #4cd137; font-size: 12px;'>Bedankt voor je beoordeling!</span>";
+                        ratingDiv.innerHTML = "<span style='color: #4cd137; font-size: 12px;'>Thank you for your review!</span>";
                     }
                 }
             } catch (err) {
