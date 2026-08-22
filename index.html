@@ -480,7 +480,7 @@
             if (puzzle.hint_2 && puzzle.hint_2.trim() !== "") hintCount++;
 
             const failAction = getFailAction(puzzle);
-            let failActionText = "The answer is revealed for free.";
+            let failActionText = "Answer is revealed for free.";
             if (failAction === "no_answer") {
                 failActionText = "The answer remains secret.";
             } else if (failAction === "paid_answer") {
@@ -588,19 +588,19 @@
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += `
-                            <p style="margin-top:12px; font-size:12px;">Beoordeel deze puzzel:</p>
+                            <p style="margin-top:12px; font-size:12px;">Rate this puzzle:</p>
                             <div id="rating-buttons">
                                 <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                 <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                             </div>
                         `;
                     } else {
-                        expiredHtml += `<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`;
+                        expiredHtml += `<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>`;
                     }
 
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
-                            <span><strong>Vraag:</strong> ${q}</span>
+                            <span><strong>Question:</strong> ${q}</span>
                             ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>` : ''}
                         </div>
                         ${hintsHtml}
@@ -626,7 +626,7 @@
 
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
-                            <span><strong>Vraag:</strong> ${q}</span>
+                            <span><strong>Question:</strong> ${q}</span>
                             ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                         </div>
                         ${hintsHtml}
@@ -638,7 +638,7 @@
 
                 questContent.innerHTML = `
                     <div class="quest-header-flex">
-                        <span><strong>Vraag:</strong> ${q}</span>
+                        <span><strong>Question:</strong> ${q}</span>
                         ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                     </div>
                     <div id="hint-container">${hintsHtml}</div>
@@ -686,12 +686,12 @@
                         questContent.innerHTML = `
                             <span style='color: #4cd137;'>Correct! You have earned ${maxReward} points. The door is open now.</span><br>
                             ${!alreadyVoted ? `
-                                <p style="margin-top:10px; font-size:12px;">Beoordeel deze puzzel:</p>
+                                <p style="margin-top:10px; font-size:12px;">Rate this puzzle:</p>
                                 <div id="rating-buttons">
                                     <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, 1, '${doorKey}')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText='👍'"></button>
                                     <button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(${puzzle.id}, -1, '${doorKey}')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText='👎'"></button>
                                 </div>
-                            ` : `<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ Je hebt deze puzzel al beoordeeld.</p>`}
+                            ` : `<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>`}
                         `;
                         wrongAttemptsTracker[doorKey] = 0;
                         callback(true);
