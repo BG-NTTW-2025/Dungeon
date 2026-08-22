@@ -205,7 +205,7 @@
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script>
+    <script[cite: 2]>
         // --- Status Player & currency ---
         let playerState = {
             score: 0,
@@ -272,7 +272,7 @@
 
         // --- Cache Reset Functie ---
         function resetGameCache() {
-            if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
+            if(confirm('Weet je zeker dat je alle lokale voortgang van de deuren wilt wissen?')) {
                 localStorage.removeItem('dungeon_unlocked_doors');
                 localStorage.removeItem('dungeon_timer_states');
                 localStorage.removeItem('dungeon_voted_doors');
@@ -428,11 +428,12 @@
                                 if (liveSolved) {
                                     loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                                 } else {
+                                    const initialTimer = parseInt(freshData.google_timer) || 0;
                                     const timerState = getTimerState(doorKey);
-                                    const isTimerExpired = timerState && timerState.expired;
+                                    // Alleen verlopen als er daadwerkelijk een timer is (> 0) en de state aangeeft dat hij op is
+                                    const isTimerExpired = initialTimer > 0 && timerState && timerState.expired;
 
                                     if (isTimerExpired) {
-                                        // Als de timer al verlopen is: direct door naar het eindscherm (afb. 2 logica)
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
                                         triggerDoorPuzzle(freshData, doorKey, () => {});
@@ -548,7 +549,7 @@
             let timeLeft = initialTimer;
             let isExpired = false;
 
-            if (timerState) {
+            if (timerState && initialTimer > 0) {
                 isExpired = timerState.expired;
                 timeLeft = timerState.timeLeft;
             }
@@ -570,8 +571,8 @@
                     hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
                 }
 
-                // Als de timer al verlopen is of op 0 staat
-                if (isExpired || timeLeft <= 0) {
+                // Alleen als er een actieve timer is (> 0) en deze is verlopen
+                if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                     if (activeTimerInterval) clearInterval(activeTimerInterval);
                     
                     let expiredHtml = `<p style='color: #ff6b6b; font-weight: bold;'>The Google Timer has expired! Answers are no longer accepted.</p>`;
@@ -584,7 +585,6 @@
                         expiredHtml += `<p style='font-size: 12px; color: #ccc;'>The answer remains a secret behind this door.</p>`;
                     }
 
-                    // Controleer of de speler al gestemd heeft voor deze deur
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += `
@@ -601,7 +601,7 @@
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
                             <span><strong>Question:</strong> ${q}</span>
-                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>` : ''}
+                            <span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>
                         </div>
                         ${hintsHtml}
                         ${expiredHtml}
@@ -752,7 +752,6 @@
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
-                    // Markeer lokaal dat er op deze deur gestemd is
                     markDoorVoted(doorKey);
 
                     const ratingDiv = document.getElementById('rating-buttons');
