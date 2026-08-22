@@ -370,7 +370,7 @@
             const updateRoomContent = async () => {
                 try {
                     const { data: puzzles, error: puzzleError } = await dbClient
-                        .from('e.g.')
+                        .from('puzzle_labyrinth')
                         .select('*')
                         .eq('pos_x', posX)
                         .eq('pos_y', posY);
@@ -413,7 +413,7 @@
 
                             img.addEventListener('click', async () => {
                                 const { data: freshData } = await dbClient
-                                    .from('e.g.')
+                                    .from('puzzle_labyrinth')
                                     .select('*')
                                     .eq('pos_x', posX)
                                     .eq('pos_y', posY)
@@ -749,10 +749,10 @@ if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
 
         async function ratePuzzle(puzzleId, vote, doorKey) {
             try {
-                const { data: current } = await dbClient.from('e.g.').select('likes').eq('id', puzzleId).single();
+                const { data: current } = await dbClient.from('puzzle_labyrinth').select('likes').eq('id', puzzleId).single();
                 if (current) {
                     const newLikes = (current.likes || 0) + vote;
-                    await dbClient.from('e.g.').update({ likes: newLikes }).eq('id', puzzleId);
+                    await dbClient.from('puzzle_labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
                     // Markeer lokaal dat er op deze deur gestemd is
                     markDoorVoted(doorKey);
