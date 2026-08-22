@@ -189,7 +189,7 @@
     </div>
 
     <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header"><span>Inventory & Valuta</span></div>
+        <div class="panel-header"><span>Inventory & Currency</span></div>
         <div id="inventory-content" class="panel-content" style="padding: 12px; font-size: 14px; color: #ccc;">
             <div class="inventory-item">
                 <img src="rinth_symb.png" alt="Rinth" onerror="this.style.display='none'">
@@ -199,14 +199,14 @@
     </div>
 
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
-        <div class="panel-header"><span>Communicatie & Opdrachten</span></div>
+        <div class="panel-header"><span>Communicatie & Assignments</span></div>
         <div id="quest-content" class="panel-content quest-box">Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.</div>
     </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Speler Status & Valuta ---
+        // --- Status Player & currency ---
         let playerState = {
             score: 0,
             rinths: 10
@@ -364,7 +364,7 @@
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
 
-            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+            if (activeTimerInterval) clearInterval(activeTimerInterval);
             document.getElementById('quest-content').innerHTML = "Klik op een deur om de details te bekijken. Klik nogmaals om de puzzel te spelen.";
             
             const updateRoomContent = async () => {
@@ -380,7 +380,7 @@
                     const headerSpan = document.getElementById('game-header-title');
                     if(headerSpan) {
                         const roomId = puzzles?.[0]?.room_id || '?';
-                        headerSpan.innerHTML = `Kamer ${roomId} | Score: <strong style="color: #4cd137;">${playerState.score}</strong>`;
+                        headerSpan.innerHTML = `Room ${roomId} | Score: <strong style="color: #4cd137;">${playerState.score}</strong>`;
                     }
                     
                     const hero = document.getElementById('hero');
@@ -432,6 +432,7 @@
                                     const isTimerExpired = timerState && timerState.expired;
 
                                     if (isTimerExpired) {
+                                        // Als de timer al verlopen is: direct door naar het eindscherm (afb. 2 logica)
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
                                         triggerDoorPuzzle(freshData, doorKey, () => {});
@@ -458,7 +459,7 @@
                     }
 
                 } catch (err) { 
-                    console.error("Fout bij laden kamer op coördinaten:", err); 
+                    console.error("Error loading room at coordinates:", err); 
                 }
             };
 
@@ -479,12 +480,11 @@
             if (puzzle.hint_2 && puzzle.hint_2.trim() !== "") hintCount++;
 
             const failAction = getFailAction(puzzle);
-            let failActionText = "Antwoord wordt gratis onthuld";
+            let failActionText = "The answer is revealed for free.";
             if (failAction === "no_answer") {
-                failActionText = "Antwoord blijft geheim";
+                failActionText = "The answer remains secret.";
             } else if (failAction === "paid_answer") {
-                const cost = puzzle.credits_cost || 5;
-                failActionText = `Antwoord tegen betaling (${cost} Rinths)`;
+                failActionText = "Paid answer (Rinths)";
             }
 
             const googleTimer = parseInt(puzzle.google_timer) || 0;
@@ -541,7 +541,6 @@
             const failAction = getFailAction(puzzle);
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
             const maxReward = parseInt(puzzle.max_reward) || 30;
-            const creditsCost = parseInt(puzzle.credits_cost) || 5;
             
             const initialTimer = parseInt(puzzle.google_timer) || 0;
             let timerState = getTimerState(doorKey);
@@ -558,7 +557,7 @@
                 wrongAttemptsTracker[doorKey] = 0;
             }
 
-            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+            if (activeTimerInterval) clearInterval(activeTimerInterval);
 
             function renderPuzzleScreen() {
                 let wrongCount = wrongAttemptsTracker[doorKey];
@@ -571,20 +570,21 @@
                     hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
                 }
 
-                // Als de timer aan staat (> 0) en verlopen is
-                if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
-                    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+                // Als de timer al verlopen is of op 0 staat
+                if (isExpired || timeLeft <= 0) {
+                    if (activeTimerInterval) clearInterval(activeTimerInterval);
                     
-                    let expiredHtml = `<p style='color: #ff6b6b; font-weight: bold;'>De Google Timer is verlopen! Antwoorden niet meer mogelijk.</p>`;
+                    let expiredHtml = `<p style='color: #ff6b6b; font-weight: bold;'>The Google Timer has expired! Answers are no longer accepted.</p>`;
                     
                     if (failAction === "free_answer") {
-                        expiredHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Onthul Antwoord (Gratis)</button><br>`;
+                        expiredHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Reveal Answer (For Free)</button><br>`;
                     } else if (failAction === "paid_answer") {
-                        expiredHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', ${creditsCost}, ${maxReward})">Koop Antwoord (${creditsCost} Rinths)</button><br>`;
+                        expiredHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', 5, ${maxReward})">Purchase Answer (5 Rinths)</button><br>`;
                     } else {
-                        expiredHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
+                        expiredHtml += `<p style='font-size: 12px; color: #ccc;'>The answer remains a secret behind this door.</p>`;
                     }
 
+                    // Controleer of de speler al gestemd heeft voor deze deur
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += `
@@ -601,7 +601,7 @@
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
                             <span><strong>Vraag:</strong> ${q}</span>
-                            <span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>
+                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">0</span>s</span>` : ''}
                         </div>
                         ${hintsHtml}
                         ${expiredHtml}
@@ -610,24 +610,24 @@
                 }
 
                 if (wrongCount >= 3) {
-                    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+                    if (activeTimerInterval) clearInterval(activeTimerInterval);
                     let maxActionsHtml = `<p style='color: #ff6b6b; font-weight: bold;'>Je hebt 3 fouten gemaakt!</p>`;
                     
                     if (failAction === "free_answer") {
-                        maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Onthul Antwoord (Gratis)</button><br>`;
+                        maxActionsHtml += `<button onclick="revealDoorAnswer('${a}', '${doorKey}', ${maxReward})">Reveal Answer (For Free)</button><br>`;
                     } else if (failAction === "paid_answer") {
-                        maxActionsHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', ${creditsCost}, ${maxReward})">Koop Antwoord (${creditsCost} Rinths)</button><br>`;
+                        maxActionsHtml += `<button onclick="buyDoorAnswer('${a}', '${doorKey}', 5, ${maxReward})">Purchase Answer (5 Rinths)</button><br>`;
                     } else {
-                        maxActionsHtml += `<p style='font-size: 12px; color: #ccc;'>Het antwoord blijft geheim voor deze deur.</p>`;
+                        maxActionsHtml += `<p style='font-size: 12px; color: #ccc;'>The answer remains a secret behind this door..</p>`;
                     }
                     
                     const penaltyText = chickenPenalty > 0 ? ` (Chicken Penalty: ${chickenPenalty})` : '';
-                    maxActionsHtml += `<button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})">Verlaat Kamer${penaltyText}</button>`;
+                    maxActionsHtml += `<button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})">Leaf Room${penaltyText}</button>`;
 
                     questContent.innerHTML = `
                         <div class="quest-header-flex">
                             <span><strong>Vraag:</strong> ${q}</span>
-                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
+                            ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                         </div>
                         ${hintsHtml}
                         ${maxActionsHtml}
@@ -639,17 +639,16 @@
                 questContent.innerHTML = `
                     <div class="quest-header-flex">
                         <span><strong>Vraag:</strong> ${q}</span>
-                        ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_sym.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
+                        ${initialTimer > 0 ? `<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='G'"> <span id="time-val">${timeLeft}</span>s</span>` : ''}
                     </div>
                     <div id="hint-container">${hintsHtml}</div>
-                    <input type="text" id="p-ans" placeholder="Jouw antwoord..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
-                    <button id="btn-ans">Beantwoord</button>
-                    <button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})" style="margin-left: 5px;">Verlaat</button>
+                    <input type="text" id="p-ans" placeholder="Your answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
+                    <button id="btn-ans">Reply</button>
+                    <button class="danger" onclick="abandonPuzzle(${chickenPenalty}, ${maxReward})" style="margin-left: 5px;">Leave</button>
                     ${chickenPenalty > 0 ? `<div style="text-align: right; margin-top: 6px; color: #ffd700; font-weight: bold; font-size: 12px;"><img src="Chicken_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText='🐔'">${chickenPenalty}</div>` : ''}
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
-                // Start timer alleen als initialTimer groter is dan 0
                 if (initialTimer > 0 && !activeTimerInterval && !isExpired) {
                     activeTimerInterval = setInterval(() => {
                         timeLeft--;
@@ -659,7 +658,8 @@
                         setTimerState(doorKey, { expired: timeLeft <= 0, timeLeft: timeLeft });
 
                         if (timeLeft <= 0) {
-                            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+                            clearInterval(activeTimerInterval);
+                            activeTimerInterval = null;
                             isExpired = true;
                             renderPuzzleScreen();
                         }
@@ -703,7 +703,7 @@
                         playerState.score -= wrongPenalty;
                         updateHeaderScore();
 
-                        let feedbackMsg = `<span style='color: #ff6b6b;'>Fout antwoord! (-${wrongPenalty} pts, Fouten: ${currentWrong}/3)</span>`;
+                        let feedbackMsg = `<span style='color: #ff6b6b;'>Wrong answer! (-${wrongPenalty} pts, Fouten: ${currentWrong}/3)</span>`;
                         if (currentWrong === 1 && puzzle.hint_1) {
                             feedbackMsg += `<br><span style='color: #3498db;'>💡 Hint 1 is vrijgegeven!</span>`;
                         } else if (currentWrong === 2 && puzzle.hint_2) {
@@ -752,6 +752,7 @@
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('Puzzle_Labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
+                    // Markeer lokaal dat deze deur gestemd heeft
                     markDoorVoted(doorKey);
 
                     const ratingDiv = document.getElementById('rating-buttons');
@@ -767,7 +768,7 @@
         function revealDoorAnswer(correctAnswer, doorKey, maxReward) {
             if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
             const questContent = document.getElementById('quest-content');
-            questContent.innerHTML = `<span style='color: #ffd700;'>Het juiste antwoord is: <strong>${correctAnswer}</strong>. De deur is nu geopend!</span>`;
+            questContent.innerHTML = `<span style='color: #ffd700;'>The correct answer is: <strong>${correctAnswer}</strong>. De deur is nu geopend!</span>`;
             
             wrongAttemptsTracker[doorKey] = 0;
             
@@ -786,7 +787,7 @@
 
         function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
             if (playerState.rinths < cost) {
-                alert(`Je hebt niet genoeg Rinths (${cost} nodig) om dit antwoord te kopen!`);
+                alert("You don't have enough Rinths to buy this answer.!");
                 return;
             }
             playerState.rinths -= cost;
