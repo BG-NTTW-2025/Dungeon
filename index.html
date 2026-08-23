@@ -94,7 +94,8 @@
 
         .ui-panel { width: 320px; min-height: 150px; }
         #inventory-panel { top: 50px; left: 410px; width: 300px; }
-        #quest-panel { top: 220px; left: 410px; width: 350px; max-height: 480px; overflow-y: auto; }
+        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 300px; overflow-y: auto; }
+        #breadcrumb-panel { top: 520px; left: 410px; width: 350px; max-height: 220px; overflow-y: auto; }
         
         .door-asset { 
             cursor: pointer; 
@@ -168,6 +169,27 @@
             border-bottom: 1px solid #444;
             padding-bottom: 6px;
         }
+
+        .breadcrumb-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #333;
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .breadcrumb-item button {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .breadcrumb-item button:hover { background: #d35400; }
     </style>
 </head>
 <body>
@@ -201,6 +223,11 @@
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
         <div class="panel-header"><span>Communicatie & Assignments</span></div>
         <div id="quest-content" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
+    </div>
+
+    <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
+        <div class="panel-header"><span>Breadcrumbs (Laatste 10 kamers)</span></div>
+        <div id="breadcrumb-content" class="panel-content quest-box">Nog geen kamers bezocht.</div>
     </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -277,6 +304,7 @@
                 localStorage.removeItem('dungeon_timer_states');
                 localStorage.removeItem('dungeon_voted_doors');
                 localStorage.removeItem('target_room');
+                localStorage.removeItem('dungeon_breadcrumbs');
                 location.reload();
             }
         }
@@ -348,6 +376,44 @@
             localStorage.setItem(`dungeon_unlocked_doors`, JSON.stringify(stateMap));
         }
 
+        // --- Broodkruimel Systeem (Breadcrumbs) ---
+        function addBreadcrumb(roomId, posX, posY) {
+            let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
+            // Verwijder de kamer als deze al in de lijst staat (zodat we geen dubbele rijen achter elkaar krijgen)
+            crumbs = crumbs.filter(c => c.roomId !== roomId);
+            // Voeg toe vooraan
+            crumbs.unshift({ roomId, posX, posY });
+            // Maximaal 10 bewaren
+            if (crumbs.length > 10) crumbs.pop();
+            localStorage.setItem('dungeon_breadcrumbs', JSON.stringify(crumbs));
+            renderBreadcrumbs();
+        }
+
+        function renderBreadcrumbs() {
+            const container = document.getElementById('breadcrumb-content');
+            const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
+            
+            if (crumbs.length === 0) {
+                container.innerHTML = "Nog geen kamers bezocht.";
+                return;
+            }
+
+            let html = '';
+            crumbs.forEach(c => {
+                html += `
+                    <div class="breadcrumb-item">
+                        <span>Room R-${c.roomId}</span>
+                        <button onclick="jumpToBreadcrumb(${c.posX}, ${c.posY})">Escape Here</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function jumpToBreadcrumb(posX, posY) {
+            loadRoomByCoords(posX, posY, 'south');
+        }
+
         function getFailAction(puzzle) {
             const val = puzzle.fail_action || puzzle.reveal_answer;
             if (val === 'no_answer' || val === 'no_reveal' || val === false || val === 'false') {
@@ -379,9 +445,15 @@
                     if (puzzleError) throw puzzleError;
 
                     const headerSpan = document.getElementById('game-header-title');
+                    const roomId = puzzles?.[0]?.room_id || '?';
+                    
                     if(headerSpan) {
-                        const roomId = puzzles?.[0]?.room_id || '?';
                         headerSpan.innerHTML = `Room ${roomId} | Score: <strong style="color: #4cd137;">${playerState.score}</strong>`;
+                    }
+                    
+                    // Voeg toe aan broodkruimels
+                    if (roomId !== '?') {
+                        addBreadcrumb(roomId, posX, posY);
                     }
                     
                     const hero = document.getElementById('hero');
@@ -805,14 +877,14 @@
             selectedDoorKey = null;
         }
 
-        // --- Start initialisatie: Controleer op Target Room vanuit de Map of laad startkamer (0,0) ---
+        // --- Initialisatie & Broodkruimels bijladen ---
         async function initGame() {
+            renderBreadcrumbs(); // Direct renderen bij start
             const targetRoomId = localStorage.getItem('target_room');
             
             if (targetRoomId) {
-                localStorage.removeItem('target_room'); // direct wissen na gebruik
+                localStorage.removeItem('target_room');
                 try {
-                    // Zoek de coördinaten op basis van de room_id uit de database
                     const { data, error } = await dbClient
                         .from('puzzle_labyrinth')
                         .select('pos_x, pos_y')
@@ -822,20 +894,17 @@
                     if (!error && data && data.length > 0) {
                         const targetX = data[0].pos_x;
                         const targetY = data[0].pos_y;
-                        console.log(`Gestart vanuit Dungeon Map in Room R-${targetRoomId} op coördinaten (${targetX}, ${targetY})`);
                         loadRoomByCoords(targetX, targetY, 'south');
                         return;
                     }
                 } catch (err) {
-                    console.error("Fout bij ophalen van target room coördinaten:", err);
+                    console.error("Fout bij ophalen target room:", err);
                 }
             }
 
-            // Standaard start op (0, 0)
             loadRoomByCoords(0, 0, 'south');
         }
 
-        // Start het spel
         initGame();
     </script>
 </body>
