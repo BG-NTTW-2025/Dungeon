@@ -276,6 +276,7 @@
                 localStorage.removeItem('dungeon_unlocked_doors');
                 localStorage.removeItem('dungeon_timer_states');
                 localStorage.removeItem('dungeon_voted_doors');
+                localStorage.removeItem('target_room');
                 location.reload();
             }
         }
@@ -428,13 +429,11 @@
                                 if (liveSolved) {
                                     loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                                 } else {
-const initialTimer = parseInt(freshData.google_timer) || 0;
-const timerState = getTimerState(doorKey);
-// Alleen verlopen als er daadwerkelijk een timer is (> 0) én de state aangeeft dat hij op is
-const isTimerExpired = initialTimer > 0 && timerState && timerState.expired;
+                                    const initialTimer = parseInt(freshData.google_timer) || 0;
+                                    const timerState = getTimerState(doorKey);
+                                    const isTimerExpired = initialTimer > 0 && timerState && timerState.expired;
 
                                     if (isTimerExpired) {
-                                        // Als de timer al verlopen is: direct door naar het eindscherm (afb. 2 logica)
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
                                         triggerDoorPuzzle(freshData, doorKey, () => {});
@@ -547,13 +546,13 @@ const isTimerExpired = initialTimer > 0 && timerState && timerState.expired;
             const initialTimer = parseInt(puzzle.google_timer) || 0;
             let timerState = getTimerState(doorKey);
 
-let timeLeft = initialTimer;
-let isExpired = false;
+            let timeLeft = initialTimer;
+            let isExpired = false;
 
-if (timerState && initialTimer > 0) {
-    isExpired = timerState.expired;
-    timeLeft = timerState.timeLeft;
-}
+            if (timerState && initialTimer > 0) {
+                isExpired = timerState.expired;
+                timeLeft = timerState.timeLeft;
+            }
 
             if (wrongAttemptsTracker[doorKey] === undefined) {
                 wrongAttemptsTracker[doorKey] = 0;
@@ -572,8 +571,7 @@ if (timerState && initialTimer > 0) {
                     hintsHtml += `<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ${puzzle.hint_2} (${puzzle.hint_2_option || ''})</p>`;
                 }
 
-                // Als de timer al verlopen is of op 0 staat
-if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
+                if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                     if (activeTimerInterval) clearInterval(activeTimerInterval);
                     
                     let expiredHtml = `<p style='color: #ff6b6b; font-weight: bold;'>The Google Timer has expired! Answers are no longer accepted.</p>`;
@@ -586,7 +584,6 @@ if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                         expiredHtml += `<p style='font-size: 12px; color: #ccc;'>The answer remains a secret behind this door.</p>`;
                     }
 
-                    // Controleer of de speler al gestemd heeft voor deze deur
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += `
@@ -754,7 +751,6 @@ if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                     const newLikes = (current.likes || 0) + vote;
                     await dbClient.from('puzzle_labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
                     
-                    // Markeer lokaal dat er op deze deur gestemd is
                     markDoorVoted(doorKey);
 
                     const ratingDiv = document.getElementById('rating-buttons');
@@ -809,8 +805,38 @@ if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
             selectedDoorKey = null;
         }
 
-        // Start het spel op coördinaat (0, 0)
-        loadRoomByCoords(0, 0, 'south');
+        // --- Start initialisatie: Controleer op Target Room vanuit de Map of laad startkamer (0,0) ---
+        async function initGame() {
+            const targetRoomId = localStorage.getItem('target_room');
+            
+            if (targetRoomId) {
+                localStorage.removeItem('target_room'); // direct wissen na gebruik
+                try {
+                    // Zoek de coördinaten op basis van de room_id uit de database
+                    const { data, error } = await dbClient
+                        .from('puzzle_labyrinth')
+                        .select('pos_x, pos_y')
+                        .eq('room_id', parseInt(targetRoomId, 10))
+                        .limit(1);
+
+                    if (!error && data && data.length > 0) {
+                        const targetX = data[0].pos_x;
+                        const targetY = data[0].pos_y;
+                        console.log(`Gestart vanuit Dungeon Map in Room R-${targetRoomId} op coördinaten (${targetX}, ${targetY})`);
+                        loadRoomByCoords(targetX, targetY, 'south');
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Fout bij ophalen van target room coördinaten:", err);
+                }
+            }
+
+            // Standaard start op (0, 0)
+            loadRoomByCoords(0, 0, 'south');
+        }
+
+        // Start het spel
+        initGame();
     </script>
 </body>
 </html>
