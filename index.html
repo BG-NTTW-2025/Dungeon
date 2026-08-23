@@ -400,12 +400,12 @@
 
             let html = '';
             crumbs.forEach(c => {
-                html += ` +
-                    ' <div class="breadcrumb-item">' +
-                        '<span>Room R-${c.roomId}</span>' +
-                        '<button onclick="jumpToBreadcrumb(${c.posX}, ${c.posY})">Escape Here</button>' +
-                    '</div>
-                ` +;
+                html += `
+                    <div class="breadcrumb-item">
+                        <span>Room R-${c.roomId}</span>
+                        <button onclick="jumpToBreadcrumb(${c.posX}, ${c.posY})">Escape Here</button>
+                    </div>
+                `;
             });
             container.innerHTML = html;
         }
