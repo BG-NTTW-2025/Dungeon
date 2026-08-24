@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Coördinaten Systeem</title>
+    <title>Dungeon Game - Coordinates System</title>
     <style>
         body {
             margin: 0;
@@ -94,8 +94,8 @@
 
         .ui-panel { width: 320px; min-height: 150px; }
         #inventory-panel { top: 50px; left: 410px; width: 300px; }
-        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 300px; overflow-y: auto; }
-        #breadcrumb-panel { top: 520px; left: 410px; width: 350px; max-height: 220px; overflow-y: auto; }
+        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 320px; overflow-y: auto; }
+        #breadcrumb-panel { top: 540px; left: 410px; width: 350px; max-height: 200px; overflow-y: auto; }
         
         .door-asset { 
             cursor: pointer; 
@@ -190,14 +190,38 @@
             font-weight: bold;
         }
         .breadcrumb-item button:hover { background: #d35400; }
+
+        /* Report Modal Styling */
+        #report-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .report-modal-content {
+            background: #2b2b2b;
+            padding: 20px;
+            border-radius: 6px;
+            border: 2px solid #e94560;
+            width: 320px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        .report-modal-content h3 { margin-top: 0; color: #e94560; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 8px; }
+        .report-modal-content label { display: block; font-size: 12px; margin-top: 10px; margin-bottom: 4px; color: #ccc; }
+        .report-modal-content textarea, .report-modal-content input[type="email"] {
+            width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #555; color: #fff; border-radius: 4px; font-size: 12px; box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
-            <span id="game-header-title">Speelveld</span>
-            <button class="reset-btn" onclick="resetGameCache()" title="Wis lokale cache en herlaad">Reset Cache</button>
+            <span id="game-header-title">Playfield</span>
+            <button class="reset-btn" onclick="resetGameCache()" title="Clear local cache and reload">Reset Cache</button>
         </div>
         <div class="panel-content">
             <div class="room-wrapper">
@@ -221,27 +245,50 @@
     </div>
 
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
-        <div class="panel-header"><span>Communicatie & Assignments</span></div>
+        <div class="panel-header"><span>Communication & Assignments</span></div>
         <div id="quest-content" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
     </div>
 
     <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
-        <div class="panel-header"><span>Breadcrumbs (Laatste 10 kamers)</span></div>
-        <div id="breadcrumb-content" class="panel-content quest-box">Nog geen kamers bezocht.</div>
+        <div class="panel-header"><span>Breadcrumbs (Last 10 rooms)</span></div>
+        <div id="breadcrumb-content" class="panel-content quest-box">No rooms visited yet.</div>
+    </div>
+
+    <!-- Report Offensive Content Modal -->
+    <div id="report-modal">
+        <div class="report-modal-content">
+            <h3>Report Offensive Content</h3>
+            <p id="report-context-info" style="font-size: 11px; color: #aaa; margin-bottom: 10px;"></p>
+            <label>Reason / Comment:</label>
+            <textarea id="report-comment" rows="3" placeholder="Describe why this content is offensive..."></textarea>
+            <label>Your E-mail (Optional):</label>
+            <input type="email" id="report-email" placeholder="your@email.com">
+            <div id="report-msg" style="font-size: 11px; margin-top: 8px;"></div>
+            <div style="margin-top: 15px; text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="danger" onclick="closeReportModal()" style="margin:0; padding: 5px 10px; font-size: 12px;">Cancel</button>
+                <button type="button" onclick="submitReport()" style="margin:0; background: #27ae60; padding: 5px 10px; font-size: 12px;">Submit Report</button>
+            </div>
+        </div>
     </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Status Player & currency ---
+        // --- Status Player & currency (Local Storage Loading) ---
         let playerState = {
-            score: 0,
-            rinths: 10
+            score: parseInt(localStorage.getItem('dungeon_player_score')) || 0,
+            rinths: localStorage.getItem('dungeon_player_rinths') !== null ? parseInt(localStorage.getItem('dungeon_player_rinths')) : 10
         };
+
+        function savePlayerState() {
+            localStorage.setItem('dungeon_player_score', playerState.score);
+            localStorage.setItem('dungeon_player_rinths', playerState.rinths);
+        }
 
         function updatePlayerUI() {
             const rinthElem = document.getElementById('rinth-count');
             if (rinthElem) rinthElem.textContent = playerState.rinths;
+            savePlayerState();
         }
         updatePlayerUI();
 
@@ -297,7 +344,7 @@
             }
         });
 
-        // --- Cache Reset Functie ---
+        // --- Cache Reset Function ---
         function resetGameCache() {
             if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
                 localStorage.removeItem('dungeon_unlocked_doors');
@@ -305,11 +352,13 @@
                 localStorage.removeItem('dungeon_voted_doors');
                 localStorage.removeItem('target_room');
                 localStorage.removeItem('dungeon_breadcrumbs');
+                localStorage.removeItem('dungeon_player_score');
+                localStorage.removeItem('dungeon_player_rinths');
                 location.reload();
             }
         }
 
-        // --- Supabase Koppeling ---
+        // --- Supabase Connection ---
         const supabaseUrl = 'https://mgqoxmnryqekrpjglffb.supabase.co';
         const supabaseKey = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
         const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -318,6 +367,7 @@
 
         const wrongAttemptsTracker = {};
         let activeTimerInterval = null;
+        let activeReportPuzzle = null;
 
         function getTimerStateMap() {
             const saved = localStorage.getItem('dungeon_timer_states');
@@ -376,7 +426,7 @@
             localStorage.setItem('dungeon_unlocked_doors', JSON.stringify(stateMap));
         }
 
-        // --- Broodkruimel Systeem (Breadcrumbs) ---
+        // --- Breadcrumb System ---
         function addBreadcrumb(roomId, posX, posY) {
             let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
             crumbs = crumbs.filter(c => c.roomId !== roomId);
@@ -391,7 +441,7 @@
             const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
             
             if (crumbs.length === 0) {
-                container.innerHTML = "Nog geen kamers bezocht.";
+                container.innerHTML = "No rooms visited yet.";
                 return;
             }
 
@@ -601,7 +651,7 @@
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
             const questContent = document.getElementById('quest-content');
-            const q = puzzle.question || "Los de puzzle op:";
+            const q = puzzle.question || "Solve the puzzle:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
             const failAction = getFailAction(puzzle);
             const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
@@ -635,6 +685,8 @@
                     hintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ' + puzzle.hint_2 + ' (' + (puzzle.hint_2_option || '') + ')</p>';
                 }
 
+                let reportBtnHtml = '<button style="background:transparent; border:none; cursor:pointer; margin-left:10px; vertical-align:middle;" onclick="openReportModal(' + JSON.stringify(puzzle).replace(/"/g, '&quot;') + ')" title="Report Offensive Content"><img src="report_symb.png" style="width:24px;" alt="Report" onerror="this.outerText=\'@!\'"></button>';
+
                 if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                     if (activeTimerInterval) clearInterval(activeTimerInterval);
                     
@@ -651,12 +703,12 @@
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += '<p style="margin-top:12px; font-size:12px;">Rate this puzzle:</p>' +
-                            '<div id="rating-buttons">' +
+                            '<div id="rating-buttons" style="display:inline-block;">' +
                             '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
                             '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                            '</div>';
+                            '</div>' + reportBtnHtml;
                     } else {
-                        expiredHtml += '<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>';
+                        expiredHtml += '<p style="margin-top:12px; font-size:11px; color: #4cd137; display:inline-block;">✔ You have already rated this puzzle.</p>' + reportBtnHtml;
                     }
 
                     questContent.innerHTML = '<div class="quest-header-flex">' +
@@ -677,11 +729,11 @@
                     } else if (failAction === "paid_answer") {
                         maxActionsHtml += '<button onclick="buyDoorAnswer(\'' + a + '\', \'' + doorKey + '\', 5, ' + maxReward + ')">Purchase Answer (5 Rinths)</button><br>';
                     } else {
-                        maxActionsHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door..</p>';
+                        maxActionsHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door.</p>';
                     }
                     
                     const penaltyText = chickenPenalty > 0 ? ' (Chicken Penalty: ' + chickenPenalty + ')' : '';
-                    maxActionsHtml += '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')">Leaf Room' + penaltyText + '</button>';
+                    maxActionsHtml += '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')">Leave Room' + penaltyText + '</button>' + reportBtnHtml;
 
                     questContent.innerHTML = '<div class="quest-header-flex">' +
                         '<span><strong>Question:</strong> ' + q + '</span>' +
@@ -701,6 +753,7 @@
                     '<input type="text" id="p-ans" placeholder="Your answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>' +
                     '<button id="btn-ans">Reply</button>' +
                     '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')" style="margin-left: 5px;">Leave</button>' +
+                    reportBtnHtml +
                     (chickenPenalty > 0 ? '<div style="text-align: right; margin-top: 6px; color: #ffd700; font-weight: bold; font-size: 12px;"><img src="Chicken_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'🐔\'">' + chickenPenalty + '</div>' : '') +
                     '<div id="feedback-msg" style="margin-top: 6px;"></div>';
 
@@ -727,7 +780,7 @@
                     const userAnswer = ansInput.value.trim();
 
                     if (userAnswer.length === 0) {
-                        feedbackDiv.innerHTML = '<span style="color: #ff9800;">Vul ten minste 1 teken in!</span>';
+                        feedbackDiv.innerHTML = '<span style="color: #ff9800;">Please enter at least 1 character!</span>';
                         return;
                     }
 
@@ -740,10 +793,10 @@
 
                         questContent.innerHTML = '<span style="color: #4cd137;">Correct! You have earned ' + maxReward + ' points. The door is open now.</span><br>' +
                             (!alreadyVoted ? '<p style="margin-top:10px; font-size:12px;">Rate this puzzle:</p>' +
-                                '<div id="rating-buttons">' +
+                                '<div id="rating-buttons" style="display:inline-block;">' +
                                 '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
                                 '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                                '</div>' : '<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>');
+                                '</div>' + reportBtnHtml : '<p style="margin-top:10px; font-size:11px; color: #4cd137; display:inline-block;">✔ You have already rated this puzzle.</p>' + reportBtnHtml);
                         wrongAttemptsTracker[doorKey] = 0;
                         callback(true);
                     } else {
@@ -791,9 +844,10 @@
             const headerSpan = document.getElementById('game-header-title');
             if(headerSpan) {
                 const parts = headerSpan.textContent.split('|');
-                const roomPart = parts[0] ? parts[0].trim() : 'Speelveld';
+                const roomPart = parts[0] ? parts[0].trim() : 'Playfield';
                 headerSpan.innerHTML = roomPart + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
             }
+            savePlayerState();
         }
 
         async function ratePuzzle(puzzleId, vote, doorKey) {
@@ -812,6 +866,66 @@
                 }
             } catch (err) {
                 console.error("Valuation error:", err);
+            }
+        }
+
+        // --- Report Offensive Content Functions ---
+        function openReportModal(puzzle) {
+            activeReportPuzzle = puzzle;
+            document.getElementById('report-comment').value = '';
+            document.getElementById('report-email').value = '';
+            document.getElementById('report-msg').textContent = '';
+            
+            const infoText = 'Puzzle: "' + (puzzle.puzzle_name || 'Unknown') + '" | Room: R-' + (puzzle.room_id || '?') + ' | Wall: ' + (puzzle.wall_side || '?');
+            document.getElementById('report-context-info').textContent = infoText;
+            
+            document.getElementById('report-modal').style.display = 'flex';
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal').style.display = 'none';
+            activeReportPuzzle = null;
+        }
+
+        async function submitReport() {
+            if (!activeReportPuzzle) return;
+            const comment = document.getElementById('report-comment').value.trim();
+            const email = document.getElementById('report-email').value.trim();
+            const msgDiv = document.getElementById('report-msg');
+
+            if (!comment) {
+                msgDiv.style.color = '#e94560';
+                msgDiv.textContent = 'Please enter a reason or comment.';
+                return;
+            }
+
+            msgDiv.style.color = '#ffd700';
+            msgDiv.textContent = 'Submitting report...';
+
+            try {
+                const { error } = await dbClient.from('puzzle_reports').insert([{
+                    puzzle_id: activeReportPuzzle.id,
+                    puzzle_name: activeReportPuzzle.puzzle_name || 'Unknown',
+                    room_id: activeReportPuzzle.room_id || null,
+                    wall_side: activeReportPuzzle.wall_side || null,
+                    designer_id: activeReportPuzzle.designer_id || null,
+                    reporter_email: email || null,
+                    report_comment: comment
+                }]);
+
+                if (error) {
+                    msgDiv.style.color = '#e94560';
+                    msgDiv.textContent = 'Error: ' + error.message;
+                } else {
+                    msgDiv.style.color = '#4cd137';
+                    msgDiv.textContent = 'Report successfully submitted. Thank you!';
+                    setTimeout(() => {
+                        closeReportModal();
+                    }, 2000);
+                }
+            } catch (err) {
+                msgDiv.style.color = '#e94560';
+                msgDiv.textContent = 'Unexpected error occurred.';
             }
         }
 
@@ -837,7 +951,7 @@
 
         function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
             if (playerState.rinths < cost) {
-                alert("You don't have enough Rinths to buy this answer.!");
+                alert("You don't have enough Rinths to buy this answer!");
                 return;
             }
             playerState.rinths -= cost;
@@ -851,15 +965,16 @@
             updateHeaderScore();
 
             const questContent = document.getElementById('quest-content');
-            const penMsg = penalty > 0 ? ' (Chicken Penalty: -' + penalty + ' punten)' : '';
+            const penMsg = penalty > 0 ? ' (Chicken Penalty: -' + penalty + ' points)' : '';
             questContent.innerHTML = '<span style="color: #ff6b6b;">You have left the puzzle.' + penMsg + '. Click on another door to continue.</span>';
             document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
             selectedDoorKey = null;
         }
 
-        // --- Initialisatie & Broodkruimels bijladen ---
+        // --- Initialization & Breadcrumbs ---
         async function initGame() {
             renderBreadcrumbs();
+            updatePlayerUI();
             const targetRoomId = localStorage.getItem('target_room');
             
             if (targetRoomId) {
