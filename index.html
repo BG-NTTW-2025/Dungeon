@@ -154,6 +154,7 @@
             gap: 8px;
             font-weight: bold;
             color: #4cd137;
+            margin-bottom: 4px;
         }
 
         .inventory-item img {
@@ -272,12 +273,17 @@
     </div>
 
     <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header"><span>Inventory & Currency</span></div>
-        <div id="inventory-content" class="panel-content" style="padding: 12px; font-size: 14px; color: #ccc;">
+        <div class="panel-header"><span>Inventory & Economy</span></div>
+        <div id="inventory-content" class="panel-content" style="padding: 12px; font-size: 13px; color: #ccc;">
             <div class="inventory-item">
-                <img src="rinth_symb.png" alt="Rinth" onerror="this.style.display='none'">
-                <span>Rinths: <strong id="rinth-count" style="color: #ffd700;">10</strong></span>
+                <span>Cash (Pocket): <strong id="cash-count" style="color: #ffd700;">5</strong></span>
             </div>
+            <div class="inventory-item">
+                <span>Credit (Bank): <strong id="credit-count" style="color: #4cd137;">0</strong></span>
+            </div>
+            <hr style="border-color: #444; margin: 8px 0;">
+            <div style="font-size: 12px; margin-bottom: 4px; font-weight: bold; color: #ffd700;">Treasures:</div>
+            <div id="treasures-list" style="font-size: 11px; color: #aaa;">No treasures found yet.</div>
         </div>
     </div>
 
@@ -331,15 +337,48 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Status Player & currency ---
+        // --- Status Player, Currency & Treasures (met localStorage ondersteuning) ---
         let playerState = {
-            score: 0,
-            rinths: 10
+            score: parseInt(localStorage.getItem('dungeon_player_score')) || 0,
+            cash: localStorage.getItem('dungeon_player_cash') !== null ? parseInt(localStorage.getItem('dungeon_player_cash')) : 5,
+            credit: parseInt(localStorage.getItem('dungeon_player_credit')) || 0,
+            // Treasures array met flexibele dimensie/multiplicator (bijv. ID 1 = Golden Watch x 100, ID 2 = Diamond Bracelet x 200)
+            treasures: JSON.parse(localStorage.getItem('dungeon_player_treasures')) || [
+                { id: 1, name: 'Golden Watch', dimension: 1, baseMultiplier: 100 },
+                { id: 2, name: 'Diamond Bracelet', dimension: 2, baseMultiplier: 100 }
+            ]
         };
 
+        function savePlayerState() {
+            localStorage.setItem('dungeon_player_score', playerState.score);
+            localStorage.setItem('dungeon_player_cash', playerState.cash);
+            localStorage.setItem('dungeon_player_credit', playerState.credit);
+            localStorage.setItem('dungeon_player_treasures', JSON.stringify(playerState.treasures));
+        }
+
         function updatePlayerUI() {
-            const rinthElem = document.getElementById('rinth-count');
-            if (rinthElem) rinthElem.textContent = playerState.rinths;
+            const cashElem = document.getElementById('cash-count');
+            const creditElem = document.getElementById('credit-count');
+            const treasuresListElem = document.getElementById('treasures-list');
+
+            if (cashElem) cashElem.textContent = playerState.cash;
+            if (creditElem) creditElem.textContent = playerState.credit;
+
+            if (treasuresListElem) {
+                if (playerState.treasures.length === 0) {
+                    treasuresListElem.textContent = "No treasures found yet.";
+                } else {
+                    let html = '';
+                    playerState.treasures.forEach(t => {
+                        let calculatedValue = t.dimension * t.baseMultiplier;
+                        html += '• ' + t.name + ' (Dim: ' + t.dimension + ') - Value: ' + calculatedValue + ' Rinths<br>';
+                    });
+                    treasuresListElem.innerHTML = html;
+                }
+            }
+
+            updateHeaderScore();
+            savePlayerState();
         }
         updatePlayerUI();
 
@@ -420,7 +459,7 @@
         function copyAdminEmail() {
             const emailField = document.getElementById('admin-email-field');
             emailField.select();
-            emailField.setSelectionRange(0, 99999); // Voor mobiele apparaten
+            emailField.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(emailField.value).then(() => {
                 alert('Admin email copied to clipboard: ' + emailField.value);
             }).catch(err => {
@@ -436,6 +475,10 @@
                 localStorage.removeItem('dungeon_voted_doors');
                 localStorage.removeItem('target_room');
                 localStorage.removeItem('dungeon_breadcrumbs');
+                localStorage.removeItem('dungeon_player_score');
+                localStorage.removeItem('dungeon_player_cash');
+                localStorage.removeItem('dungeon_player_credit');
+                localStorage.removeItem('dungeon_player_treasures');
                 location.reload();
             }
         }
@@ -911,11 +954,13 @@
                     if(userAnswer.toLowerCase() === a.toLowerCase()) {
                         if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
                         playerState.score += maxReward;
-                        updateHeaderScore();
+                        // Voorbeeld: als je een puzzel oplost verdien je ook direct wat Cash!
+                        playerState.cash += 10;
+                        updatePlayerUI();
 
                         const alreadyVoted = hasVotedDoor(doorKey);
 
-                        questContent.innerHTML = '<span style="color: #4cd137;">Correct! You have earned ' + maxReward + ' points. The door is open now.</span><br>' +
+                        questContent.innerHTML = '<span style="color: #4cd137;">Correct! You earned ' + maxReward + ' points and 10 Cash. The door is open.</span><br>' +
                             (!alreadyVoted ? '<p style="margin-top:10px; font-size:12px;">Rate this puzzle:</p>' +
                                 '<div id="rating-buttons">' +
                                 '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
@@ -1013,11 +1058,11 @@
         }
 
         function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
-            if (playerState.rinths < cost) {
-                alert("You don't have enough Rinths to buy this answer!");
+            if (playerState.cash < cost) {
+                alert("You don't have enough Cash to buy this answer!");
                 return;
             }
-            playerState.rinths -= cost;
+            playerState.cash -= cost;
             updatePlayerUI();
             revealDoorAnswer(correctAnswer, doorKey, maxReward);
         }
