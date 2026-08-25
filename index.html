@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Coordinates System</title>
+    <title>Dungeon Game - Coördinaten Systeem</title>
     <style>
         body {
             margin: 0;
@@ -94,8 +94,9 @@
 
         .ui-panel { width: 320px; min-height: 150px; }
         #inventory-panel { top: 50px; left: 410px; width: 300px; }
-        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 320px; overflow-y: auto; }
-        #breadcrumb-panel { top: 540px; left: 410px; width: 350px; max-height: 200px; overflow-y: auto; }
+        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 250px; overflow-y: auto; }
+        #breadcrumb-panel { top: 480px; left: 410px; width: 350px; max-height: 200px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 780px; width: 280px; }
         
         .door-asset { 
             cursor: pointer; 
@@ -191,29 +192,65 @@
         }
         .breadcrumb-item button:hover { background: #d35400; }
 
-        /* Report Modal Styling */
-        #report-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 2000;
-            justify-content: center;
+        .menu-section {
+            padding: 12px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .menu-section label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .menu-section input[type="number"] {
+            width: 100%;
+            padding: 6px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .toggle-row {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
-        .report-modal-content {
-            background: #2b2b2b;
-            padding: 20px;
-            border-radius: 6px;
-            border: 2px solid #e94560;
-            width: 320px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: #ffd700;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
         }
-        .report-modal-content h3 { margin-top: 0; color: #e94560; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 8px; }
-        .report-modal-content label { display: block; font-size: 12px; margin-top: 10px; margin-bottom: 4px; color: #ccc; }
-        .report-modal-content textarea, .report-modal-content input[type="email"] {
-            width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #555; color: #fff; border-radius: 4px; font-size: 12px; box-sizing: border-box;
+        .copy-box {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
         }
+        .copy-box input {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 11px;
+            width: 100%;
+        }
+        .copy-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .copy-btn:hover { background: #2980b9; }
     </style>
 </head>
 <body>
@@ -254,19 +291,39 @@
         <div id="breadcrumb-content" class="panel-content quest-box">No rooms visited yet.</div>
     </div>
 
-    <!-- Report Offensive Content Modal -->
-    <div id="report-modal">
-        <div class="report-modal-content">
-            <h3>Report Offensive Content</h3>
-            <p id="report-context-info" style="font-size: 11px; color: #aaa; margin-bottom: 10px;"></p>
-            <label>Reason / Comment:</label>
-            <textarea id="report-comment" rows="3" placeholder="Describe why this content is offensive..."></textarea>
-            <label>Your E-mail (Optional):</label>
-            <input type="email" id="report-email" placeholder="your@email.com">
-            <div id="report-msg" style="font-size: 11px; margin-top: 8px;"></div>
-            <div style="margin-top: 15px; text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" class="danger" onclick="closeReportModal()" style="margin:0; padding: 5px 10px; font-size: 12px;">Cancel</button>
-                <button type="button" onclick="submitReport()" style="margin:0; background: #27ae60; padding: 5px 10px; font-size: 12px;">Submit Report</button>
+    <div id="gamemenu-panel" class="draggable-panel" data-id="gamemenu-panel">
+        <div class="panel-header">
+            <span>Game Menu</span>
+            <button id="collapse-icon-btn" class="collapse-btn" onclick="toggleMenuBody()">-</button>
+        </div>
+        <div id="gamemenu-body" class="panel-content menu-section">
+            <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+                <span>Highest Room: </span><strong id="max-room-stat" style="color: #ffd700;">Loading...</strong>
+            </div>
+
+            <label>Warp / Room Number:</label>
+            <input type="number" id="warp-room-input" min="1" value="1" placeholder="e.g. 5">
+            <button onclick="executeWarp()" style="width: 100%; background: #27ae60; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 12px;">Go to Room</button>
+
+            <label style="margin-bottom: 6px;">Toggle Panels:</label>
+            <div class="toggle-row">
+                <span>Inventory</span>
+                <input type="checkbox" checked onchange="togglePanel('inventory-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Quests</span>
+                <input type="checkbox" checked onchange="togglePanel('quest-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Breadcrumbs</span>
+                <input type="checkbox" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
+            </div>
+
+            <hr style="border-color: #444; margin: 10px 0;">
+            <label style="margin-bottom: 4px;">Admin Email:</label>
+            <div class="copy-box">
+                <input type="text" id="admin-email-field" value="jaca.eis@gmail.com" readonly>
+                <button class="copy-btn" onclick="copyAdminEmail()">Copy</button>
             </div>
         </div>
     </div>
@@ -274,21 +331,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Status Player & currency (Local Storage Loading) ---
+        // --- Status Player & currency ---
         let playerState = {
-            score: parseInt(localStorage.getItem('dungeon_player_score')) || 0,
-            rinths: localStorage.getItem('dungeon_player_rinths') !== null ? parseInt(localStorage.getItem('dungeon_player_rinths')) : 10
+            score: 0,
+            rinths: 10
         };
-
-        function savePlayerState() {
-            localStorage.setItem('dungeon_player_score', playerState.score);
-            localStorage.setItem('dungeon_player_rinths', playerState.rinths);
-        }
 
         function updatePlayerUI() {
             const rinthElem = document.getElementById('rinth-count');
             if (rinthElem) rinthElem.textContent = playerState.rinths;
-            savePlayerState();
         }
         updatePlayerUI();
 
@@ -344,7 +395,40 @@
             }
         });
 
-        // --- Cache Reset Function ---
+        // --- Menu minimaliseren / uitklappen met dynamisch icoon ---
+        function toggleMenuBody() {
+            const body = document.getElementById('gamemenu-body');
+            const btn = document.getElementById('collapse-icon-btn');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                btn.textContent = '-';
+            } else {
+                body.style.display = 'none';
+                btn.textContent = '+';
+            }
+        }
+
+        // --- Vensters tonen / verbergen ---
+        function togglePanel(panelId, show) {
+            const p = document.getElementById(panelId);
+            if (p) {
+                p.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        // --- Admin e-mail kopiëren ---
+        function copyAdminEmail() {
+            const emailField = document.getElementById('admin-email-field');
+            emailField.select();
+            emailField.setSelectionRange(0, 99999); // Voor mobiele apparaten
+            navigator.clipboard.writeText(emailField.value).then(() => {
+                alert('Admin email copied to clipboard: ' + emailField.value);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // --- Cache Reset Functie ---
         function resetGameCache() {
             if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
                 localStorage.removeItem('dungeon_unlocked_doors');
@@ -352,22 +436,19 @@
                 localStorage.removeItem('dungeon_voted_doors');
                 localStorage.removeItem('target_room');
                 localStorage.removeItem('dungeon_breadcrumbs');
-                localStorage.removeItem('dungeon_player_score');
-                localStorage.removeItem('dungeon_player_rinths');
                 location.reload();
             }
         }
 
-        // --- Supabase Connection ---
-        const supabaseUrl = 'https://mgqoxmnryqekrpjglffb.supabase.co';
-        const supabaseKey = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
-        const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // --- Supabase Koppeling ---
+        const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
+        const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
 
         const wrongAttemptsTracker = {};
         let activeTimerInterval = null;
-        let activeReportPuzzle = null;
 
         function getTimerStateMap() {
             const saved = localStorage.getItem('dungeon_timer_states');
@@ -426,7 +507,7 @@
             localStorage.setItem('dungeon_unlocked_doors', JSON.stringify(stateMap));
         }
 
-        // --- Breadcrumb System ---
+        // --- Broodkruimel Systeem (Breadcrumbs) ---
         function addBreadcrumb(roomId, posX, posY) {
             let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
             crumbs = crumbs.filter(c => c.roomId !== roomId);
@@ -457,6 +538,52 @@
 
         function jumpToBreadcrumb(posX, posY) {
             loadRoomByCoords(posX, posY, 'south');
+        }
+
+        // --- Laad de hoogste kamernummer statistiek ---
+        async function loadMaxRoomStat() {
+            try {
+                const { data, error } = await dbClient
+                    .from('puzzle_labyrinth')
+                    .select('room_id')
+                    .order('room_id', { ascending: false })
+                    .limit(1);
+
+                if (!error && data && data.length > 0) {
+                    document.getElementById('max-room-stat').textContent = data[0].room_id || '1';
+                } else {
+                    document.getElementById('max-room-stat').textContent = '1';
+                }
+            } catch (err) {
+                console.error("Error loading max room:", err);
+            }
+        }
+
+        // --- Vrije kamerkeuze (Warp) met minimum check ---
+        async function executeWarp() {
+            const roomInput = document.getElementById('warp-room-input').value.trim();
+            const targetRoomId = parseInt(roomInput, 10);
+            
+            if (!roomInput || isNaN(targetRoomId) || targetRoomId < 1) {
+                alert('Please enter a valid room number greater than or equal to 1!');
+                return;
+            }
+            
+            try {
+                const { data, error } = await dbClient
+                    .from('puzzle_labyrinth')
+                    .select('pos_x, pos_y')
+                    .eq('room_id', targetRoomId)
+                    .limit(1);
+
+                if (!error && data && data.length > 0) {
+                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                } else {
+                    alert('Room R-' + targetRoomId + ' could not be found in the labyrinth.');
+                }
+            } catch (err) {
+                console.error("Warp error:", err);
+            }
         }
 
         function getFailAction(puzzle) {
@@ -685,8 +812,6 @@
                     hintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ' + puzzle.hint_2 + ' (' + (puzzle.hint_2_option || '') + ')</p>';
                 }
 
-                let reportBtnHtml = '<button style="background:transparent; border:none; cursor:pointer; margin-left:10px; vertical-align:middle;" onclick="openReportModal(' + JSON.stringify(puzzle).replace(/"/g, '&quot;') + ')" title="Report Offensive Content"><img src="report_symb.png" style="width:24px;" alt="Report" onerror="this.outerText=\'@!\'"></button>';
-
                 if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
                     if (activeTimerInterval) clearInterval(activeTimerInterval);
                     
@@ -703,12 +828,12 @@
                     const alreadyVoted = hasVotedDoor(doorKey);
                     if (!alreadyVoted) {
                         expiredHtml += '<p style="margin-top:12px; font-size:12px;">Rate this puzzle:</p>' +
-                            '<div id="rating-buttons" style="display:inline-block;">' +
+                            '<div id="rating-buttons">' +
                             '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
                             '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                            '</div>' + reportBtnHtml;
+                            '</div>';
                     } else {
-                        expiredHtml += '<p style="margin-top:12px; font-size:11px; color: #4cd137; display:inline-block;">✔ You have already rated this puzzle.</p>' + reportBtnHtml;
+                        expiredHtml += '<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>';
                     }
 
                     questContent.innerHTML = '<div class="quest-header-flex">' +
@@ -729,11 +854,11 @@
                     } else if (failAction === "paid_answer") {
                         maxActionsHtml += '<button onclick="buyDoorAnswer(\'' + a + '\', \'' + doorKey + '\', 5, ' + maxReward + ')">Purchase Answer (5 Rinths)</button><br>';
                     } else {
-                        maxActionsHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door.</p>';
+                        maxActionsHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door..</p>';
                     }
                     
                     const penaltyText = chickenPenalty > 0 ? ' (Chicken Penalty: ' + chickenPenalty + ')' : '';
-                    maxActionsHtml += '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')">Leave Room' + penaltyText + '</button>' + reportBtnHtml;
+                    maxActionsHtml += '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')">Leave Room' + penaltyText + '</button>';
 
                     questContent.innerHTML = '<div class="quest-header-flex">' +
                         '<span><strong>Question:</strong> ' + q + '</span>' +
@@ -753,7 +878,6 @@
                     '<input type="text" id="p-ans" placeholder="Your answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>' +
                     '<button id="btn-ans">Reply</button>' +
                     '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')" style="margin-left: 5px;">Leave</button>' +
-                    reportBtnHtml +
                     (chickenPenalty > 0 ? '<div style="text-align: right; margin-top: 6px; color: #ffd700; font-weight: bold; font-size: 12px;"><img src="Chicken_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'🐔\'">' + chickenPenalty + '</div>' : '') +
                     '<div id="feedback-msg" style="margin-top: 6px;"></div>';
 
@@ -793,10 +917,10 @@
 
                         questContent.innerHTML = '<span style="color: #4cd137;">Correct! You have earned ' + maxReward + ' points. The door is open now.</span><br>' +
                             (!alreadyVoted ? '<p style="margin-top:10px; font-size:12px;">Rate this puzzle:</p>' +
-                                '<div id="rating-buttons" style="display:inline-block;">' +
+                                '<div id="rating-buttons">' +
                                 '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
                                 '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                                '</div>' + reportBtnHtml : '<p style="margin-top:10px; font-size:11px; color: #4cd137; display:inline-block;">✔ You have already rated this puzzle.</p>' + reportBtnHtml);
+                                '</div>' : '<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>');
                         wrongAttemptsTracker[doorKey] = 0;
                         callback(true);
                     } else {
@@ -847,7 +971,6 @@
                 const roomPart = parts[0] ? parts[0].trim() : 'Playfield';
                 headerSpan.innerHTML = roomPart + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
             }
-            savePlayerState();
         }
 
         async function ratePuzzle(puzzleId, vote, doorKey) {
@@ -866,66 +989,6 @@
                 }
             } catch (err) {
                 console.error("Valuation error:", err);
-            }
-        }
-
-        // --- Report Offensive Content Functions ---
-        function openReportModal(puzzle) {
-            activeReportPuzzle = puzzle;
-            document.getElementById('report-comment').value = '';
-            document.getElementById('report-email').value = '';
-            document.getElementById('report-msg').textContent = '';
-            
-            const infoText = 'Puzzle: "' + (puzzle.puzzle_name || 'Unknown') + '" | Room: R-' + (puzzle.room_id || '?') + ' | Wall: ' + (puzzle.wall_side || '?');
-            document.getElementById('report-context-info').textContent = infoText;
-            
-            document.getElementById('report-modal').style.display = 'flex';
-        }
-
-        function closeReportModal() {
-            document.getElementById('report-modal').style.display = 'none';
-            activeReportPuzzle = null;
-        }
-
-        async function submitReport() {
-            if (!activeReportPuzzle) return;
-            const comment = document.getElementById('report-comment').value.trim();
-            const email = document.getElementById('report-email').value.trim();
-            const msgDiv = document.getElementById('report-msg');
-
-            if (!comment) {
-                msgDiv.style.color = '#e94560';
-                msgDiv.textContent = 'Please enter a reason or comment.';
-                return;
-            }
-
-            msgDiv.style.color = '#ffd700';
-            msgDiv.textContent = 'Submitting report...';
-
-            try {
-                const { error } = await dbClient.from('puzzle_reports').insert([{
-                    puzzle_id: activeReportPuzzle.id,
-                    puzzle_name: activeReportPuzzle.puzzle_name || 'Unknown',
-                    room_id: activeReportPuzzle.room_id || null,
-                    wall_side: activeReportPuzzle.wall_side || null,
-                    designer_id: activeReportPuzzle.designer_id || null,
-                    reporter_email: email || null,
-                    report_comment: comment
-                }]);
-
-                if (error) {
-                    msgDiv.style.color = '#e94560';
-                    msgDiv.textContent = 'Error: ' + error.message;
-                } else {
-                    msgDiv.style.color = '#4cd137';
-                    msgDiv.textContent = 'Report successfully submitted. Thank you!';
-                    setTimeout(() => {
-                        closeReportModal();
-                    }, 2000);
-                }
-            } catch (err) {
-                msgDiv.style.color = '#e94560';
-                msgDiv.textContent = 'Unexpected error occurred.';
             }
         }
 
@@ -971,10 +1034,10 @@
             selectedDoorKey = null;
         }
 
-        // --- Initialization & Breadcrumbs ---
+        // --- Initialisatie & Broodkruimels bijladen ---
         async function initGame() {
             renderBreadcrumbs();
-            updatePlayerUI();
+            loadMaxRoomStat();
             const targetRoomId = localStorage.getItem('target_room');
             
             if (targetRoomId) {
@@ -993,7 +1056,7 @@
                         return;
                     }
                 } catch (err) {
-                    console.error("Error retrieving target room:", err);
+                    console.error("Error fetching target room:", err);
                 }
             }
 
