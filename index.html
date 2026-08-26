@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Coördinaten Systeem</title>
+    <title>Dungeon Game - Coordinate System</title>
     <style>
         body {
             margin: 0;
@@ -92,11 +92,12 @@
             z-index: 10;
         }
 
-        .ui-panel { width: 320px; min-height: 150px; }
-        #inventory-panel { top: 50px; left: 410px; width: 300px; }
-        #quest-panel { top: 200px; left: 410px; width: 350px; max-height: 250px; overflow-y: auto; }
-        #breadcrumb-panel { top: 480px; left: 410px; width: 350px; max-height: 200px; overflow-y: auto; }
-        #gamemenu-panel { top: 50px; left: 780px; width: 280px; }
+        .ui-panel { width: 320px; min-height: 140px; }
+        #inventory-panel { top: 50px; left: 410px; width: 320px; }
+        #quest-panel { top: 320px; left: 410px; width: 350px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 410px; width: 350px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 770px; width: 280px; }
+        #test-panel { top: 380px; left: 770px; width: 280px; background: #351c1c; border-color: #c0392b; }
         
         .door-asset { 
             cursor: pointer; 
@@ -148,6 +149,25 @@
             background: #e74c3c;
         }
 
+        .status-section {
+            background: #222;
+            padding: 8px 12px;
+            border-bottom: 1px solid #444;
+            font-size: 13px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .inventory-section {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
         .inventory-item {
             display: flex;
             align-items: center;
@@ -155,12 +175,6 @@
             font-weight: bold;
             color: #4cd137;
             margin-bottom: 4px;
-        }
-
-        .inventory-item img {
-            width: 20px;
-            height: 20px;
-            object-fit: contain;
         }
 
         .quest-header-flex {
@@ -252,6 +266,24 @@
             font-size: 11px;
         }
         .copy-btn:hover { background: #2980b9; }
+
+        .test-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+        .test-controls button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .test-controls button:hover { background: #c0392b; }
     </style>
 </head>
 <body>
@@ -272,31 +304,50 @@
         </div>
     </div>
 
+    <!-- Status & Inventory Container -->
     <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header"><span>Inventory & Economy</span></div>
-        <div id="inventory-content" class="panel-content" style="padding: 12px; font-size: 13px; color: #ccc;">
-            <div class="inventory-item">
-                <span>Cash (Pocket): <strong id="cash-count" style="color: #ffd700;">5</strong></span>
+        <div class="panel-header"><span>Status & Inventory</span></div>
+        <div class="panel-content">
+            <div class="status-section">
+                <div class="status-row"><span>Time left:</span> <strong id="time-left-val" style="color: #ffd700;">10:00h</strong></div>
+                <div class="status-row"><span>Energy:</span> <strong id="energy-val" style="color: #4cd137;">100%</strong></div>
+                <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">5</strong></div>
+                <div class="status-row"><span>Total Weight:</span> <strong id="weight-val" style="color: #e67e22;">0.0 kg</strong></div>
             </div>
-            <div class="inventory-item">
-                <span>Credit (Bank): <strong id="credit-count" style="color: #4cd137;">0</strong></span>
+            <div class="inventory-section">
+                <div class="inventory-item">
+                    <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">10 Rinth</strong>
+                </div>
+                <div class="inventory-item">
+                    <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">0 Rinth</strong>
+                </div>
+                <hr style="border-color: #444; margin: 8px 0;">
+                <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Treasures (Loot):</div>
+                <div id="treasures-display" style="font-size: 12px; color: #aaa; margin-bottom: 6px;">
+                    Value: <strong id="loot-value-val">200</strong> Rinth (<span id="loot-weight-val">1.0</span> kg)
+                </div>
+                <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Food:</div>
+                <div id="food-display" style="font-size: 12px; color: #aaa; display: flex; justify-content: space-between; align-items: center;">
+                    <span><strong id="food-kg-val">1.5</strong> kg Food</span>
+                    <button onclick="consumeFood()" style="background:#27ae60; color:#fff; border:none; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">Eat 500g</button>
+                </div>
             </div>
-            <hr style="border-color: #444; margin: 8px 0;">
-            <div style="font-size: 12px; margin-bottom: 4px; font-weight: bold; color: #ffd700;">Treasures:</div>
-            <div id="treasures-list" style="font-size: 11px; color: #aaa;">No treasures found yet.</div>
         </div>
     </div>
 
+    <!-- Communication & Assignments -->
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
         <div class="panel-header"><span>Communication & Assignments</span></div>
         <div id="quest-content" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
     </div>
 
+    <!-- Breadcrumbs Container -->
     <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
         <div class="panel-header"><span>Breadcrumbs (Last 10 rooms)</span></div>
         <div id="breadcrumb-content" class="panel-content quest-box">No rooms visited yet.</div>
     </div>
 
+    <!-- Game Menu -->
     <div id="gamemenu-panel" class="draggable-panel" data-id="gamemenu-panel">
         <div class="panel-header">
             <span>Game Menu</span>
@@ -324,6 +375,10 @@
                 <span>Breadcrumbs</span>
                 <input type="checkbox" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
             </div>
+            <div class="toggle-row">
+                <span>Test Panel</span>
+                <input type="checkbox" checked onchange="togglePanel('test-panel', this.checked)">
+            </div>
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -333,56 +388,185 @@
             </div>
         </div>
     </div>
+
+    <!-- TEST CONTAINER (Voor scenario testing) -->
+    <div id="test-panel" class="draggable-panel" data-id="test-panel">
+        <div class="panel-header" style="background: #78281f;"><span>🧪 Test Scenario Panel</span></div>
+        <div class="panel-content menu-section">
+            <label>Time Left:</label>
+            <div class="test-controls">
+                <button onclick="testAdjustTime(-30)">- 30 min</button>
+                <button onclick="testAdjustTime(30)">+ 30 min</button>
+            </div>
+
+            <label>Energy (%):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustEnergy(-10)">- 10%</button>
+                <button onclick="testAdjustEnergy(10)">+ 10%</button>
+            </div>
+
+            <label>Cash (Pocket):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustCash(-50)">- 50 Cash</button>
+                <button onclick="testAdjustCash(50)">+ 50 Cash</button>
+            </div>
+
+            <label>Credit (Bank):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustCredit(-100)">- 100 Credit</button>
+                <button onclick="testAdjustCredit(100)">+ 100 Credit</button>
+            </div>
+
+            <label>Loot Value (Rinths):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustLoot(-100)">- 100 Val</button>
+                <button onclick="testAdjustLoot(100)">+ 100 Val</button>
+            </div>
+
+            <label>Food Quantity (Kg):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustFood(-0.5)">- 0.5 kg</button>
+                <button onclick="testAdjustFood(0.5)">+ 0.5 kg</button>
+            </div>
+
+            <hr style="border-color: #555; margin: 8px 0;">
+            <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Simulate Next Day Reset</button>
+        </div>
+    </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Status Player, Currency & Treasures (met localStorage ondersteuning) ---
+        // --- Player State & Economy (1 Totaal voor Loot en 1 Totaal voor Food) ---
         let playerState = {
-            score: parseInt(localStorage.getItem('dungeon_player_score')) || 0,
-            cash: localStorage.getItem('dungeon_player_cash') !== null ? parseInt(localStorage.getItem('dungeon_player_cash')) : 5,
-            credit: parseInt(localStorage.getItem('dungeon_player_credit')) || 0,
-            // Treasures array met flexibele dimensie/multiplicator (bijv. ID 1 = Golden Watch x 100, ID 2 = Diamond Bracelet x 200)
-            treasures: JSON.parse(localStorage.getItem('dungeon_player_treasures')) || [
-                { id: 1, name: 'Golden Watch', dimension: 1, baseMultiplier: 100 },
-                { id: 2, name: 'Diamond Bracelet', dimension: 2, baseMultiplier: 100 }
-            ]
+            score: 0,
+            cash: 310,       
+            credit: 400,      
+            energy: 100,    
+            timeLeft: 595,  // 9:55h
+            warpsLeft: 5,   
+            lootValue: 200, // 1 totaal loot bedrag (bijv. 200 Rinth = 1.0 kg)
+            foodKg: 1.5,    // 1 totaal food gewicht in kg
+            lastRoomEnterTime: Date.now()
         };
-
-        function savePlayerState() {
-            localStorage.setItem('dungeon_player_score', playerState.score);
-            localStorage.setItem('dungeon_player_cash', playerState.cash);
-            localStorage.setItem('dungeon_player_credit', playerState.credit);
-            localStorage.setItem('dungeon_player_treasures', JSON.stringify(playerState.treasures));
-        }
 
         function updatePlayerUI() {
             const cashElem = document.getElementById('cash-count');
             const creditElem = document.getElementById('credit-count');
-            const treasuresListElem = document.getElementById('treasures-list');
-
-            if (cashElem) cashElem.textContent = playerState.cash;
-            if (creditElem) creditElem.textContent = playerState.credit;
-
-            if (treasuresListElem) {
-                if (playerState.treasures.length === 0) {
-                    treasuresListElem.textContent = "No treasures found yet.";
-                } else {
-                    let html = '';
-                    playerState.treasures.forEach(t => {
-                        let calculatedValue = t.dimension * t.baseMultiplier;
-                        html += '• ' + t.name + ' (Dim: ' + t.dimension + ') - Value: ' + calculatedValue + ' Rinths<br>';
-                    });
-                    treasuresListElem.innerHTML = html;
-                }
+            const energyElem = document.getElementById('energy-val');
+            const timeLeftElem = document.getElementById('time-left-val');
+            const weightElem = document.getElementById('weight-val');
+            
+            const lootValueElem = document.getElementById('loot-value-val');
+            const lootWeightElem = document.getElementById('loot-weight-val');
+            const foodKgElem = document.getElementById('food-kg-val');
+            
+            if (cashElem) cashElem.textContent = playerState.cash + ' Rinth';
+            if (creditElem) creditElem.textContent = playerState.credit + ' Rinth';
+            
+            if (energyElem) {
+                energyElem.textContent = playerState.energy + '%';
+                energyElem.style.color = playerState.energy < 30 ? '#ff6b6b' : '#4cd137';
             }
 
-            updateHeaderScore();
-            savePlayerState();
+            if (timeLeftElem) {
+                let hours = Math.floor(playerState.timeLeft / 60);
+                let mins = playerState.timeLeft % 60;
+                timeLeftElem.textContent = `${hours}:${mins < 10 ? '0' : ''}${mins}h`;
+                timeLeftElem.style.color = playerState.timeLeft < 60 ? '#ff6b6b' : '#ffd700';
+            }
+
+            // Berekening gewicht: 100 Rinth loot = 0.5 kg + food gewicht in kg
+            let lootWeight = (playerState.lootValue / 100) * 0.5;
+            let totalWeight = lootWeight + playerState.foodKg;
+
+            if (weightElem) weightElem.textContent = totalWeight.toFixed(1) + ' kg';
+            if (lootValueElem) lootValueElem.textContent = playerState.lootValue;
+            if (lootWeightElem) lootWeightElem.textContent = lootWeight.toFixed(1);
+            if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
         }
+
+        // --- Betalingslogica (Cash eerst, anders volledig van Card/Credit) ---
+        function deductPayment(amount) {
+            if (playerState.cash >= amount) {
+                playerState.cash -= amount;
+                return true;
+            } else {
+                // Niet genoeg cash? Volledige bedrag van Card/Credit afschrijven
+                if (playerState.credit >= amount) {
+                    playerState.credit -= amount;
+                    return true;
+                } else {
+                    alert("Not enough Cash or Credit (Bank) to complete this transaction!");
+                    return false;
+                }
+            }
+        }
+
+        // --- Time Left & Bewegingslogica ---
+        function handleRoomTransitionTime() {
+            const now = Date.now();
+            const elapsedMinutes = Math.floor((now - playerState.lastRoomEnterTime) / 60000);
+            const countedMinutes = Math.min(10, Math.max(1, elapsedMinutes));
+            
+            playerState.timeLeft = Math.max(0, playerState.timeLeft - countedMinutes);
+            playerState.lastRoomEnterTime = now;
+
+            let lootWeight = (playerState.lootValue / 100) * 0.5;
+            let totalWeight = lootWeight + playerState.foodKg;
+
+            let energyCost = Math.max(1, Math.floor(2 + (totalWeight * 0.5)));
+            playerState.energy = Math.max(0, playerState.energy - energyCost);
+
+            updatePlayerUI();
+        }
+
+        function consumeFood() {
+            if (playerState.foodKg >= 0.5) {
+                playerState.foodKg -= 0.5;
+                playerState.energy = Math.min(100, playerState.energy + 15);
+                updatePlayerUI();
+                alert("You consumed 500g of food. Energy restored by 15%!");
+            } else {
+                alert("You don't have enough food left!");
+            }
+        }
+
+        // --- Test Panel Functies ---
+        function testAdjustTime(amount) {
+            playerState.timeLeft = Math.max(0, playerState.timeLeft + amount);
+            updatePlayerUI();
+        }
+        function testAdjustEnergy(amount) {
+            playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount));
+            updatePlayerUI();
+        }
+        function testAdjustCash(amount) {
+            playerState.cash = Math.max(0, playerState.cash + amount);
+            updatePlayerUI();
+        }
+        function testAdjustCredit(amount) {
+            playerState.credit = Math.max(0, playerState.credit + amount);
+            updatePlayerUI();
+        }
+        function testAdjustLoot(amount) {
+            playerState.lootValue = Math.max(0, playerState.lootValue + amount);
+            updatePlayerUI();
+        }
+        function testAdjustFood(amount) {
+            playerState.foodKg = Math.max(0, playerState.foodKg + amount);
+            updatePlayerUI();
+        }
+        function simulateDailyReset() {
+            playerState.timeLeft = 600; // Reset naar 10 uur
+            playerState.energy = 100;
+            updatePlayerUI();
+            alert("Simulated Daily Reset (3:00 AM): Time left reset to 10 hours and energy restored!");
+        }
+
         updatePlayerUI();
 
-        // --- Draggable Logic (Desktop & Touch) ---
+        // --- Draggable Logic ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
@@ -434,7 +618,6 @@
             }
         });
 
-        // --- Menu minimaliseren / uitklappen met dynamisch icoon ---
         function toggleMenuBody() {
             const body = document.getElementById('gamemenu-body');
             const btn = document.getElementById('collapse-icon-btn');
@@ -447,83 +630,33 @@
             }
         }
 
-        // --- Vensters tonen / verbergen ---
         function togglePanel(panelId, show) {
             const p = document.getElementById(panelId);
-            if (p) {
-                p.style.display = show ? 'block' : 'none';
-            }
+            if (p) p.style.display = show ? 'block' : 'none';
         }
 
-        // --- Admin e-mail kopiëren ---
         function copyAdminEmail() {
             const emailField = document.getElementById('admin-email-field');
             emailField.select();
-            emailField.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(emailField.value).then(() => {
-                alert('Admin email copied to clipboard: ' + emailField.value);
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
+                alert('Admin email copied to clipboard.');
             });
         }
 
-        // --- Cache Reset Functie ---
         function resetGameCache() {
             if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
-                localStorage.removeItem('dungeon_unlocked_doors');
-                localStorage.removeItem('dungeon_timer_states');
-                localStorage.removeItem('dungeon_voted_doors');
-                localStorage.removeItem('target_room');
-                localStorage.removeItem('dungeon_breadcrumbs');
-                localStorage.removeItem('dungeon_player_score');
-                localStorage.removeItem('dungeon_player_cash');
-                localStorage.removeItem('dungeon_player_credit');
-                localStorage.removeItem('dungeon_player_treasures');
+                localStorage.clear();
                 location.reload();
             }
         }
 
-        // --- Supabase Koppeling ---
         const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
         const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
-
-        const wrongAttemptsTracker = {};
         let activeTimerInterval = null;
-
-        function getTimerStateMap() {
-            const saved = localStorage.getItem('dungeon_timer_states');
-            return saved ? JSON.parse(saved) : {};
-        }
-
-        function setTimerState(doorKey, stateObj) {
-            const map = getTimerStateMap();
-            map[doorKey] = stateObj;
-            localStorage.setItem('dungeon_timer_states', JSON.stringify(map));
-        }
-
-        function getTimerState(doorKey) {
-            const map = getTimerStateMap();
-            return map[doorKey] || null;
-        }
-
-        function getVotedDoorsMap() {
-            const saved = localStorage.getItem('dungeon_voted_doors');
-            return saved ? JSON.parse(saved) : {};
-        }
-
-        function markDoorVoted(doorKey) {
-            const map = getVotedDoorsMap();
-            map[doorKey] = true;
-            localStorage.setItem('dungeon_voted_doors', JSON.stringify(map));
-        }
-
-        function hasVotedDoor(doorKey) {
-            const map = getVotedDoorsMap();
-            return !!map[doorKey];
-        }
+        let selectedDoorKey = null;
 
         function getLocalDoorStatus(x, y, wallSide) {
             const savedState = localStorage.getItem('dungeon_unlocked_doors');
@@ -534,23 +667,18 @@
         function setLocalDoorStatus(posX, posY, wallSide) {
             const savedState = localStorage.getItem('dungeon_unlocked_doors');
             const stateMap = savedState ? JSON.parse(savedState) : {};
-            
             stateMap[posX + '_' + posY + '_' + wallSide] = true;
 
-            let targetX = posX;
-            let targetY = posY;
+            let targetX = posX, targetY = posY;
             if (wallSide === 'north') targetY += 1;
             if (wallSide === 'south') targetY -= 1;
             if (wallSide === 'east') targetX += 1;
             if (wallSide === 'west') targetX -= 1;
 
-            const oppSide = oppositeSideMap[wallSide];
-            stateMap[targetX + '_' + targetY + '_' + oppSide] = true;
-
+            stateMap[targetX + '_' + targetY + '_' + oppositeSideMap[wallSide]] = true;
             localStorage.setItem('dungeon_unlocked_doors', JSON.stringify(stateMap));
         }
 
-        // --- Broodkruimel Systeem (Breadcrumbs) ---
         function addBreadcrumb(roomId, posX, posY) {
             let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
             crumbs = crumbs.filter(c => c.roomId !== roomId);
@@ -571,10 +699,8 @@
 
             let html = '';
             crumbs.forEach(c => {
-                html += '<div class="breadcrumb-item">' +
-                        '<span>Room R-' + c.roomId + '</span>' +
-                        '<button onclick="jumpToBreadcrumb(' + c.posX + ', ' + c.posY + ')">Escape Here</button>' +
-                        '</div>';
+                html += '<div class="breadcrumb-item"><span>Room R-' + c.roomId + '</span>' +
+                        '<button onclick="jumpToBreadcrumb(' + c.posX + ', ' + c.posY + ')">Escape Here</button></div>';
             });
             container.innerHTML = html;
         }
@@ -583,108 +709,55 @@
             loadRoomByCoords(posX, posY, 'south');
         }
 
-        // --- Laad de hoogste kamernummer statistiek ---
         async function loadMaxRoomStat() {
             try {
-                const { data, error } = await dbClient
-                    .from('puzzle_labyrinth')
-                    .select('room_id')
-                    .order('room_id', { ascending: false })
-                    .limit(1);
-
-                if (!error && data && data.length > 0) {
-                    document.getElementById('max-room-stat').textContent = data[0].room_id || '1';
-                } else {
-                    document.getElementById('max-room-stat').textContent = '1';
-                }
-            } catch (err) {
-                console.error("Error loading max room:", err);
-            }
+                const { data } = await dbClient.from('puzzle_labyrinth').select('room_id').order('room_id', { ascending: false }).limit(1);
+                if (data && data.length > 0) document.getElementById('max-room-stat').textContent = data[0].room_id || '1';
+            } catch (err) { console.error(err); }
         }
 
-        // --- Vrije kamerkeuze (Warp) met minimum check ---
         async function executeWarp() {
             const roomInput = document.getElementById('warp-room-input').value.trim();
             const targetRoomId = parseInt(roomInput, 10);
-            
-            if (!roomInput || isNaN(targetRoomId) || targetRoomId < 1) {
-                alert('Please enter a valid room number greater than or equal to 1!');
-                return;
-            }
+            if (isNaN(targetRoomId) || targetRoomId < 1) return;
             
             try {
-                const { data, error } = await dbClient
-                    .from('puzzle_labyrinth')
-                    .select('pos_x, pos_y')
-                    .eq('room_id', targetRoomId)
-                    .limit(1);
-
-                if (!error && data && data.length > 0) {
-                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
-                } else {
-                    alert('Room R-' + targetRoomId + ' could not be found in the labyrinth.');
-                }
-            } catch (err) {
-                console.error("Warp error:", err);
-            }
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', targetRoomId).limit(1);
+                if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+            } catch (err) { console.error(err); }
         }
-
-        function getFailAction(puzzle) {
-            const val = puzzle.fail_action || puzzle.reveal_answer;
-            if (val === 'no_answer' || val === 'no_reveal' || val === false || val === 'false') {
-                return 'no_answer';
-            }
-            if (val === 'paid_answer' || val === 'paid') {
-                return 'paid_answer';
-            }
-            return 'free_answer';
-        }
-
-        let selectedDoorKey = null;
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
-
             if (activeTimerInterval) clearInterval(activeTimerInterval);
-            document.getElementById('quest-content').innerHTML = "Click on a door to view the details. Click again to play the puzzle.";
+            document.getElementById('quest-content').innerHTML = "Click on a door to view details. Click again to play.";
+
+            if (entrySide !== null) {
+                handleRoomTransitionTime();
+            }
             
             const updateRoomContent = async () => {
                 try {
-                    const { data: puzzles, error: puzzleError } = await dbClient
-                        .from('puzzle_labyrinth')
-                        .select('*')
-                        .eq('pos_x', posX)
-                        .eq('pos_y', posY);
-
-                    if (puzzleError) throw puzzleError;
-
-                    const headerSpan = document.getElementById('game-header-title');
+                    const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY);
                     const roomId = puzzles?.[0]?.room_id || '?';
                     
-                    if(headerSpan) {
-                        headerSpan.innerHTML = 'Room ' + roomId + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
-                    }
-                    
-                    if (roomId !== '?') {
-                        addBreadcrumb(roomId, posX, posY);
-                    }
+                    document.getElementById('game-header-title').innerHTML = 'Room ' + roomId + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+                    if (roomId !== '?') addBreadcrumb(roomId, posX, posY);
                     
                     const hero = document.getElementById('hero');
                     roomContent.innerHTML = ''; 
                     roomContent.appendChild(hero);
-
                     setHeroPosition(hero, entrySide);
 
-                    if (puzzles && puzzles.length > 0) {
+                    if (puzzles) {
                         puzzles.forEach(puzzle => {
                             const img = document.createElement('img');
                             const wallSide = puzzle.wall_side;
                             const doorKey = posX + '_' + posY + '_' + wallSide;
                             img.setAttribute('data-doorkey', doorKey);
 
-                            let targetX = posX;
-                            let targetY = posY;
+                            let targetX = posX, targetY = posY;
                             if (wallSide === 'north') targetY += 1;
                             if (wallSide === 'south') targetY -= 1;
                             if (wallSide === 'east') targetX += 1;
@@ -695,102 +768,50 @@
 
                             img.src = isSolved ? 'DoorWay.png' : 'Door.png';
                             img.className = 'door-asset';
-                            
                             setDoorPositionAndStyle(img, wallSide);
 
                             img.addEventListener('click', async () => {
-                                const { data: freshData } = await dbClient
-                                    .from('puzzle_labyrinth')
-                                    .select('*')
-                                    .eq('pos_x', posX)
-                                    .eq('pos_y', posY)
-                                    .eq('wall_side', wallSide)
-                                    .single();
-
-                                const liveHasPuzzle = freshData && freshData.question && freshData.question.trim() !== "";
-                                const liveSolved = !liveHasPuzzle || getLocalDoorStatus(posX, posY, wallSide);
+                                const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).single();
+                                const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
 
                                 document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
 
                                 if (liveSolved) {
                                     loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                                 } else {
-                                    const initialTimer = parseInt(freshData.google_timer) || 0;
-                                    const timerState = getTimerState(doorKey);
-                                    const isTimerExpired = initialTimer > 0 && timerState && timerState.expired;
-
-                                    if (isTimerExpired) {
+                                    if (selectedDoorKey !== doorKey) {
                                         selectedDoorKey = doorKey;
                                         img.classList.add('selected');
-                                        triggerDoorPuzzle(freshData, doorKey, () => {});
+                                        showDoorInfo(freshData);
                                     } else {
-                                        if (selectedDoorKey !== doorKey) {
-                                            selectedDoorKey = doorKey;
-                                            img.classList.add('selected');
-                                            showDoorInfo(freshData, doorKey);
-                                        } else {
-                                            triggerDoorPuzzle(freshData, doorKey, (success) => {
-                                                if (success) {
-                                                    setLocalDoorStatus(posX, posY, wallSide);
-                                                    img.src = 'DoorWay.png';
-                                                    selectedDoorKey = null;
-                                                }
-                                            });
-                                        }
+                                        triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                            if (success) {
+                                                setLocalDoorStatus(posX, posY, wallSide);
+                                                img.src = 'DoorWay.png';
+                                                selectedDoorKey = null;
+                                            }
+                                        });
                                     }
                                 }
                             });
-
                             roomContent.appendChild(img);
                         });
                     }
-
-                } catch (err) { 
-                    console.error("Error loading room at coordinates:", err); 
-                }
+                } catch (err) { console.error(err); }
             };
 
             if (entrySide === null) {
                 await updateRoomContent();
             } else {
                 roomContent.classList.add('fade-out');
-                setTimeout(async () => { 
-                    await updateRoomContent(); 
-                    roomContent.classList.remove('fade-out'); 
-                }, 300);
+                setTimeout(async () => { await updateRoomContent(); roomContent.classList.remove('fade-out'); }, 300);
             }
         }
 
-        function showDoorInfo(puzzle, doorKey) {
-            let hintCount = 0;
-            if (puzzle.hint_1 && puzzle.hint_1.trim() !== "") hintCount++;
-            if (puzzle.hint_2 && puzzle.hint_2.trim() !== "") hintCount++;
-
-            const failAction = getFailAction(puzzle);
-            let failActionText = "Answer is revealed for free.";
-            if (failAction === "no_answer") {
-                failActionText = "The answer remains secret.";
-            } else if (failAction === "paid_answer") {
-                failActionText = "Paid answer (Rinths)";
-            }
-
-            const googleTimer = parseInt(puzzle.google_timer) || 0;
-            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
-            const wrongPenalty = parseInt(puzzle.wrong_penalty) || 0;
-            const maxReward = puzzle.max_reward !== undefined && puzzle.max_reward !== null ? puzzle.max_reward : 30;
-
+        function showDoorInfo(puzzle) {
             const questContent = document.getElementById('quest-content');
-            
             questContent.innerHTML = '<p><strong>Door found (' + puzzle.wall_side + ')</strong></p>' +
-                '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">View the properties. Click the door again to start the puzzle.</p>' +
-                '<ul style="padding-left: 15px; margin: 0; font-size: 12px; color: #ccc;">' +
-                (googleTimer > 0 ? '<li><strong>Timer:</strong> ' + googleTimer + 's</li>' : '') +
-                '<li><strong>Max Reward:</strong> ' + maxReward + '</li>' +
-                (chickenPenalty > 0 ? '<li><strong>Chicken Penalty:</strong> ' + chickenPenalty + '</li>' : '') +
-                (wrongPenalty > 0 ? '<li><strong>Wrong Penalty:</strong> ' + wrongPenalty + '</li>' : '') +
-                '<li><strong>After 3 errors / time\'s up:</strong> ' + failActionText + '</li>' +
-                '<li><strong>Hints available:</strong> ' + hintCount + '</li>' +
-                '</ul>' +
+                '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Click door again to start.</p>' +
                 '<button onclick="confirmStartPuzzle()">Start Puzzle</button>';
         }
 
@@ -821,290 +842,31 @@
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
             const questContent = document.getElementById('quest-content');
-            const q = puzzle.question || "Solve the puzzle:";
+            const q = puzzle.question || "Solve:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
-            const failAction = getFailAction(puzzle);
-            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
             const maxReward = parseInt(puzzle.max_reward) || 30;
-            
-            const initialTimer = parseInt(puzzle.google_timer) || 0;
-            let timerState = getTimerState(doorKey);
 
-            let timeLeft = initialTimer;
-            let isExpired = false;
+            questContent.innerHTML = '<div class="quest-header-flex"><span><strong>Question:</strong> ' + q + '</span></div>' +
+                '<input type="text" id="p-ans" placeholder="Answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>' +
+                '<button id="btn-ans">Reply</button>' +
+                '<div id="feedback-msg" style="margin-top: 6px;"></div>';
 
-            if (timerState && initialTimer > 0) {
-                isExpired = timerState.expired;
-                timeLeft = timerState.timeLeft;
-            }
-
-            if (wrongAttemptsTracker[doorKey] === undefined) {
-                wrongAttemptsTracker[doorKey] = 0;
-            }
-
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
-
-            function renderPuzzleScreen() {
-                let wrongCount = wrongAttemptsTracker[doorKey];
-                let hintsHtml = '';
-                
-                if (wrongCount >= 1 && puzzle.hint_1 && puzzle.hint_1.trim() !== "") {
-                    hintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 1:</strong> ' + puzzle.hint_1 + ' (' + (puzzle.hint_1_option || '') + ')</p>';
+            document.getElementById('btn-ans').onclick = () => {
+                const userAnswer = document.getElementById('p-ans').value.trim();
+                if(userAnswer.toLowerCase() === a.toLowerCase()) {
+                    playerState.score += maxReward;
+                    questContent.innerHTML = '<span style="color: #4cd137;">Correct! Earned ' + maxReward + ' points. Door is open.</span>';
+                    callback(true);
+                } else {
+                    document.getElementById('feedback-msg').innerHTML = '<span style="color: #ff6b6b;">Wrong answer!</span>';
+                    callback(false);
                 }
-                if (wrongCount >= 2 && puzzle.hint_2 && puzzle.hint_2.trim() !== "") {
-                    hintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ' + puzzle.hint_2 + ' (' + (puzzle.hint_2_option || '') + ')</p>';
-                }
-
-                if (initialTimer > 0 && (isExpired || timeLeft <= 0)) {
-                    if (activeTimerInterval) clearInterval(activeTimerInterval);
-                    
-                    let expiredHtml = '<p style="color: #ff6b6b; font-weight: bold;">The Google Timer has expired! Answers are no longer accepted.</p>';
-                    
-                    if (failAction === "free_answer") {
-                        expiredHtml += '<button onclick="revealDoorAnswer(\'' + a + '\', \'' + doorKey + '\', ' + maxReward + ')">Reveal Answer (For Free)</button><br>';
-                    } else if (failAction === "paid_answer") {
-                        expiredHtml += '<button onclick="buyDoorAnswer(\'' + a + '\', \'' + doorKey + '\', 5, ' + maxReward + ')">Purchase Answer (5 Rinths)</button><br>';
-                    } else {
-                        expiredHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door.</p>';
-                    }
-
-                    const alreadyVoted = hasVotedDoor(doorKey);
-                    if (!alreadyVoted) {
-                        expiredHtml += '<p style="margin-top:12px; font-size:12px;">Rate this puzzle:</p>' +
-                            '<div id="rating-buttons">' +
-                            '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
-                            '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                            '</div>';
-                    } else {
-                        expiredHtml += '<p style="margin-top:12px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>';
-                    }
-
-                    questContent.innerHTML = '<div class="quest-header-flex">' +
-                        '<span><strong>Question:</strong> ' + q + '</span>' +
-                        (initialTimer > 0 ? '<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'G\'"> <span id="time-val">0</span>s</span>' : '') +
-                        '</div>' +
-                        hintsHtml +
-                        expiredHtml;
-                    return;
-                }
-
-                if (wrongCount >= 3) {
-                    if (activeTimerInterval) clearInterval(activeTimerInterval);
-                    let maxActionsHtml = '<p style="color: #ff6b6b; font-weight: bold;">You made 3 mistakes!</p>';
-                    
-                    if (failAction === "free_answer") {
-                        maxActionsHtml += '<button onclick="revealDoorAnswer(\'' + a + '\', \'' + doorKey + '\', ' + maxReward + ')">Reveal Answer (For Free)</button><br>';
-                    } else if (failAction === "paid_answer") {
-                        maxActionsHtml += '<button onclick="buyDoorAnswer(\'' + a + '\', \'' + doorKey + '\', 5, ' + maxReward + ')">Purchase Answer (5 Rinths)</button><br>';
-                    } else {
-                        maxActionsHtml += '<p style="font-size: 12px; color: #ccc;">The answer remains a secret behind this door..</p>';
-                    }
-                    
-                    const penaltyText = chickenPenalty > 0 ? ' (Chicken Penalty: ' + chickenPenalty + ')' : '';
-                    maxActionsHtml += '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')">Leave Room' + penaltyText + '</button>';
-
-                    questContent.innerHTML = '<div class="quest-header-flex">' +
-                        '<span><strong>Question:</strong> ' + q + '</span>' +
-                        (initialTimer > 0 ? '<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'G\'"> <span id="time-val">' + timeLeft + '</span>s</span>' : '') +
-                        '</div>' +
-                        hintsHtml +
-                        maxActionsHtml +
-                        '<div id="feedback-msg" style="margin-top: 6px;"></div>';
-                    return;
-                }
-
-                questContent.innerHTML = '<div class="quest-header-flex">' +
-                    '<span><strong>Question:</strong> ' + q + '</span>' +
-                    (initialTimer > 0 ? '<span id="timer-display" style="color: #ffd700; font-weight: bold;"><img src="google_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'G\'"> <span id="time-val">' + timeLeft + '</span>s</span>' : '') +
-                    '</div>' +
-                    '<div id="hint-container">' + hintsHtml + '</div>' +
-                    '<input type="text" id="p-ans" placeholder="Your answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>' +
-                    '<button id="btn-ans">Reply</button>' +
-                    '<button class="danger" onclick="abandonPuzzle(' + chickenPenalty + ', ' + maxReward + ')" style="margin-left: 5px;">Leave</button>' +
-                    (chickenPenalty > 0 ? '<div style="text-align: right; margin-top: 6px; color: #ffd700; font-weight: bold; font-size: 12px;"><img src="Chicken_symb.png" style="width:16px; vertical-align:middle; margin-right:3px;" onerror="this.outerText=\'🐔\'">' + chickenPenalty + '</div>' : '') +
-                    '<div id="feedback-msg" style="margin-top: 6px;"></div>';
-
-                if (initialTimer > 0 && !activeTimerInterval && !isExpired) {
-                    activeTimerInterval = setInterval(() => {
-                        timeLeft--;
-                        const timeValElem = document.getElementById('time-val');
-                        if (timeValElem) timeValElem.textContent = timeLeft;
-
-                        setTimerState(doorKey, { expired: timeLeft <= 0, timeLeft: timeLeft });
-
-                        if (timeLeft <= 0) {
-                            clearInterval(activeTimerInterval);
-                            activeTimerInterval = null;
-                            isExpired = true;
-                            renderPuzzleScreen();
-                        }
-                    }, 1000);
-                }
-
-                document.getElementById('btn-ans').onclick = () => {
-                    const ansInput = document.getElementById('p-ans');
-                    const feedbackDiv = document.getElementById('feedback-msg');
-                    const userAnswer = ansInput.value.trim();
-
-                    if (userAnswer.length === 0) {
-                        feedbackDiv.innerHTML = '<span style="color: #ff9800;">Please enter at least 1 character!</span>';
-                        return;
-                    }
-
-                    if(userAnswer.toLowerCase() === a.toLowerCase()) {
-                        if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
-                        playerState.score += maxReward;
-                        // Voorbeeld: als je een puzzel oplost verdien je ook direct wat Cash!
-                        playerState.cash += 10;
-                        updatePlayerUI();
-
-                        const alreadyVoted = hasVotedDoor(doorKey);
-
-                        questContent.innerHTML = '<span style="color: #4cd137;">Correct! You earned ' + maxReward + ' points and 10 Cash. The door is open.</span><br>' +
-                            (!alreadyVoted ? '<p style="margin-top:10px; font-size:12px;">Rate this puzzle:</p>' +
-                                '<div id="rating-buttons">' +
-                                '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', 1, \'' + doorKey + '\')"><img src="like_green_symb.png" style="width:24px;" alt="Like" onerror="this.outerText=\'👍\'"></button>' +
-                                '<button style="background:transparent; border:none; cursor:pointer;" onclick="ratePuzzle(' + puzzle.id + ', -1, \'' + doorKey + '\')"><img src="disLike_red_symb.png" style="width:24px;" alt="Dislike" onerror="this.outerText=\'👎\'"></button>' +
-                                '</div>' : '<p style="margin-top:10px; font-size:11px; color: #4cd137;">✔ You have already rated this puzzle.</p>');
-                        wrongAttemptsTracker[doorKey] = 0;
-                        callback(true);
-                    } else {
-                        wrongAttemptsTracker[doorKey]++;
-                        let currentWrong = wrongAttemptsTracker[doorKey];
-                        const wrongPenalty = parseInt(puzzle.wrong_penalty) || 10;
-                        
-                        playerState.score -= wrongPenalty;
-                        updateHeaderScore();
-
-                        let feedbackMsg = '<span style="color: #ff6b6b;">Wrong answer! (-' + wrongPenalty + ' pts, Errors: ' + currentWrong + '/3)</span>';
-                        if (currentWrong === 1 && puzzle.hint_1) {
-                            feedbackMsg += '<br><span style="color: #3498db;">💡 Hint 1 has been released!</span>';
-                        } else if (currentWrong === 2 && puzzle.hint_2) {
-                            feedbackMsg += '<br><span style="color: #3498db;">💡 Hint 2 has been released!</span>';
-                        }
-
-                        feedbackDiv.innerHTML = feedbackMsg;
-                        ansInput.value = '';
-
-                        if (currentWrong >= 3) {
-                            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
-                            renderPuzzleScreen();
-                        } else {
-                            let updatedHintsHtml = '';
-                            if (currentWrong >= 1 && puzzle.hint_1 && puzzle.hint_1.trim() !== "") {
-                                updatedHintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 1:</strong> ' + puzzle.hint_1 + ' (' + (puzzle.hint_1_option || '') + ')</p>';
-                            }
-                            if (currentWrong >= 2 && puzzle.hint_2 && puzzle.hint_2.trim() !== "") {
-                                updatedHintsHtml += '<p style="font-size: 11px; color: #3498db; margin: 4px 0;"><strong>Hint 2:</strong> ' + puzzle.hint_2 + ' (' + (puzzle.hint_2_option || '') + ')</p>';
-                            }
-                            const hintContainer = document.getElementById('hint-container');
-                            if(hintContainer) hintContainer.innerHTML = updatedHintsHtml;
-                        }
-
-                        callback(false);
-                    }
-                };
-            }
-
-            renderPuzzleScreen();
+            };
         }
 
-        function updateHeaderScore() {
-            const headerSpan = document.getElementById('game-header-title');
-            if(headerSpan) {
-                const parts = headerSpan.textContent.split('|');
-                const roomPart = parts[0] ? parts[0].trim() : 'Playfield';
-                headerSpan.innerHTML = roomPart + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
-            }
-        }
-
-        async function ratePuzzle(puzzleId, vote, doorKey) {
-            try {
-                const { data: current } = await dbClient.from('puzzle_labyrinth').select('likes').eq('id', puzzleId).single();
-                if (current) {
-                    const newLikes = (current.likes || 0) + vote;
-                    await dbClient.from('puzzle_labyrinth').update({ likes: newLikes }).eq('id', puzzleId);
-                    
-                    markDoorVoted(doorKey);
-
-                    const ratingDiv = document.getElementById('rating-buttons');
-                    if (ratingDiv) {
-                        ratingDiv.innerHTML = '<span style="color: #4cd137; font-size: 12px;">Thank you for your review!</span>';
-                    }
-                }
-            } catch (err) {
-                console.error("Valuation error:", err);
-            }
-        }
-
-        function revealDoorAnswer(correctAnswer, doorKey, maxReward) {
-            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
-            const questContent = document.getElementById('quest-content');
-            questContent.innerHTML = '<span style="color: #ffd700;">The correct answer is: <strong>' + correctAnswer + '</strong>. The door is now open!</span>';
-            
-            wrongAttemptsTracker[doorKey] = 0;
-            
-            const parts = doorKey.split('_');
-            const posX = parseInt(parts[0]);
-            const posY = parseInt(parts[1]);
-            const wallSide = parts[2];
-
-            setLocalDoorStatus(posX, posY, wallSide);
-
-            const doorElement = document.querySelector('[data-doorkey="' + doorKey + '"]');
-            if (doorElement) {
-                doorElement.src = 'DoorWay.png';
-            }
-        }
-
-        function buyDoorAnswer(correctAnswer, doorKey, cost, maxReward) {
-            if (playerState.cash < cost) {
-                alert("You don't have enough Cash to buy this answer!");
-                return;
-            }
-            playerState.cash -= cost;
-            updatePlayerUI();
-            revealDoorAnswer(correctAnswer, doorKey, maxReward);
-        }
-
-        function abandonPuzzle(penalty = 0, maxReward = 30) {
-            if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
-            playerState.score -= penalty;
-            updateHeaderScore();
-
-            const questContent = document.getElementById('quest-content');
-            const penMsg = penalty > 0 ? ' (Chicken Penalty: -' + penalty + ' points)' : '';
-            questContent.innerHTML = '<span style="color: #ff6b6b;">You have left the puzzle.' + penMsg + '. Click on another door to continue.</span>';
-            document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
-            selectedDoorKey = null;
-        }
-
-        // --- Initialisatie & Broodkruimels bijladen ---
         async function initGame() {
             renderBreadcrumbs();
             loadMaxRoomStat();
-            const targetRoomId = localStorage.getItem('target_room');
-            
-            if (targetRoomId) {
-                localStorage.removeItem('target_room');
-                try {
-                    const { data, error } = await dbClient
-                        .from('puzzle_labyrinth')
-                        .select('pos_x, pos_y')
-                        .eq('room_id', parseInt(targetRoomId, 10))
-                        .limit(1);
-
-                    if (!error && data && data.length > 0) {
-                        const targetX = data[0].pos_x;
-                        const targetY = data[0].pos_y;
-                        loadRoomByCoords(targetX, targetY, 'south');
-                        return;
-                    }
-                } catch (err) {
-                    console.error("Error fetching target room:", err);
-                }
-            }
-
             loadRoomByCoords(0, 0, 'south');
         }
 
