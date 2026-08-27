@@ -98,6 +98,7 @@
         #breadcrumb-panel { top: 560px; left: 410px; width: 350px; max-height: 160px; overflow-y: auto; }
         #gamemenu-panel { top: 50px; left: 770px; width: 280px; }
         #test-panel { top: 380px; left: 770px; width: 280px; background: #351c1c; border-color: #c0392b; }
+        #asset-sandbox-panel { top: 560px; left: 770px; width: 280px; background: #1c2833; border-color: #2980b9; }
         
         .door-asset { 
             cursor: pointer; 
@@ -110,6 +111,20 @@
 
         .door-asset.selected {
             filter: drop-shadow(0 0 6px #ffd700);
+        }
+
+        /* Vrij geplaatste room assets */
+        .room-placed-asset {
+            position: absolute;
+            /*width: 36px;*/
+            /*height: 36px;*/
+            background-size: contain;
+            background-repeat: no-repeat;
+            cursor: grab;
+            z-index: 6;
+        }
+        .room-placed-asset:active {
+            cursor: grabbing;
         }
 
         .reset-btn {
@@ -284,6 +299,36 @@
             font-weight: bold;
         }
         .test-controls button:hover { background: #c0392b; }
+
+        /* Asset Sandbox Grid */
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .asset-thumb {
+            width: 44px;
+            height: 44px;
+            background: #222;
+            border: 2px solid #444;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .asset-thumb img {
+            max-width: 32px;
+            max-height: 32px;
+            object-fit: contain;
+        }
+        .asset-thumb.selected {
+            border-color: #ffd700;
+            background: #333;
+            box-shadow: 0 0 6px #ffd700;
+        }
     </style>
 </head>
 <body>
@@ -379,6 +424,10 @@
                 <span>Test Panel</span>
                 <input type="checkbox" checked onchange="togglePanel('test-panel', this.checked)">
             </div>
+            <div class="toggle-row">
+                <span>Asset Sandbox</span>
+                <input type="checkbox" checked onchange="togglePanel('asset-sandbox-panel', this.checked)">
+            </div>
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -433,20 +482,39 @@
             <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Simulate Next Day Reset</button>
         </div>
     </div>
+
+    <!-- ASSET SANDBOX CONTAINER (7 Assets plaatsen, verplaatsen, deleten) -->
+    <div id="asset-sandbox-panel" class="draggable-panel" data-id="asset-sandbox-panel">
+        <div class="panel-header" style="background: #1b4f72;"><span>🧱 Room Asset Sandbox</span></div>
+        <div class="panel-content menu-section">
+            <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Select an asset, then click in the room to place it. Drag inside room to move. Double-click placed asset to delete.</p>
+            <div class="asset-grid" id="asset-selection-grid">
+                <!-- Wordt dynamisch gevuld of hardcoded -->
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_bank_rs.png', this)" title="Bank"><img src="asset_bank_rs.png" alt="Bank"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_food_rs.png', this)" title="Food"><img src="asset_food_rs.png" alt="Food"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_loot_rs.png', this)" title="Loot"><img src="asset_loot_rs.png" alt="Loot"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_pawnshop_rs.png', this)" title="Pawn Shop"><img src="asset_pawnshop_rs.png" alt="Pawn Shop"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_police_rs.png', this)" title="Police"><img src="asset_police_rs.png" alt="Police"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_robber_rs.png', this)" title="Robber"><img src="asset_robber_rs.png" alt="Robber"></div>
+                <div class="asset-thumb" onclick="selectSandboxAsset('asset_super_rs.png', this)" title="Supermarket"><img src="asset_super_rs.png" alt="Supermarket"></div>
+            </div>
+            <button onclick="clearRoomAssets()" style="width: 100%; background: #7f8c8d; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Clear All Room Assets</button>
+        </div>
+    </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- Player State & Economy (1 Totaal voor Loot en 1 Totaal voor Food) ---
+        // --- Player State & Economy ---
         let playerState = {
             score: 0,
             cash: 310,       
             credit: 400,      
             energy: 100,    
-            timeLeft: 595,  // 9:55h
+            timeLeft: 595,  
             warpsLeft: 5,   
-            lootValue: 200, // 1 totaal loot bedrag (bijv. 200 Rinth = 1.0 kg)
-            foodKg: 1.5,    // 1 totaal food gewicht in kg
+            lootValue: 200, 
+            foodKg: 1.5,    
             lastRoomEnterTime: Date.now()
         };
 
@@ -476,7 +544,6 @@
                 timeLeftElem.style.color = playerState.timeLeft < 60 ? '#ff6b6b' : '#ffd700';
             }
 
-            // Berekening gewicht: 100 Rinth loot = 0.5 kg + food gewicht in kg
             let lootWeight = (playerState.lootValue / 100) * 0.5;
             let totalWeight = lootWeight + playerState.foodKg;
 
@@ -486,13 +553,11 @@
             if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
         }
 
-        // --- Betalingslogica (Cash eerst, anders volledig van Card/Credit) ---
         function deductPayment(amount) {
             if (playerState.cash >= amount) {
                 playerState.cash -= amount;
                 return true;
             } else {
-                // Niet genoeg cash? Volledige bedrag van Card/Credit afschrijven
                 if (playerState.credit >= amount) {
                     playerState.credit -= amount;
                     return true;
@@ -503,7 +568,6 @@
             }
         }
 
-        // --- Time Left & Bewegingslogica ---
         function handleRoomTransitionTime() {
             const now = Date.now();
             const elapsedMinutes = Math.floor((now - playerState.lastRoomEnterTime) / 60000);
@@ -533,32 +597,14 @@
         }
 
         // --- Test Panel Functies ---
-        function testAdjustTime(amount) {
-            playerState.timeLeft = Math.max(0, playerState.timeLeft + amount);
-            updatePlayerUI();
-        }
-        function testAdjustEnergy(amount) {
-            playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount));
-            updatePlayerUI();
-        }
-        function testAdjustCash(amount) {
-            playerState.cash = Math.max(0, playerState.cash + amount);
-            updatePlayerUI();
-        }
-        function testAdjustCredit(amount) {
-            playerState.credit = Math.max(0, playerState.credit + amount);
-            updatePlayerUI();
-        }
-        function testAdjustLoot(amount) {
-            playerState.lootValue = Math.max(0, playerState.lootValue + amount);
-            updatePlayerUI();
-        }
-        function testAdjustFood(amount) {
-            playerState.foodKg = Math.max(0, playerState.foodKg + amount);
-            updatePlayerUI();
-        }
+        function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
+        function testAdjustEnergy(amount) { playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount)); updatePlayerUI(); }
+        function testAdjustCash(amount) { playerState.cash = Math.max(0, playerState.cash + amount); updatePlayerUI(); }
+        function testAdjustCredit(amount) { playerState.credit = Math.max(0, playerState.credit + amount); updatePlayerUI(); }
+        function testAdjustLoot(amount) { playerState.lootValue = Math.max(0, playerState.lootValue + amount); updatePlayerUI(); }
+        function testAdjustFood(amount) { playerState.foodKg = Math.max(0, playerState.foodKg + amount); updatePlayerUI(); }
         function simulateDailyReset() {
-            playerState.timeLeft = 600; // Reset naar 10 uur
+            playerState.timeLeft = 600; 
             playerState.energy = 100;
             updatePlayerUI();
             alert("Simulated Daily Reset (3:00 AM): Time left reset to 10 hours and energy restored!");
@@ -566,7 +612,26 @@
 
         updatePlayerUI();
 
-        // --- Draggable Logic ---
+        // --- Asset Sandbox Functies ---
+        let selectedSandboxImg = null;
+
+        function selectSandboxAsset(imgSrc, element) {
+            document.querySelectorAll('.asset-thumb').forEach(el => el.classList.remove('selected'));
+            if (selectedSandboxImg === imgSrc) {
+                selectedSandboxImg = null; // Deselect if clicked again
+            } else {
+                selectedSandboxImg = imgSrc;
+                element.classList.add('selected');
+            }
+        }
+
+        function clearRoomAssets() {
+            const roomContent = document.getElementById('room-content');
+            const customAssets = roomContent.querySelectorAll('.room-placed-asset');
+            customAssets.forEach(a => a.remove());
+        }
+
+        // --- Draggable Logic voor Panels ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
@@ -807,6 +872,59 @@
                 setTimeout(async () => { await updateRoomContent(); roomContent.classList.remove('fade-out'); }, 300);
             }
         }
+
+        // --- Room click handler om geselecteerde assets te plaatsen ---
+		document.getElementById('room').addEventListener('click', (e) => {
+            if (!selectedSandboxImg) return;
+            if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
+
+            const roomRect = document.getElementById('room').getBoundingClientRect();
+            
+            const placedAsset = document.createElement('img');
+            placedAsset.className = 'room-placed-asset';
+            placedAsset.src = selectedSandboxImg;
+
+            // Zorg dat de positie direct goed gezet wordt nadat de afbeelding geladen is (voor de juiste afmetingen)
+            placedAsset.onload = () => {
+                const clickX = e.clientX - roomRect.left - (placedAsset.clientWidth / 2);
+                const clickY = e.clientY - roomRect.top - (placedAsset.clientHeight / 2);
+                
+                placedAsset.style.left = Math.max(0, Math.min(roomRect.width - placedAsset.clientWidth, clickX)) + 'px';
+                placedAsset.style.top = Math.max(0, Math.min(roomRect.height - placedAsset.clientHeight, clickY)) + 'px';
+            };
+
+            // Sleepfunctionaliteit voor geplaatste asset binnen de kamer
+            let isDraggingAsset = false;
+            let startX, startY;
+
+            placedAsset.addEventListener('mousedown', (ev) => {
+                isDraggingAsset = true;
+                startX = ev.clientX - placedAsset.offsetLeft;
+                startY = ev.clientY - placedAsset.offsetTop;
+                ev.stopPropagation();
+            });
+
+            document.addEventListener('mousemove', (ev) => {
+                if (!isDraggingAsset) return;
+                const r = document.getElementById('room').getBoundingClientRect();
+                let newX = ev.clientX - startX;
+                let newY = ev.clientY - startY;
+                placedAsset.style.left = Math.max(0, Math.min(r.width - placedAsset.clientWidth, newX)) + 'px';
+                placedAsset.style.top = Math.max(0, Math.min(r.height - placedAsset.clientHeight, newY)) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => { isDraggingAsset = false; });
+
+            // Dubbelklik om te verwijderen
+            placedAsset.addEventListener('dblclick', (ev) => {
+                placedAsset.remove();
+                ev.stopPropagation();
+            });
+
+            document.getElementById('room-content').appendChild(placedAsset);
+        });
+
+
 
         function showDoorInfo(puzzle) {
             const questContent = document.getElementById('quest-content');
