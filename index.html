@@ -113,19 +113,96 @@
             filter: drop-shadow(0 0 6px #ffd700);
         }
 
-        /* Vrij geplaatste room assets */
+        /* Vrij geplaatste room assets op originele grootte */
         .room-placed-asset {
             position: absolute;
-            /*width: 36px;*/
-            /*height: 36px;*/
-            background-size: contain;
-            background-repeat: no-repeat;
-            cursor: grab;
+            cursor: pointer;
             z-index: 6;
+            width: auto;
+            height: auto;
+            max-width: none;
+            max-height: none;
         }
         .room-placed-asset:active {
             cursor: grabbing;
         }
+
+        /* Retro Pop-up Overlay & Modal styling */
+        #asset-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #asset-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .retro-popup {
+            background: #2b2b2b;
+            border: 3px solid #ffd700;
+            border-radius: 8px;
+            padding: 24px;
+            width: 440px;
+            max-width: 90vw;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            text-align: center;
+            color: #fff;
+        }
+        .retro-popup img {
+            max-width: 100%;
+            max-height: 250px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .retro-popup p {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        .retro-popup input[type="text"], .retro-popup input[type="number"] {
+            width: 85%;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: #111;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .retro-popup-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .retro-popup button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .retro-popup button:hover { background: #2980b9; }
+        .retro-popup button.danger { background: #c0392b; }
+        .retro-popup button.danger:hover { background: #e74c3c; }
 
         .reset-btn {
             background: #c0392b;
@@ -156,13 +233,6 @@
             font-weight: bold;
         }
         .quest-box button:hover { background: #2980b9; }
-
-        .quest-box button.danger {
-            background: #c0392b;
-        }
-        .quest-box button.danger:hover {
-            background: #e74c3c;
-        }
 
         .status-section {
             background: #222;
@@ -333,6 +403,13 @@
 </head>
 <body>
 
+    <!-- Asset Pop-up Overlay Container -->
+    <div id="asset-overlay">
+        <div class="retro-popup" id="retro-popup-box">
+            <!-- Dynamische inhoud per asset -->
+        </div>
+    </div>
+
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
             <span id="game-header-title">Playfield</span>
@@ -361,10 +438,10 @@
             </div>
             <div class="inventory-section">
                 <div class="inventory-item">
-                    <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">10 Rinth</strong>
+                    <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">310 Rinth</strong>
                 </div>
                 <div class="inventory-item">
-                    <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">0 Rinth</strong>
+                    <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">400 Rinth</strong>
                 </div>
                 <hr style="border-color: #444; margin: 8px 0;">
                 <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Treasures (Loot):</div>
@@ -438,7 +515,7 @@
         </div>
     </div>
 
-    <!-- TEST CONTAINER (Voor scenario testing) -->
+    <!-- TEST CONTAINER -->
     <div id="test-panel" class="draggable-panel" data-id="test-panel">
         <div class="panel-header" style="background: #78281f;"><span>🧪 Test Scenario Panel</span></div>
         <div class="panel-content menu-section">
@@ -483,13 +560,12 @@
         </div>
     </div>
 
-    <!-- ASSET SANDBOX CONTAINER (7 Assets plaatsen, verplaatsen, deleten) -->
+    <!-- ASSET SANDBOX CONTAINER -->
     <div id="asset-sandbox-panel" class="draggable-panel" data-id="asset-sandbox-panel">
         <div class="panel-header" style="background: #1b4f72;"><span>🧱 Room Asset Sandbox</span></div>
         <div class="panel-content menu-section">
             <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Select an asset, then click in the room to place it. Drag inside room to move. Double-click placed asset to delete.</p>
             <div class="asset-grid" id="asset-selection-grid">
-                <!-- Wordt dynamisch gevuld of hardcoded -->
                 <div class="asset-thumb" onclick="selectSandboxAsset('asset_bank_rs.png', this)" title="Bank"><img src="asset_bank_rs.png" alt="Bank"></div>
                 <div class="asset-thumb" onclick="selectSandboxAsset('asset_food_rs.png', this)" title="Food"><img src="asset_food_rs.png" alt="Food"></div>
                 <div class="asset-thumb" onclick="selectSandboxAsset('asset_loot_rs.png', this)" title="Loot"><img src="asset_loot_rs.png" alt="Loot"></div>
@@ -553,21 +629,6 @@
             if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
         }
 
-        function deductPayment(amount) {
-            if (playerState.cash >= amount) {
-                playerState.cash -= amount;
-                return true;
-            } else {
-                if (playerState.credit >= amount) {
-                    playerState.credit -= amount;
-                    return true;
-                } else {
-                    alert("Not enough Cash or Credit (Bank) to complete this transaction!");
-                    return false;
-                }
-            }
-        }
-
         function handleRoomTransitionTime() {
             const now = Date.now();
             const elapsedMinutes = Math.floor((now - playerState.lastRoomEnterTime) / 60000);
@@ -612,13 +673,13 @@
 
         updatePlayerUI();
 
-        // --- Asset Sandbox Functies ---
+        // --- Asset Sandbox & Popup Logica ---
         let selectedSandboxImg = null;
 
         function selectSandboxAsset(imgSrc, element) {
             document.querySelectorAll('.asset-thumb').forEach(el => el.classList.remove('selected'));
             if (selectedSandboxImg === imgSrc) {
-                selectedSandboxImg = null; // Deselect if clicked again
+                selectedSandboxImg = null;
             } else {
                 selectedSandboxImg = imgSrc;
                 element.classList.add('selected');
@@ -627,9 +688,203 @@
 
         function clearRoomAssets() {
             const roomContent = document.getElementById('room-content');
-            const customAssets = roomContent.querySelectorAll('.room-placed-asset');
-            customAssets.forEach(a => a.remove());
+            roomContent.querySelectorAll('.room-placed-asset').forEach(a => a.remove());
         }
+
+        function openAssetPopup(htmlContent) {
+            const overlay = document.getElementById('asset-overlay');
+            const popupBox = document.getElementById('retro-popup-box');
+            popupBox.innerHTML = htmlContent;
+            overlay.classList.add('active');
+        }
+
+        function closeAssetPopup() {
+            const overlay = document.getElementById('asset-overlay');
+            overlay.classList.remove('active');
+        }
+
+        // --- Specifieke Asset Interactie Handlers ---
+        function handleAssetClick(assetType, assetElement) {
+            switch(assetType) {
+                case 'asset_bank_rs.png':
+                    openAssetPopup(`
+                        <img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display='none'">
+                        <p id="popup-text">How can I help you?</p>
+                        <div class="retro-popup-buttons" id="bank-btns">
+                            <button onclick="bankDepositAction()">Deposit</button>
+                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
+                        </div>
+                    `);
+                    break;
+
+                case 'asset_pawnshop_rs.png':
+                    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
+                    openAssetPopup(`
+                        <img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display='none'">
+                        <p id="popup-text">I can give you ${randomPercent}% cent on the Rinth buster. Take it or leave it</p>
+                        <div class="retro-popup-buttons" id="pawn-btns">
+                            <button onclick="pawnshopTakeAction(${randomPercent})">Take it</button>
+                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
+                        </div>
+                    `);
+                    break;
+
+                case 'asset_police_rs.png':
+                    openAssetPopup(`
+                        <img src="policeman.png" alt="Policeman" onerror="this.style.display='none'">
+                        <p id="popup-text">What crime do you have to report and where did it take place?</p>
+                        <input type="number" id="crime-room-input" placeholder="Room number..." min="1">
+                        <div class="retro-popup-buttons">
+                            <button onclick="policeReportAction()">Robbery</button>
+                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
+                        </div>
+                    `);
+                    break;
+
+                case 'asset_super_rs.png':
+                    openAssetPopup(`
+                        <img src="supermarkt.png" alt="Supermarket" onerror="this.style.display='none'">
+                        <p id="popup-text">Anything else you need?</p>
+                        <input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">
+                        <div class="retro-popup-buttons" id="super-btns">
+                            <button onclick="supermarketBuyAction()">Buy</button>
+                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
+                        </div>
+                    `);
+                    break;
+
+                case 'asset_food_rs.png':
+                    playerState.foodKg += 1.0;
+                    updatePlayerUI();
+                    assetElement.remove();
+                    alert("You picked up food! Food stock increased by 1 kg.");
+                    break;
+
+                case 'asset_loot_rs.png':
+                    playerState.lootValue += 100;
+                    updatePlayerUI();
+                    assetElement.remove();
+                    alert("You found loot! Loot value increased by 100 Rinth.");
+                    break;
+
+                default:
+                    closeAssetPopup();
+                    break;
+            }
+        }
+
+        // Asset Actie Uitvoeringen
+        window.bankDepositAction = function() {
+            playerState.credit += playerState.cash;
+            playerState.cash = 0;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = "No problem, happy I could help. Till next time.";
+            document.getElementById('bank-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        window.pawnshopTakeAction = function(pct) {
+            let payout = Math.floor(playerState.lootValue * (pct / 100));
+            playerState.cash += payout;
+            playerState.lootValue = 0;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = "I’am sure you made a good deal.";
+            document.getElementById('pawn-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        window.policeReportAction = function() {
+            let roomVal = document.getElementById('crime-room-input').value.trim();
+            if(!roomVal) {
+                alert("Please enter a valid room number!");
+                return;
+            }
+            document.getElementById('popup-text').textContent = "Don’t you worry, we will take care of it.";
+            document.querySelectorAll('.room-placed-asset').forEach(el => {
+                if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
+                    el.remove();
+                }
+            });
+        };
+
+        window.supermarketBuyAction = function() {
+            let kgInput = parseInt(document.getElementById('super-kg-input').value, 10);
+            if(isNaN(kgInput) || kgInput <= 0) {
+                alert("Please enter a valid whole number of kilograms.");
+                return;
+            }
+            let cost = kgInput * 2;
+            
+            if (playerState.cash >= cost) {
+                playerState.cash -= cost;
+            } else if (playerState.credit >= cost) {
+                playerState.credit -= cost;
+            } else {
+                document.getElementById('popup-text').textContent = "Sorry, You don’t have enough money.";
+                return;
+            }
+
+            playerState.foodKg += kgInput;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = `That will be ${cost} Rinth, please.`;
+            document.getElementById('super-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        // --- Room click handler om geselecteerde assets te plaatsen ---
+		document.getElementById('room').addEventListener('click', (e) => {
+            if (!selectedSandboxImg) return;
+            if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
+
+            const roomRect = document.getElementById('room').getBoundingClientRect();
+            const currentImg = selectedSandboxImg;
+            
+            const placedAsset = document.createElement('img');
+            placedAsset.className = 'room-placed-asset';
+            placedAsset.src = currentImg;
+            placedAsset.setAttribute('data-type', currentImg);
+
+            placedAsset.onload = () => {
+                const clickX = e.clientX - roomRect.left - (placedAsset.clientWidth / 2);
+                const clickY = e.clientY - roomRect.top - (placedAsset.clientHeight / 2);
+                
+                placedAsset.style.left = Math.max(0, Math.min(roomRect.width - placedAsset.clientWidth, clickX)) + 'px';
+                placedAsset.style.top = Math.max(0, Math.min(roomRect.height - placedAsset.clientHeight, clickY)) + 'px';
+            };
+
+            // Klik op geplaatste asset om interactie te starten
+            placedAsset.addEventListener('click', (ev) => {
+                handleAssetClick(currentImg, placedAsset);
+                ev.stopPropagation();
+            });
+
+            // Sleepfunctionaliteit
+            let isDraggingAsset = false;
+            let startX, startY;
+
+            placedAsset.addEventListener('mousedown', (ev) => {
+                isDraggingAsset = true;
+                startX = ev.clientX - placedAsset.offsetLeft;
+                startY = ev.clientY - placedAsset.offsetTop;
+                ev.stopPropagation();
+            });
+
+            document.addEventListener('mousemove', (ev) => {
+                if (!isDraggingAsset) return;
+                const r = document.getElementById('room').getBoundingClientRect();
+                let newX = ev.clientX - startX;
+                let newY = ev.clientY - startY;
+                placedAsset.style.left = Math.max(0, Math.min(r.width - placedAsset.clientWidth, newX)) + 'px';
+                placedAsset.style.top = Math.max(0, Math.min(r.height - placedAsset.clientHeight, newY)) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => { isDraggingAsset = false; });
+
+            // Dubbelklik om te verwijderen
+            placedAsset.addEventListener('dblclick', (ev) => {
+                placedAsset.remove();
+                ev.stopPropagation();
+            });
+
+            document.getElementById('room-content').appendChild(placedAsset);
+        });
 
         // --- Draggable Logic voor Panels ---
         const panels = document.querySelectorAll('.draggable-panel');
@@ -872,59 +1127,6 @@
                 setTimeout(async () => { await updateRoomContent(); roomContent.classList.remove('fade-out'); }, 300);
             }
         }
-
-        // --- Room click handler om geselecteerde assets te plaatsen ---
-		document.getElementById('room').addEventListener('click', (e) => {
-            if (!selectedSandboxImg) return;
-            if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
-
-            const roomRect = document.getElementById('room').getBoundingClientRect();
-            
-            const placedAsset = document.createElement('img');
-            placedAsset.className = 'room-placed-asset';
-            placedAsset.src = selectedSandboxImg;
-
-            // Zorg dat de positie direct goed gezet wordt nadat de afbeelding geladen is (voor de juiste afmetingen)
-            placedAsset.onload = () => {
-                const clickX = e.clientX - roomRect.left - (placedAsset.clientWidth / 2);
-                const clickY = e.clientY - roomRect.top - (placedAsset.clientHeight / 2);
-                
-                placedAsset.style.left = Math.max(0, Math.min(roomRect.width - placedAsset.clientWidth, clickX)) + 'px';
-                placedAsset.style.top = Math.max(0, Math.min(roomRect.height - placedAsset.clientHeight, clickY)) + 'px';
-            };
-
-            // Sleepfunctionaliteit voor geplaatste asset binnen de kamer
-            let isDraggingAsset = false;
-            let startX, startY;
-
-            placedAsset.addEventListener('mousedown', (ev) => {
-                isDraggingAsset = true;
-                startX = ev.clientX - placedAsset.offsetLeft;
-                startY = ev.clientY - placedAsset.offsetTop;
-                ev.stopPropagation();
-            });
-
-            document.addEventListener('mousemove', (ev) => {
-                if (!isDraggingAsset) return;
-                const r = document.getElementById('room').getBoundingClientRect();
-                let newX = ev.clientX - startX;
-                let newY = ev.clientY - startY;
-                placedAsset.style.left = Math.max(0, Math.min(r.width - placedAsset.clientWidth, newX)) + 'px';
-                placedAsset.style.top = Math.max(0, Math.min(r.height - placedAsset.clientHeight, newY)) + 'px';
-            });
-
-            document.addEventListener('mouseup', () => { isDraggingAsset = false; });
-
-            // Dubbelklik om te verwijderen
-            placedAsset.addEventListener('dblclick', (ev) => {
-                placedAsset.remove();
-                ev.stopPropagation();
-            });
-
-            document.getElementById('room-content').appendChild(placedAsset);
-        });
-
-
 
         function showDoorInfo(puzzle) {
             const questContent = document.getElementById('quest-content');
