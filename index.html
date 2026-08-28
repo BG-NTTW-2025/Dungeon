@@ -92,7 +92,7 @@
             z-index: 10;
         }
 
-        .ui-panel { width: 320px; min-height: 140px; }
+        .ui-panel { width: 320px; min-height: 10px; }
         #inventory-panel { top: 50px; left: 410px; width: 320px; }
         #quest-panel { top: 320px; left: 410px; width: 350px; max-height: 220px; overflow-y: auto; }
         #breadcrumb-panel { top: 560px; left: 410px; width: 350px; max-height: 160px; overflow-y: auto; }
@@ -203,6 +203,46 @@
         .retro-popup button.danger { background: #c0392b; }
         .retro-popup button.danger:hover { background: #e74c3c; }
 
+        /* Toast Meldingen (vervanging voor alerts) */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast-message {
+            background: #2b2b2b;
+            border: 2px solid #ffd700;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+            text-align: center;
+            animation: fadeInOut 3s ease forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* Flashing effect voor paniek status */
+        @keyframes flashRedBlack {
+            0% { background-color: #222; }
+            50% { background-color: #8b0000; }
+            100% { background-color: #222; }
+        }
+        .inventory-section.flashing {
+            animation: flashRedBlack 1s infinite;
+        }
+
         .reset-btn {
             background: #c0392b;
             color: white;
@@ -250,7 +290,7 @@
             padding: 10px 12px;
             font-size: 13px;
             color: #ccc;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease;
         }
 
         .survival-toggle-bar {
@@ -411,6 +451,9 @@
         </div>
     </div>
 
+    <!-- Toast Meldingen Container -->
+    <div id="toast-container"></div>
+
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
             <span id="game-header-title">Playfield</span>
@@ -433,7 +476,7 @@
         <div class="panel-content">
             <div class="survival-toggle-bar">
                 <span>Survival Mode:</span>
-                <button id="survival-toggle-btn" onclick="toggleSurvivalMode()" style="background: #27ae60; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">ON</button>
+                <button id="survival-toggle-btn" onclick="confirmToggleSurvival()" style="background: #27ae60; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">ON</button>
             </div>
             <div id="survival-content-body">
                 <div class="status-section">
@@ -442,7 +485,7 @@
                     <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">5</strong></div>
                     <div class="status-row"><span>Total Weight:</span> <strong id="weight-val" style="color: #e67e22;">0.0 kg</strong></div>
                 </div>
-                <div class="inventory-section">
+                <div class="inventory-section" id="inventory-section-box">
                     <div class="inventory-item">
                         <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">310 Rinth</strong>
                     </div>
@@ -603,15 +646,28 @@
             lastRoomEnterTime: Date.now()
         };
 
+        // Actieve Robber / Paniek status variabelen
+        let activeRobberRoomKey = null; // bijv. "posX_posY" van de kamer met actieve boef
+        let robberIntervalId = null;
+        let lootDrainTimerId = null;
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-message';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3000);
+        }
+
         // --- Check 3 AM Automated Daily Reset ---
         function checkDailyReset() {
             const now = new Date();
             const todayStr = now.toDateString();
             const currentHour = now.getHours();
 
-            // Als de datum is gewijzigd en het is na 03:00 uur (of het is een nieuwe dag)
             if (playerState.lastResetDay !== todayStr && currentHour >= 3) {
-                playerState.timeLeft = 600; // 10 uur
+                playerState.timeLeft = 600; 
                 playerState.energy = 100;
                 playerState.lastResetDay = todayStr;
                 localStorage.setItem('dungeon_player_state', JSON.stringify(playerState));
@@ -654,13 +710,19 @@
             if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
         }
 
-        function handleRoomTransitionTime() {
+        function handleRoomTransitionTime(currentPosX, currentPosY) {
             checkDailyReset();
+            
+            // Check of player wegvlucht uit de kamer met de actieve Robber
+            let currentRoomKey = currentPosX + '_' + currentPosY;
+            if (activeRobberRoomKey && activeRobberRoomKey !== currentRoomKey) {
+                stopRobberPanic();
+            }
+
             const now = Date.now();
             const elapsedMinutes = Math.floor((now - playerState.lastRoomEnterTime) / 60000);
             let countedMinutes = Math.min(10, Math.max(1, elapsedMinutes));
             
-            // Energie drempel straffen (extra tijd penalty)
             if (playerState.energy < 10) {
                 countedMinutes += 3;
             } else if (playerState.energy < 20) {
@@ -686,15 +748,30 @@
                 playerState.foodKg -= 0.5;
                 playerState.energy = Math.min(100, playerState.energy + 15);
                 updatePlayerUI();
-                alert("You consumed 500g of food. Energy restored by 15%!");
+                showToast("You consumed 500g of food. Energy restored by 15%!");
             } else {
-                alert("You don't have enough food left!");
+                showToast("You don't have enough food left!");
             }
         }
 
-        // --- Survival Mode Toggle & Collapse ---
-        function toggleSurvivalMode() {
-            playerState.survivalMode = !playerState.survivalMode;
+        // --- Survival Mode Toggle met nette Bevestiging ---
+        function confirmToggleSurvival() {
+            let nextMode = !playerState.survivalMode;
+            let msg = nextMode 
+                ? "Do you want to enable Survival Mode? Resources, energy penalties, and survival elements will become active."
+                : "Do you want to disable Survival Mode? All survival elements (Robin Robber, food, loot assets, and buildings) will be deactivated until the 03:00 AM reset.";
+
+            openAssetPopup(`
+                <p style="font-size: 15px; margin-bottom: 20px;">${msg}</p>
+                <div class="retro-popup-buttons">
+                    <button onclick="applySurvivalToggle(${nextMode})">Confirm</button>
+                    <button class="danger" onclick="closeAssetPopup()">Cancel</button>
+                </div>
+            `);
+        }
+
+        window.applySurvivalToggle = function(enable) {
+            playerState.survivalMode = enable;
             const btn = document.getElementById('survival-toggle-btn');
             const bodyContent = document.getElementById('survival-content-body');
 
@@ -702,16 +779,17 @@
                 btn.textContent = "ON";
                 btn.style.background = "#27ae60";
                 bodyContent.style.display = "block";
-                alert("Survival Mode is enabled. Resources, energy penalties, and survival elements are active.");
+                showToast("Survival Mode is enabled.");
             } else {
                 btn.textContent = "OFF";
                 btn.style.background = "#c0392b";
                 bodyContent.style.display = "none";
-                alert("Survival Mode is disabled. All survival elements (Robin Robber, food, loot assets, and buildings) are deactivated until the 03:00 AM reset.");
-                // Verwijder direct alle actieve survival assets uit de kamer
+                showToast("Survival Mode is disabled.");
                 clearRoomAssets();
+                stopRobberPanic();
             }
-        }
+            closeAssetPopup();
+        };
 
         // --- Test Panel Functies ---
         function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
@@ -727,8 +805,9 @@
             document.getElementById('survival-toggle-btn').textContent = "ON";
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
             document.getElementById('survival-content-body').style.display = "block";
+            stopRobberPanic();
             updatePlayerUI();
-            alert("Simulated Daily Reset (3:00 AM): Time left reset to 10 hours, energy restored, and Survival Mode re-enabled!");
+            showToast("Simulated Daily Reset (3:00 AM): Game restored!");
         }
 
         updatePlayerUI();
@@ -763,12 +842,64 @@
             overlay.classList.remove('active');
         }
 
+        // --- Robin Robber Panic & Steal Logic ---
+        function startRobberPanic(roomKey) {
+            activeRobberRoomKey = roomKey;
+            document.getElementById('inventory-section-box').classList.add('flashing');
+            
+            // Zorg dat inventory paneel open/zichtbaar is
+            document.getElementById('inventory-panel').style.display = 'block';
+
+            // Elke seconde 5 Rinth Cash verliezen
+            if (robberIntervalId) clearInterval(robberIntervalId);
+            robberIntervalId = setInterval(() => {
+                if (playerState.cash > 0) {
+                    playerState.cash = Math.max(0, playerState.cash - 5);
+                    updatePlayerUI();
+                }
+            }, 1000);
+
+            // Elke minuut 100 Loot verliezen
+            if (lootDrainTimerId) clearInterval(lootDrainTimerId);
+            lootDrainTimerId = setInterval(() => {
+                if (playerState.lootValue > 0) {
+                    playerState.lootValue = Math.max(0, playerState.lootValue - 100);
+                    updatePlayerUI();
+                }
+            }, 60000);
+        }
+
+        function stopRobberPanic() {
+            activeRobberRoomKey = null;
+            if (robberIntervalId) { clearInterval(robberIntervalId); robberIntervalId = null; }
+            if (lootDrainTimerId) { clearInterval(lootDrainTimerId); lootDrainTimerId = null; }
+            const invBox = document.getElementById('inventory-section-box');
+            if (invBox) invBox.classList.remove('flashing');
+        }
+
+        window.robberDonateAction = function(assetElement) {
+            playerState.cash = 0;
+            playerState.lootValue = 0;
+            updatePlayerUI();
+            stopRobberPanic();
+            if (assetElement) assetElement.remove();
+            closeAssetPopup();
+            showToast("You donated everything. The robber vanished forever!");
+        };
+
+        window.robberNoWayAction = function(roomKey) {
+            closeAssetPopup();
+            startRobberPanic(roomKey);
+        };
+
         // --- Specifieke Asset Interactie Handlers ---
-        function handleAssetClick(assetType, assetElement) {
+        function handleAssetClick(assetType, assetElement, posX, posY) {
             if (!playerState.survivalMode) {
-                alert("Survival Mode is off. Asset interactions are disabled.");
+                showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
             }
+
+            let roomKey = posX + '_' + posY;
 
             switch(assetType) {
                 case 'asset_bank_rs.png':
@@ -818,18 +949,32 @@
                     `);
                     break;
 
+                case 'asset_robber_rs.png':
+                    openAssetPopup(`
+                        <img src="rob_atack.png" alt="Robin Robber" onerror="this.style.display='none'">
+                        <p>Hand over that cash and loot before I take it by force!</p>
+                        <div class="retro-popup-buttons">
+                            <button onclick="robberDonateAction(document.getElementById('active-robber-elem'))">Donate</button>
+                            <button class="danger" onclick="robberNoWayAction('${roomKey}')">No Way</button>
+                        </div>
+                    `);
+                    // Geef element tijdelijk ID om te kunnen verwijderen bij donate
+                    document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
+                    assetElement.id = 'active-robber-elem';
+                    break;
+
                 case 'asset_food_rs.png':
                     playerState.foodKg += 1.0;
                     updatePlayerUI();
                     assetElement.remove();
-                    alert("You picked up food! Food stock increased by 1 kg.");
+                    showToast("You picked up food! Food stock increased by 1 kg.");
                     break;
 
                 case 'asset_loot_rs.png':
                     playerState.lootValue += 100;
                     updatePlayerUI();
                     assetElement.remove();
-                    alert("You found loot! Loot value increased by 100 Rinth.");
+                    showToast("You found loot! Loot value increased by 100 Rinth.");
                     break;
 
                 default:
@@ -858,10 +1003,22 @@
         window.policeReportAction = function() {
             let roomVal = document.getElementById('crime-room-input').value.trim();
             if(!roomVal) {
-                alert("Please enter a valid room number!");
+                showToast("Please enter a valid room number!");
                 return;
             }
             document.getElementById('popup-text').textContent = "Don’t you worry, we will take care of it.";
+            
+            // Zoek op basis van room_id in database welk coördinaat hierbij hoort, of verwijder robber in actieve kamer
+            dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', parseInt(roomVal, 10)).limit(1).then(({data}) => {
+                if (data && data.length > 0) {
+                    let targetKey = data[0].pos_x + '_' + data[0].pos_y;
+                    if (activeRobberRoomKey === targetKey) {
+                        stopRobberPanic();
+                    }
+                }
+            });
+
+            // Verwijder boef uit de kamer
             document.querySelectorAll('.room-placed-asset').forEach(el => {
                 if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
                     el.remove();
@@ -872,7 +1029,7 @@
         window.supermarketBuyAction = function() {
             let kgInput = parseInt(document.getElementById('super-kg-input').value, 10);
             if(isNaN(kgInput) || kgInput <= 0) {
-                alert("Please enter a valid whole number of kilograms.");
+                showToast("Please enter a valid whole number of kilograms.");
                 return;
             }
             let cost = kgInput * 2;
@@ -898,7 +1055,7 @@
             if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
 
             if (!playerState.survivalMode) {
-                alert("Survival Mode is off. You cannot place survival assets.");
+                showToast("Survival Mode is off. You cannot place survival assets.");
                 return;
             }
 
@@ -919,7 +1076,8 @@
             };
 
             placedAsset.addEventListener('click', (ev) => {
-                handleAssetClick(currentImg, placedAsset);
+                // We geven de huidige kamor coördinaten mee (wordt dynamisch opgevangen in loadRoomByCoords)
+                handleAssetClick(currentImg, placedAsset, window.currentRoomX || 0, window.currentRoomY || 0);
                 ev.stopPropagation();
             });
 
@@ -1025,7 +1183,7 @@
             const emailField = document.getElementById('admin-email-field');
             emailField.select();
             navigator.clipboard.writeText(emailField.value).then(() => {
-                alert('Admin email copied to clipboard.');
+                showToast('Admin email copied to clipboard.');
             });
         }
 
@@ -1114,13 +1272,16 @@
         }
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
+            window.currentRoomX = posX;
+            window.currentRoomY = posY;
+
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
             if (activeTimerInterval) clearInterval(activeTimerInterval);
             document.getElementById('quest-content').innerHTML = "Click on a door to view details. Click again to play.";
 
             if (entrySide !== null) {
-                handleRoomTransitionTime();
+                handleRoomTransitionTime(posX, posY);
             }
             
             const updateRoomContent = async () => {
