@@ -659,36 +659,72 @@
             setTimeout(() => { toast.remove(); }, 3000);
         }
 
+        // --- Automatische plaatsing van vaste test-assets op basis van Room ID ---
+        async function applyDailyAutomatedAssets() {
+            try {
+                // Haal coördinaten op voor Room 3 (Politie) en Room 4 (Boef)
+                const { data: roomsData } = await dbClient.from('puzzle_labyrinth').select('room_id, pos_x, pos_y').in('room_id', [3, 4]);
+                
+                if (roomsData) {
+                    let activeAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+
+                    roomsData.forEach(r => {
+                        let roomKey = r.pos_x + '_' + r.pos_y;
+                        if (!activeAssetsMap[roomKey]) {
+                            activeAssetsMap[roomKey] = [];
+                        }
+
+                        if (r.room_id === 3) {
+                            // Plaats politiebureau in Room 3 als deze er nog niet staat
+                            if (!activeAssetsMap[roomKey].includes('asset_police_rs.png')) {
+                                activeAssetsMap[roomKey].push('asset_police_rs.png');
+                            }
+                        } else if (r.room_id === 4) {
+                            // Plaats boef in Room 4 als deze er nog niet staat
+                            if (!activeAssetsMap[roomKey].includes('asset_robber_rs.png')) {
+                                activeAssetsMap[roomKey].push('asset_robber_rs.png');
+                            }
+                        }
+                    });
+
+                    localStorage.setItem('dungeon_daily_assets', JSON.stringify(activeAssetsMap));
+                }
+            } catch (err) {
+                console.error("Error placing automated daily assets:", err);
+            }
+        }
+
         // --- 3 AM Automated Reset & Asset Expiration Cycle ---
         function checkDailyReset() {
             const now = new Date();
-            const currentDateStr = now.toDateString();
             const currentHour = now.getHours();
 
-            // Bepaal de 'speeldag' string. Als het voor 03:00 uur is, hoort het nog bij de vorige dagcyclus.
             let activeGameDay = new Date(now);
             if (currentHour < 3) {
                 activeGameDay.setDate(activeGameDay.getDate() - 1);
             }
             let activeGameDayStr = activeGameDay.toDateString();
 
-            // Als de actieve speeldag is gewijzigd sinds de laatste reset
             if (playerState.lastResetDate !== activeGameDayStr && currentHour >= 3) {
-                // Voer de dagelijkse reset uit
-                playerState.timeLeft = 600; // 10 uur
+                playerState.timeLeft = 600; 
                 playerState.energy = 100;
                 playerState.survivalMode = true;
                 playerState.lastResetDate = activeGameDayStr;
                 localStorage.setItem('dungeon_last_reset_date', activeGameDayStr);
 
-                // Wis actieve paniek / boef
                 stopRobberPanic();
-
-                // Verwijder alle tijdelijke dagelijkse / gesponserde assets uit de kamers (Asset Expiration Cycle)
                 clearRoomAssets();
-                localStorage.removeItem('dungeon_placed_assets');
+                localStorage.removeItem('dungeon_daily_assets');
 
-                showToast("🌅 Daily Reset (3:00 AM): New day started, assets expired, and time/energy restored!");
+                // Plaats automatisch de test-assets voor vandaag (Boef in R4, Politie in R3)
+                applyDailyAutomatedAssets().then(() => {
+                    // Herlaad actieve kamer om assets direct te tonen
+                    if (window.currentRoomX !== undefined) {
+                        loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
+                    }
+                });
+
+                showToast("🌅 Daily Reset (3:00 AM): New day started, assets refreshed!");
                 updatePlayerUI();
             }
         }
@@ -816,6 +852,7 @@
         function testAdjustCredit(amount) { playerState.credit = Math.max(0, playerState.credit + amount); updatePlayerUI(); }
         function testAdjustLoot(amount) { playerState.lootValue = Math.max(0, playerState.lootValue + amount); updatePlayerUI(); }
         function testAdjustFood(amount) { playerState.foodKg = Math.max(0, playerState.foodKg + amount); updatePlayerUI(); }
+        
         function simulateDailyReset() {
             playerState.timeLeft = 600; 
             playerState.energy = 100;
@@ -825,8 +862,17 @@
             document.getElementById('survival-content-body').style.display = "block";
             stopRobberPanic();
             clearRoomAssets();
+            localStorage.removeItem('dungeon_daily_assets');
+
+            // Plaats direct de test-assets (Boef in R4, Politie in R3)
+            applyDailyAutomatedAssets().then(() => {
+                if (window.currentRoomX !== undefined) {
+                    loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
+                }
+            });
+
             updatePlayerUI();
-            showToast("Simulated Daily Reset (3:00 AM): Game restored & assets expired!");
+            showToast("Simulated 3:00 AM Reset: Boef placed in Room 4, Police in Room 3!");
         }
 
         updatePlayerUI();
@@ -1366,6 +1412,30 @@
                             roomContent.appendChild(img);
                         });
                     }
+
+                    // --- Laad automatisch geplaatste dagelijkse assets voor deze kamer ---
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+                    let roomKey = posX + '_' + posY;
+                    if (dailyAssetsMap[roomKey]) {
+                        dailyAssetsMap[roomKey].forEach(assetSrc => {
+                            const placedAsset = document.createElement('img');
+                            placedAsset.className = 'room-placed-asset';
+                            placedAsset.src = assetSrc;
+                            placedAsset.setAttribute('data-type', assetSrc);
+
+                            // Vaste positie of willekeurige midden-plaatsing voor automatische assets
+                            placedAsset.style.left = '130px';
+                            placedAsset.style.top = '80px';
+
+                            placedAsset.addEventListener('click', (ev) => {
+                                handleAssetClick(assetSrc, placedAsset, posX, posY, entrySide);
+                                ev.stopPropagation();
+                            });
+
+                            roomContent.appendChild(placedAsset);
+                        });
+                    }
+
                 } catch (err) { console.error(err); }
             };
 
