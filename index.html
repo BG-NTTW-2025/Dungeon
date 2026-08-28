@@ -662,7 +662,6 @@
         // --- Automatische plaatsing van vaste test-assets op basis van Room ID ---
         async function applyDailyAutomatedAssets() {
             try {
-                // Haal coördinaten op voor Room 3 (Politie) en Room 4 (Boef)
                 const { data: roomsData } = await dbClient.from('puzzle_labyrinth').select('room_id, pos_x, pos_y').in('room_id', [3, 4]);
                 
                 if (roomsData) {
@@ -675,12 +674,10 @@
                         }
 
                         if (r.room_id === 3) {
-                            // Plaats politiebureau in Room 3 als deze er nog niet staat
                             if (!activeAssetsMap[roomKey].includes('asset_police_rs.png')) {
                                 activeAssetsMap[roomKey].push('asset_police_rs.png');
                             }
                         } else if (r.room_id === 4) {
-                            // Plaats boef in Room 4 als deze er nog niet staat
                             if (!activeAssetsMap[roomKey].includes('asset_robber_rs.png')) {
                                 activeAssetsMap[roomKey].push('asset_robber_rs.png');
                             }
@@ -716,9 +713,7 @@
                 clearRoomAssets();
                 localStorage.removeItem('dungeon_daily_assets');
 
-                // Plaats automatisch de test-assets voor vandaag (Boef in R4, Politie in R3)
                 applyDailyAutomatedAssets().then(() => {
-                    // Herlaad actieve kamer om assets direct te tonen
                     if (window.currentRoomX !== undefined) {
                         loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
                     }
@@ -864,7 +859,6 @@
             clearRoomAssets();
             localStorage.removeItem('dungeon_daily_assets');
 
-            // Plaats direct de test-assets (Boef in R4, Politie in R3)
             applyDailyAutomatedAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
                     loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
@@ -953,14 +947,37 @@
             startRobberPanic(roomKey);
         };
 
+        // Trigger boef pop-up automatisch
+        function triggerRobberEncounter(assetElement, posX, posY, entrySide) {
+            let roomKey = posX + '_' + posY;
+            let robberRotation = '0deg';
+            if (entrySide === 'north') robberRotation = '180deg';
+            else if (entrySide === 'south') robberRotation = '0deg';
+            else if (entrySide === 'east') robberRotation = '-90deg';
+            else if (entrySide === 'west') robberRotation = '90deg';
+
+            if (assetElement) {
+                assetElement.style.transform = 'rotate(' + robberRotation + ')';
+            }
+
+            openAssetPopup(`
+                <img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display='none'">
+                <p>Hand over that cash and loot before I take it by force!</p>
+                <div class="retro-popup-buttons">
+                    <button onclick="robberDonateAction(document.getElementById('active-robber-elem'))">Donate</button>
+                    <button class="danger" onclick="robberNoWayAction('${roomKey}')">No Way</button>
+                </div>
+            `);
+            document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
+            assetElement.id = 'active-robber-elem';
+        }
+
         // --- Specifieke Asset Interactie Handlers ---
         function handleAssetClick(assetType, assetElement, posX, posY, entrySide) {
             if (!playerState.survivalMode) {
                 showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
             }
-
-            let roomKey = posX + '_' + posY;
 
             switch(assetType) {
                 case 'asset_bank_rs.png':
@@ -1011,26 +1028,7 @@
                     break;
 
                 case 'asset_robber_rs.png':
-                    let robberRotation = '0deg';
-                    if (entrySide === 'north') robberRotation = '180deg';
-                    else if (entrySide === 'south') robberRotation = '0deg';
-                    else if (entrySide === 'east') robberRotation = '-90deg';
-                    else if (entrySide === 'west') robberRotation = '90deg';
-
-                    if (assetElement) {
-                        assetElement.style.transform = 'rotate(' + robberRotation + ')';
-                    }
-
-                    openAssetPopup(`
-                        <img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display='none'">
-                        <p>Hand over that cash and loot before I take it by force!</p>
-                        <div class="retro-popup-buttons">
-                            <button onclick="robberDonateAction(document.getElementById('active-robber-elem'))">Donate</button>
-                            <button class="danger" onclick="robberNoWayAction('${roomKey}')">No Way</button>
-                        </div>
-                    `);
-                    document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
-                    assetElement.id = 'active-robber-elem';
+                    triggerRobberEncounter(assetElement, posX, posY, entrySide);
                     break;
 
                 case 'asset_food_rs.png':
@@ -1084,9 +1082,17 @@
                     if (activeRobberRoomKey === targetKey) {
                         stopRobberPanic();
                     }
+
+                    // Verwijder boef uit localStorage dagelijkse assets voor deze specifieke kamer
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+                    if (dailyAssetsMap[targetKey]) {
+                        dailyAssetsMap[targetKey] = dailyAssetsMap[targetKey].filter(src => src !== 'asset_robber_rs.png');
+                        localStorage.setItem('dungeon_daily_assets', JSON.stringify(dailyAssetsMap));
+                    }
                 }
             });
 
+            // Verwijder boef direct uit de DOM/kamer
             document.querySelectorAll('.room-placed-asset').forEach(el => {
                 if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
                     el.remove();
@@ -1413,7 +1419,7 @@
                         });
                     }
 
-                    // --- Laad automatisch geplaatste dagelijkse assets voor deze kamer ---
+                    // --- Laad automatisch geplaatste dagelijkse assets en trigger eventuele boef bij binnenkomst ---
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
                     let roomKey = posX + '_' + posY;
                     if (dailyAssetsMap[roomKey]) {
@@ -1423,7 +1429,7 @@
                             placedAsset.src = assetSrc;
                             placedAsset.setAttribute('data-type', assetSrc);
 
-                            // Vaste positie of willekeurige midden-plaatsing voor automatische assets
+                            // Gecentreerd in de kamer
                             placedAsset.style.left = '130px';
                             placedAsset.style.top = '80px';
 
@@ -1433,6 +1439,13 @@
                             });
 
                             roomContent.appendChild(placedAsset);
+
+                            // ALS DIT DE BOEF IS: Activeer de ontmoeting direct bij binnenkomst!
+                            if (assetSrc === 'asset_robber_rs.png' && playerState.survivalMode) {
+                                setTimeout(() => {
+                                    triggerRobberEncounter(placedAsset, posX, posY, entrySide);
+                                }, 150);
+                            }
                         });
                     }
 
