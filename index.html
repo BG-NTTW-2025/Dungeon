@@ -100,6 +100,9 @@
         #test-panel { top: 380px; left: 770px; width: 280px; background: #351c1c; border-color: #c0392b; }
         #asset-sandbox-panel { top: 560px; left: 770px; width: 280px; background: #1c2833; border-color: #2980b9; }
         
+        #marketplace-sell-panel { top: 50px; left: 1060px; width: 280px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 380px; left: 1060px; width: 280px; background: #2c3e50; border-color: #2980b9; }
+
         .door-asset { 
             cursor: pointer; 
             position: absolute; 
@@ -126,7 +129,6 @@
             cursor: grabbing;
         }
 
-        /* Retro Pop-up Overlay & Modal styling */
         #asset-overlay {
             position: fixed;
             top: 0;
@@ -203,7 +205,6 @@
         .retro-popup button.danger { background: #c0392b; }
         .retro-popup button.danger:hover { background: #e74c3c; }
 
-        /* Toast Meldingen */
         #toast-container {
             position: fixed;
             bottom: 20px;
@@ -233,7 +234,6 @@
             100% { opacity: 0; transform: translateY(-10px); }
         }
 
-        /* Flashing effect voor paniek status */
         @keyframes flashRedBlack {
             0% { background-color: #222; }
             50% { background-color: #8b0000; }
@@ -353,6 +353,7 @@
             color: #fff;
             border-radius: 4px;
             margin-bottom: 8px;
+            box-sizing: border-box;
         }
         .toggle-row {
             display: flex;
@@ -440,91 +441,88 @@
             background: #333;
             box-shadow: 0 0 6px #ffd700;
         }
-		#marketplace-sell-panel { top: 50px; left: 1060px; width: 280px; background: #1a252f; border-color: #16a085; }
-#marketplace-buy-panel { top: 380px; left: 1060px; width: 280px; background: #2c3e50; border-color: #2980b9; }
 
-.mp-row {
-    margin-bottom: 8px;
-}
-.mp-row select, .mp-row input {
-    width: 100%;
-    padding: 6px;
-    background: #333;
-    border: 1px solid #555;
-    color: #fff;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-.mp-item-card {
-    background: #34495e;
-    border: 1px solid #4e6d8d;
-    padding: 8px;
-    border-radius: 4px;
-    margin-bottom: 6px;
-    font-size: 11px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.mp-item-card button {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-weight: bold;
-}
-.mp-item-card button:hover { background: #219653; }
+        .mp-row {
+            margin-bottom: 8px;
+        }
+        .mp-row select, .mp-row input {
+            width: 100%;
+            padding: 6px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .mp-item-card {
+            background: #34495e;
+            border: 1px solid #4e6d8d;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mp-item-card button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .mp-item-card button:hover { background: #219653; }
     </style>
 </head>
 <body>
 
-<!-- MARKETPLACE SELL CONTAINER -->
-<div id="marketplace-sell-panel" class="draggable-panel" data-id="marketplace-sell-panel">
-    <div class="panel-header" style="background: #16a085;"><span>💰 Marketplace - Sell</span></div>
-    <div class="panel-content menu-section">
-        <div class="mp-row">
-            <label>Item Type:</label>
-            <select id="mp-sell-type" onchange="updateMaxPriceHint()">
-                <option value="food">Food (Max 1.60 Rinth/kg)</option>
-                <option value="loot">Loot (Max 80 Rinth/kg)</option>
-            </select>
+    <!-- MARKETPLACE SELL CONTAINER -->
+    <div id="marketplace-sell-panel" class="draggable-panel" data-id="marketplace-sell-panel">
+        <div class="panel-header" style="background: #16a085;"><span>💰 Marketplace - Sell</span></div>
+        <div class="panel-content menu-section">
+            <div class="mp-row">
+                <label>Item Type:</label>
+                <select id="mp-sell-type" onchange="updateMaxPriceHint()">
+                    <option value="food">Food (Max 1.60 Rinth/kg)</option>
+                    <option value="loot">Loot (Max 80 Rinth/kg)</option>
+                </select>
+            </div>
+            <div class="mp-row">
+                <label>Quantity (kg):</label>
+                <input type="number" id="mp-sell-qty" min="1" value="1" placeholder="Amount in kg">
+            </div>
+            <div class="mp-row">
+                <label id="mp-price-label">Ask Price (Total Rinth):</label>
+                <input type="number" id="mp-sell-price" min="1" value="1" placeholder="Total price">
+            </div>
+            <button onclick="submitMarketplaceItem()" style="width: 100%; background: #16a085; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 4px;">Put on Marketplace</button>
         </div>
-        <div class="mp-row">
-            <label>Quantity (kg):</label>
-            <input type="number" id="mp-sell-qty" min="1" value="1" placeholder="Amount in kg">
-        </div>
-        <div class="mp-row">
-            <label id="mp-price-label">Ask Price (Total Rinth):</label>
-            <input type="number" id="mp-sell-price" min="1" value="1" placeholder="Total price">
-        </div>
-        <button onclick="submitMarketplaceItem()" style="width: 100%; background: #16a085; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 4px;">Put on Marketplace</button>
     </div>
-</div>
 
-<!-- MARKETPLACE BUY CONTAINER -->
-<div id="marketplace-buy-panel" class="draggable-panel" data-id="marketplace-buy-panel">
-    <div class="panel-header" style="background: #2980b9;"><span>🛒 Marketplace - Shop</span></div>
-    <div class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
-        <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Available offers from other players:</p>
-        <div id="marketplace-items-list">
-            <div style="font-size: 11px; color: #777;">Loading market offers...</div>
+    <!-- MARKETPLACE BUY CONTAINER -->
+    <div id="marketplace-buy-panel" class="draggable-panel" data-id="marketplace-buy-panel">
+        <div class="panel-header" style="background: #2980b9;"><span>🛒 Marketplace - Shop</span></div>
+        <div class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
+            <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Available offers from other players:</p>
+            <div id="marketplace-items-list">
+                <div style="font-size: 11px; color: #777;">Loading market offers...</div>
+            </div>
+            <button onclick="fetchMarketplaceItems()" style="width: 100%; background: #2980b9; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 6px;">Refresh Shop</button>
         </div>
-        <button onclick="fetchMarketplaceItems()" style="width: 100%; background: #2980b9; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 6px;">Refresh Shop</button>
     </div>
-</div>
 
     <!-- Asset Pop-up Overlay Container -->
     <div id="asset-overlay">
-        <div class="retro-popup" id="retro-popup-box">
-            <!-- Dynamische inhoud per asset -->
-        </div>
+        <div class="retro-popup" id="retro-popup-box"></div>
     </div>
 
     <!-- Toast Meldingen Container -->
     <div id="toast-container"></div>
 
+    <!-- Game Container -->
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
             <span id="game-header-title">Playfield</span>
@@ -626,14 +624,14 @@
                 <span>Asset Sandbox</span>
                 <input type="checkbox" checked onchange="togglePanel('asset-sandbox-panel', this.checked)">
             </div>
-			<div class="toggle-row">
-    <span>MP - Sell Panel</span>
-    <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
-</div>
-<div class="toggle-row">
-    <span>MP - Buy Panel</span>
-    <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
-</div>
+            <div class="toggle-row">
+                <span>MP - Sell Panel</span>
+                <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>MP - Buy Panel</span>
+                <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
+            </div>
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -710,81 +708,176 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-	
-	// Hulpfunctie om dynamisch de max prijs hint te tonen
-function updateMaxPriceHint() {
-    const type = document.getElementById('mp-sell-type').value;
-    const label = document.getElementById('mp-price-label');
-    if (type === 'food') {
-        label.textContent = "Ask Price (Max 1.60 Rinth/kg):";
-    } else {
-        label.textContent = "Ask Price (Max 80 Rinth/kg):";
-    }
-}
-	
-async function submitMarketplaceItem() {
-    const itemType = document.getElementById('mp-sell-type').value;
-    const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
-    const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+        // --- 1. Supabase Client Initialisatie (Bovenaan) ---
+        const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
+        const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    if (isNaN(qtyInput) || qtyInput <= 0) {
-        showToast("Please enter a valid quantity in kg.");
-        return;
-    }
-
-    if (isNaN(priceInput) || priceInput <= 0) {
-        showToast("Please enter a valid ask price.");
-        return;
-    }
-
-    let maxAllowedPrice = 0;
-    if (itemType === 'food') {
-        maxAllowedPrice = Math.floor(qtyInput * 1.60);
-    } else {
-        maxAllowedPrice = qtyInput * 80;
-    }
-
-    if (priceInput > maxAllowedPrice) {
-        showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth (80% cap).`);
-        return;
-    }
-
-    let sellerId = localStorage.getItem('dungeon_seller_id');
-    if (!sellerId) {
-        sellerId = Date.now() + Math.floor(Math.random() * 1000);
-        localStorage.setItem('dungeon_seller_id', sellerId);
-    }
-
-    try {
-        const { error } = await dbClient.from('marketplace').insert([
-            {
-                item_type: itemType,
-                quantity: qtyInput,
-                price_rinth: priceInput,
-                seller_id: parseInt(sellerId, 10)
+        // --- 2. Marketplace Helper & Interactie Logica ---
+        function updateMaxPriceHint() {
+            const type = document.getElementById('mp-sell-type').value;
+            const label = document.getElementById('mp-price-label');
+            if (type === 'food') {
+                label.textContent = "Ask Price (Max 1.60 Rinth/kg):";
+            } else {
+                label.textContent = "Ask Price (Max 80 Rinth/kg):";
             }
-        ]);
-
-        if (error) {
-            console.error(error);
-            showToast("Failed to put item on marketplace.");
-            return;
         }
 
-        showToast("Item successfully listed on the marketplace!");
-        document.getElementById('mp-sell-qty').value = "1";
-        document.getElementById('mp-sell-price').value = "1";
-        
-        if (typeof fetchMarketplaceItems === 'function') {
-            fetchMarketplaceItems();
+        async function submitMarketplaceItem() {
+            const itemType = document.getElementById('mp-sell-type').value;
+            const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+            const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+
+            if (isNaN(qtyInput) || qtyInput <= 0) {
+                showToast("Please enter a valid quantity in kg.");
+                return;
+            }
+
+            if (isNaN(priceInput) || priceInput <= 0) {
+                showToast("Please enter a valid ask price.");
+                return;
+            }
+
+            let maxAllowedPrice = 0;
+            if (itemType === 'food') {
+                maxAllowedPrice = Math.floor(qtyInput * 1.60);
+            } else {
+                maxAllowedPrice = qtyInput * 80;
+            }
+
+            if (priceInput > maxAllowedPrice) {
+                showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth (80% cap).`);
+                return;
+            }
+
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) {
+                sellerId = Date.now() + Math.floor(Math.random() * 1000);
+                localStorage.setItem('dungeon_seller_id', sellerId);
+            }
+
+            try {
+                const { error } = await dbClient.from('marketplace').insert([
+                    {
+                        item_type: itemType,
+                        quantity: qtyInput,
+                        price_rinth: priceInput,
+                        seller_id: parseInt(sellerId, 10)
+                    }
+                ]);
+
+                if (error) {
+                    console.error(error);
+                    showToast("Failed to put item on marketplace.");
+                    return;
+                }
+
+                showToast("Item successfully listed on the marketplace!");
+                document.getElementById('mp-sell-qty').value = "1";
+                document.getElementById('mp-sell-price').value = "1";
+                
+                fetchMarketplaceItems();
+            } catch (err) {
+                console.error(err);
+                showToast("An error occurred while listing the item.");
+            }
         }
-    } catch (err) {
-        console.error(err);
-        showToast("An error occurred while listing the item.");
-    }
-}
-	
-        // --- Player State & Economy ---
+
+        async function fetchMarketplaceItems() {
+            const listContainer = document.getElementById('marketplace-items-list');
+            listContainer.innerHTML = '<div style="font-size: 11px; color: #777;">Loading market offers...</div>';
+
+            try {
+                const { data, error } = await dbClient
+                    .from('marketplace')
+                    .select('*')
+                    .gt('price_rinth', 0)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error(error);
+                    listContainer.innerHTML = '<div style="font-size: 11px; color: #e74c3c;">Failed to load offers.</div>';
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    listContainer.innerHTML = '<div style="font-size: 11px; color: #777;">No active items on the market.</div>';
+                    return;
+                }
+
+                let currentSellerId = localStorage.getItem('dungeon_seller_id');
+                let html = '';
+
+                data.forEach(item => {
+                    const isOwnItem = currentSellerId && String(item.seller_id) === String(currentSellerId);
+                    const label = item.item_type === 'food' ? 'Food' : 'Loot';
+                    
+                    html += `
+                        <div class="mp-item-card">
+                            <div>
+                                <strong style="color: ${item.item_type === 'food' ? '#2ecc71' : '#f1c40f'};">${label}</strong>: ${item.quantity} kg<br>
+                                <span style="color: #ffd700;">Price: ${item.price_rinth} Rinth</span> ${isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : ''}
+                            </div>
+                            <div>
+                                ${!isOwnItem ? `<button onclick="buyMarketplaceItem(${item.id}, ${item.price_rinth}, ${item.quantity}, '${item.item_type}')">Buy</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listContainer.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                listContainer.innerHTML = '<div style="font-size: 11px; color: #e74c3c;">Error loading market items.</div>';
+            }
+        }
+
+        async function buyMarketplaceItem(id, price, qty, itemType) {
+            let cost = parseInt(price, 10);
+            
+            if (playerState.cash < cost && playerState.credit < cost) {
+                showToast("You do not have enough money (Cash or Bank) to buy this item.");
+                return;
+            }
+
+            if (playerState.cash >= cost) {
+                playerState.cash -= cost;
+            } else {
+                playerState.credit -= cost;
+            }
+
+            if (itemType === 'food') {
+                playerState.foodKg += qty;
+            } else {
+                playerState.lootValue += (qty * 100);
+            }
+            updatePlayerUI();
+
+            try {
+                const { error } = await dbClient
+                    .from('marketplace')
+                    .update({
+                        sold: cost,
+                        price_rinth: 0
+                    })
+                    .eq('id', id);
+
+                if (error) {
+                    console.error(error);
+                    showToast("Error updating marketplace transaction.");
+                    return;
+                }
+
+                showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
+                fetchMarketplaceItems();
+            } catch (err) {
+                console.error(err);
+                showToast("An error occurred during purchase.");
+            }
+        }
+
+        // --- 3. Player State & Economy ---
         let playerState = {
             score: 0,
             cash: 310,       
@@ -956,7 +1049,7 @@ async function submitMarketplaceItem() {
             }
         }
 
-        // --- Survival Mode Toggle met nette Bevestiging ---
+        // --- Survival Mode Toggle ---
         function confirmToggleSurvival() {
             let nextMode = !playerState.survivalMode;
             let msg = nextMode 
@@ -972,40 +1065,36 @@ async function submitMarketplaceItem() {
             `);
         }
 
-window.applySurvivalToggle = function(enable) {
-    playerState.survivalMode = enable;
-    const btn = document.getElementById('survival-toggle-btn');
-    const bodyContent = document.getElementById('survival-content-body');
+        window.applySurvivalToggle = function(enable) {
+            playerState.survivalMode = enable;
+            const btn = document.getElementById('survival-toggle-btn');
+            const bodyContent = document.getElementById('survival-content-body');
+            const sellPanel = document.getElementById('marketplace-sell-panel');
+            const buyPanel = document.getElementById('marketplace-buy-panel');
 
-    // Selecteer de marktplaats panels
-    const sellPanel = document.getElementById('marketplace-sell-panel');
-    const buyPanel = document.getElementById('marketplace-buy-panel');
+            if (playerState.survivalMode) {
+                btn.textContent = "ON";
+                btn.style.background = "#27ae60";
+                bodyContent.style.display = "block";
+                
+                if(sellPanel) sellPanel.style.display = 'block';
+                if(buyPanel) buyPanel.style.display = 'block';
+                
+                showToast("Survival Mode is enabled.");
+            } else {
+                btn.textContent = "OFF";
+                btn.style.background = "#c0392b";
+                bodyContent.style.display = "none";
+                
+                if(sellPanel) sellPanel.style.display = 'none';
+                if(buyPanel) buyPanel.style.display = 'none';
 
-    if (playerState.survivalMode) {
-        btn.textContent = "ON";
-        btn.style.background = "#27ae60";
-        bodyContent.style.display = "block";
-        
-        // Zet marktplaats weer aan
-        if(sellPanel) sellPanel.style.display = 'block';
-        if(buyPanel) buyPanel.style.display = 'block';
-        
-        showToast("Survival Mode is enabled.");
-    } else {
-        btn.textContent = "OFF";
-        btn.style.background = "#c0392b";
-        bodyContent.style.display = "none";
-        
-        // Verberg marktplaats tijdens uitgeschakelde survival mode
-        if(sellPanel) sellPanel.style.display = 'none';
-        if(buyPanel) buyPanel.style.display = 'none';
-
-        showToast("Survival Mode is disabled.");
-        clearRoomAssets();
-        stopRobberPanic();
-    }
-    closeAssetPopup();
-};
+                showToast("Survival Mode is disabled.");
+                clearRoomAssets();
+                stopRobberPanic();
+            }
+            closeAssetPopup();
+        };
 
         // --- Test Panel Functies ---
         function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
@@ -1114,7 +1203,6 @@ window.applySurvivalToggle = function(enable) {
             startRobberPanic(roomKey);
         };
 
-        // Trigger boef pop-up automatisch
         function triggerRobberEncounter(assetElement, posX, posY, entrySide) {
             let roomKey = posX + '_' + posY;
             let robberRotation = '0deg';
@@ -1250,7 +1338,6 @@ window.applySurvivalToggle = function(enable) {
                         stopRobberPanic();
                     }
 
-                    // Verwijder boef uit localStorage dagelijkse assets voor deze specifieke kamer
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
                     if (dailyAssetsMap[targetKey]) {
                         dailyAssetsMap[targetKey] = dailyAssetsMap[targetKey].filter(src => src !== 'asset_robber_rs.png');
@@ -1259,7 +1346,6 @@ window.applySurvivalToggle = function(enable) {
                 }
             });
 
-            // Verwijder boef direct uit de DOM/kamer
             document.querySelectorAll('.room-placed-asset').forEach(el => {
                 if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
                     el.remove();
@@ -1291,7 +1377,7 @@ window.applySurvivalToggle = function(enable) {
         };
 
         // --- Room click handler om geselecteerde assets te plaatsen ---
-		document.getElementById('room').addEventListener('click', (e) => {
+        document.getElementById('room').addEventListener('click', (e) => {
             if (!selectedSandboxImg) return;
             if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
 
@@ -1433,10 +1519,6 @@ window.applySurvivalToggle = function(enable) {
                 location.reload();
             }
         }
-
-        const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
-        const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
         let activeTimerInterval = null;
@@ -1586,7 +1668,6 @@ window.applySurvivalToggle = function(enable) {
                         });
                     }
 
-                    // --- Laad automatisch geplaatste dagelijkse assets en trigger eventuele boef bij binnenkomst ---
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
                     let roomKey = posX + '_' + posY;
                     if (dailyAssetsMap[roomKey]) {
@@ -1596,7 +1677,6 @@ window.applySurvivalToggle = function(enable) {
                             placedAsset.src = assetSrc;
                             placedAsset.setAttribute('data-type', assetSrc);
 
-                            // Gecentreerd in de kamer
                             placedAsset.style.left = '130px';
                             placedAsset.style.top = '80px';
 
@@ -1607,7 +1687,6 @@ window.applySurvivalToggle = function(enable) {
 
                             roomContent.appendChild(placedAsset);
 
-                            // ALS DIT DE BOEF IS: Activeer de ontmoeting direct bij binnenkomst!
                             if (assetSrc === 'asset_robber_rs.png' && playerState.survivalMode) {
                                 setTimeout(() => {
                                     triggerRobberEncounter(placedAsset, posX, posY, entrySide);
@@ -1687,6 +1766,7 @@ window.applySurvivalToggle = function(enable) {
             renderBreadcrumbs();
             loadMaxRoomStat();
             loadRoomByCoords(0, 0, 'south');
+            fetchMarketplaceItems();
         }
 
         initGame();
