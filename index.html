@@ -203,7 +203,7 @@
         .retro-popup button.danger { background: #c0392b; }
         .retro-popup button.danger:hover { background: #e74c3c; }
 
-        /* Toast Meldingen (vervanging voor alerts) */
+        /* Toast Meldingen */
         #toast-container {
             position: fixed;
             bottom: 20px;
@@ -647,7 +647,7 @@
         };
 
         // Actieve Robber / Paniek status variabelen
-        let activeRobberRoomKey = null; // bijv. "posX_posY" van de kamer met actieve boef
+        let activeRobberRoomKey = null;
         let robberIntervalId = null;
         let lootDrainTimerId = null;
 
@@ -713,7 +713,6 @@
         function handleRoomTransitionTime(currentPosX, currentPosY) {
             checkDailyReset();
             
-            // Check of player wegvlucht uit de kamer met de actieve Robber
             let currentRoomKey = currentPosX + '_' + currentPosY;
             if (activeRobberRoomKey && activeRobberRoomKey !== currentRoomKey) {
                 stopRobberPanic();
@@ -846,11 +845,8 @@
         function startRobberPanic(roomKey) {
             activeRobberRoomKey = roomKey;
             document.getElementById('inventory-section-box').classList.add('flashing');
-            
-            // Zorg dat inventory paneel open/zichtbaar is
             document.getElementById('inventory-panel').style.display = 'block';
 
-            // Elke seconde 5 Rinth Cash verliezen
             if (robberIntervalId) clearInterval(robberIntervalId);
             robberIntervalId = setInterval(() => {
                 if (playerState.cash > 0) {
@@ -859,7 +855,6 @@
                 }
             }, 1000);
 
-            // Elke minuut 100 Loot verliezen
             if (lootDrainTimerId) clearInterval(lootDrainTimerId);
             lootDrainTimerId = setInterval(() => {
                 if (playerState.lootValue > 0) {
@@ -893,7 +888,7 @@
         };
 
         // --- Specifieke Asset Interactie Handlers ---
-        function handleAssetClick(assetType, assetElement, posX, posY) {
+        function handleAssetClick(assetType, assetElement, posX, posY, entrySide) {
             if (!playerState.survivalMode) {
                 showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
@@ -950,6 +945,17 @@
                     break;
 
                 case 'asset_robber_rs.png':
+                    // Bepaal de rotatie van de boef zodat hij de speler aankijkt op basis van de ingangsrichting
+                    let robberRotation = '0deg';
+                    if (entrySide === 'north') robberRotation = '180deg';
+                    else if (entrySide === 'south') robberRotation = '0deg';
+                    else if (entrySide === 'east') robberRotation = '-90deg';
+                    else if (entrySide === 'west') robberRotation = '90deg';
+
+                    if (assetElement) {
+                        assetElement.style.transform = 'rotate(' + robberRotation + ')';
+                    }
+
                     openAssetPopup(`
                         <img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display='none'">
                         <p>Hand over that cash and loot before I take it by force!</p>
@@ -958,9 +964,10 @@
                             <button class="danger" onclick="robberNoWayAction('${roomKey}')">No Way</button>
                         </div>
                     `);
-                    // Geef element tijdelijk ID om te kunnen verwijderen bij donate
                     document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
                     assetElement.id = 'active-robber-elem';
+
+                    // Als de speler direct in deze kamer landt waar de boef staat en kiest voor "No Way", start paniek
                     break;
 
                 case 'asset_food_rs.png':
@@ -1008,7 +1015,6 @@
             }
             document.getElementById('popup-text').textContent = "Don’t you worry, we will take care of it.";
             
-            // Zoek op basis van room_id in database welk coördinaat hierbij hoort, of verwijder robber in actieve kamer
             dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', parseInt(roomVal, 10)).limit(1).then(({data}) => {
                 if (data && data.length > 0) {
                     let targetKey = data[0].pos_x + '_' + data[0].pos_y;
@@ -1018,7 +1024,6 @@
                 }
             });
 
-            // Verwijder boef uit de kamer
             document.querySelectorAll('.room-placed-asset').forEach(el => {
                 if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
                     el.remove();
@@ -1076,8 +1081,7 @@
             };
 
             placedAsset.addEventListener('click', (ev) => {
-                // We geven de huidige kamor coördinaten mee (wordt dynamisch opgevangen in loadRoomByCoords)
-                handleAssetClick(currentImg, placedAsset, window.currentRoomX || 0, window.currentRoomY || 0);
+                handleAssetClick(currentImg, placedAsset, window.currentRoomX || 0, window.currentRoomY || 0, window.currentEntrySide || 'south');
                 ev.stopPropagation();
             });
 
@@ -1274,6 +1278,7 @@
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
             window.currentRoomX = posX;
             window.currentRoomY = posY;
+            window.currentEntrySide = entrySide;
 
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
