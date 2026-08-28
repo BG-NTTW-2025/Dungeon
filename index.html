@@ -722,7 +722,7 @@ function updateMaxPriceHint() {
     }
 }
 	
-	async function submitMarketplaceItem() {
+async function submitMarketplaceItem() {
     const itemType = document.getElementById('mp-sell-type').value;
     const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
     const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
@@ -737,9 +737,6 @@ function updateMaxPriceHint() {
         return;
     }
 
-    // Bereken maximale marge (80% van de kiloprijs)
-    // Food = 2 rinth/kg (max 80% = 1.60 rinth/kg -> totaal qty * 1.60 -> afgerond naar int of exact)
-    // Loot = 100 rinth/kg (max 80% = 80 rinth/kg -> totaal qty * 80)
     let maxAllowedPrice = 0;
     if (itemType === 'food') {
         maxAllowedPrice = Math.floor(qtyInput * 1.60);
@@ -752,7 +749,6 @@ function updateMaxPriceHint() {
         return;
     }
 
-    // Haal of genereer een lokale seller_id voor deze speler
     let sellerId = localStorage.getItem('dungeon_seller_id');
     if (!sellerId) {
         sellerId = Date.now() + Math.floor(Math.random() * 1000);
@@ -765,7 +761,7 @@ function updateMaxPriceHint() {
                 item_type: itemType,
                 quantity: qtyInput,
                 price_rinth: priceInput,
-                seller_id: parseInt(sellerId, 10),
+                seller_id: parseInt(sellerId, 10)
             }
         ]);
 
@@ -779,7 +775,6 @@ function updateMaxPriceHint() {
         document.getElementById('mp-sell-qty').value = "1";
         document.getElementById('mp-sell-price').value = "1";
         
-        // Vernieuw eventueel de shopweergave als die open staat
         if (typeof fetchMarketplaceItems === 'function') {
             fetchMarketplaceItems();
         }
