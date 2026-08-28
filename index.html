@@ -877,6 +877,135 @@
                 showToast("An error occurred during purchase.");
             }
         }
+		
+// --- 3 AM Marketplace Decay, Scavenger & Payout Logica ---
+async function processMarketplaceDecay() {
+    try {
+        const { data: activeOffers, error } = await dbClient
+            .from('marketplace')
+            .select('*')
+            .gt('price_rinth', 0); // Alleen actieve aanbiedingen
+
+        if (error || !activeOffers) return;
+
+        const now = new Date();
+
+        for (const item of activeOffers) {
+            const createdAt = new Date(item.created_at);
+            // Bereken hoeveel hele dagen (24 uur) het item op MP staat
+            const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+
+            let currentPrice = item.price_rinth;
+            let qty = item.quantity;
+            let soldVal = item.sold || 0;
+            let newPrice = currentPrice;
+            let newSold = soldVal;
+            let newComment = item.comments;
+            let updateNeeded = false;
+
+            if (item.item_type === 'food') {
+                // FOOD REGELING: Max 3 dagen houdbaar
+                if (diffDays === 1) {
+                    // Dag 2 (bijv. 2 juni 3am): gebeurt er niets extra's of volgend schema
+                } else if (diffDays === 2) {
+                    // Dag 3: prijs gehalveerd
+                    newPrice = Math.floor(currentPrice / 2);
+                    updateNeeded = true;
+                } else if (diffDays >= 3) {
+                    // Dag 4+: prijs naar 0
+                    newPrice = 0;
+                    if (newSold === 0) {
+                        newComment = `Your food offer ${qty}kg on MP was not sold, but donated to the food bank after 3 days.`;
+                    } else {
+                        newComment = `Your food offer ${qty}kg on MP was sold for ${newSold} Rinth.`;
+                    }
+                    updateNeeded = true;
+                }
+            } else if (item.item_type === 'loot') {
+                // LOOT REGELING: Standaard waarde = 200 Rinth per kg
+                const standardValuePerKg = 200;
+                const totalStandardValue = qty * standardValuePerKg;
+                const scavengerThreshold = totalStandardValue * 0.25; // 25% grens
+
+                // Elke dag gaat er 10% van de standaardwaarde * quantity af (of 60 Rinth bij qty=3)
+                const dailyDrop = Math.floor(standardValuePerKg * 0.10) * qty;
+
+                if (diffDays >= 1 && currentPrice > 0) {
+                    // Bereken nieuwe prijs na dagelijkse daling
+                    newPrice = Math.max(0, currentPrice - dailyDrop);
+                    updateNeeded = true;
+
+                    // Controleer of de nieuwe prijs onder of op de sjacheraar-grens (25%) komt
+                    if (newPrice <= scavengerThreshold) {
+                        // Sjacheraar koopt de boel op voor de actuele resterende prijs
+                        newSold = newPrice;
+                        newPrice = 0;
+                        newComment = `Your loot offer ${qty}kg on MP has been bought up by the wheeler-dealer for ${newSold} Rinth.`;
+                    } else if (newPrice === 0) {
+                        newComment = `Your loot offer ${qty}kg on MP has been sold for ${newSold} Rinth.`;
+                    }
+                }
+            }
+
+            if (updateNeeded) {
+                await dbClient
+                    .from('marketplace')
+                    .update({
+                        price_rinth: newPrice,
+                        sold: newSold,
+                        comments: newComment
+                    })
+                    .eq('id', item.id);
+            }
+        }
+    } catch (err) {
+        console.error("Error processing marketplace decay:", err);
+    }
+}
+
+// --- 5. Controleer op uitbetalingen bij opstarten / inloggen ---
+async function checkMarketplacePayouts() {
+    let sellerId = localStorage.getItem('dungeon_seller_id');
+    if (!sellerId) return;
+
+    try {
+        // Zoek items van deze seller die inmiddels verkocht zijn (sold is ingevuld, maar nog niet geclaimd)
+        // We kunnen een kolom of status controleren, of simpele logica: sold > 0 en prijs == 0
+        const { data: soldItems, error } = await dbClient
+            .from('marketplace')
+            .select('*')
+            .eq('seller_id', parseInt(sellerId, 10))
+            .gt('sold', 0);
+
+        if (error || !soldItems || soldItems.length === 0) return;
+
+        let totalEarnings = 0;
+        let idsToClear = [];
+
+        soldItems.forEach(item => {
+            totalEarnings += item.sold;
+            idsToClear.push(item.id);
+        });
+
+        if (totalEarnings > 0) {
+            // Stort de opbrengst in de bank (credit) of cash
+            playerState.credit += totalEarnings;
+            updatePlayerUI();
+            
+            showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
+
+            // Verwijder of markeer als afgehandeld zodat ze niet dubbel worden uitbetaald
+            for (const id of idsToClear) {
+                await dbClient
+                    .from('marketplace')
+                    .delete()
+                    .eq('id', id);
+            }
+        }
+    } catch (err) {
+        console.error("Error checking marketplace payouts:", err);
+    }
+}
 
         // --- 3. Player State & Economy ---
         let playerState = {
@@ -1768,6 +1897,8 @@
             loadMaxRoomStat();
             loadRoomByCoords(0, 0, 'south');
             fetchMarketplaceItems();
+			checkMarketplacePayouts();
+			processMarketplaceDecay();
         }
 
         initGame();
