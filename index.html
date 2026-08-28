@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Survival Mode</title>
+    <title>Dungeon Game - Survival Mode & 3 AM Reset</title>
     <style>
         body {
             margin: 0;
@@ -642,11 +642,10 @@
             lootValue: 200, 
             foodKg: 1.5,    
             survivalMode: true,
-            lastResetDay: new Date().toDateString(),
+            lastResetDate: localStorage.getItem('dungeon_last_reset_date') || '',
             lastRoomEnterTime: Date.now()
         };
 
-        // Actieve Robber / Paniek status variabelen
         let activeRobberRoomKey = null;
         let robberIntervalId = null;
         let lootDrainTimerId = null;
@@ -660,17 +659,37 @@
             setTimeout(() => { toast.remove(); }, 3000);
         }
 
-        // --- Check 3 AM Automated Daily Reset ---
+        // --- 3 AM Automated Reset & Asset Expiration Cycle ---
         function checkDailyReset() {
             const now = new Date();
-            const todayStr = now.toDateString();
+            const currentDateStr = now.toDateString();
             const currentHour = now.getHours();
 
-            if (playerState.lastResetDay !== todayStr && currentHour >= 3) {
-                playerState.timeLeft = 600; 
+            // Bepaal de 'speeldag' string. Als het voor 03:00 uur is, hoort het nog bij de vorige dagcyclus.
+            let activeGameDay = new Date(now);
+            if (currentHour < 3) {
+                activeGameDay.setDate(activeGameDay.getDate() - 1);
+            }
+            let activeGameDayStr = activeGameDay.toDateString();
+
+            // Als de actieve speeldag is gewijzigd sinds de laatste reset
+            if (playerState.lastResetDate !== activeGameDayStr && currentHour >= 3) {
+                // Voer de dagelijkse reset uit
+                playerState.timeLeft = 600; // 10 uur
                 playerState.energy = 100;
-                playerState.lastResetDay = todayStr;
-                localStorage.setItem('dungeon_player_state', JSON.stringify(playerState));
+                playerState.survivalMode = true;
+                playerState.lastResetDate = activeGameDayStr;
+                localStorage.setItem('dungeon_last_reset_date', activeGameDayStr);
+
+                // Wis actieve paniek / boef
+                stopRobberPanic();
+
+                // Verwijder alle tijdelijke dagelijkse / gesponserde assets uit de kamers (Asset Expiration Cycle)
+                clearRoomAssets();
+                localStorage.removeItem('dungeon_placed_assets');
+
+                showToast("🌅 Daily Reset (3:00 AM): New day started, assets expired, and time/energy restored!");
+                updatePlayerUI();
             }
         }
         checkDailyReset();
@@ -805,8 +824,9 @@
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
             document.getElementById('survival-content-body').style.display = "block";
             stopRobberPanic();
+            clearRoomAssets();
             updatePlayerUI();
-            showToast("Simulated Daily Reset (3:00 AM): Game restored!");
+            showToast("Simulated Daily Reset (3:00 AM): Game restored & assets expired!");
         }
 
         updatePlayerUI();
@@ -945,7 +965,6 @@
                     break;
 
                 case 'asset_robber_rs.png':
-                    // Bepaal de rotatie van de boef zodat hij de speler aankijkt op basis van de ingangsrichting
                     let robberRotation = '0deg';
                     if (entrySide === 'north') robberRotation = '180deg';
                     else if (entrySide === 'south') robberRotation = '0deg';
@@ -966,8 +985,6 @@
                     `);
                     document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
                     assetElement.id = 'active-robber-elem';
-
-                    // Als de speler direct in deze kamer landt waar de boef staat en kiest voor "No Way", start paniek
                     break;
 
                 case 'asset_food_rs.png':
