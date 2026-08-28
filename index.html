@@ -440,9 +440,80 @@
             background: #333;
             box-shadow: 0 0 6px #ffd700;
         }
+		#marketplace-sell-panel { top: 50px; left: 1060px; width: 280px; background: #1a252f; border-color: #16a085; }
+#marketplace-buy-panel { top: 380px; left: 1060px; width: 280px; background: #2c3e50; border-color: #2980b9; }
+
+.mp-row {
+    margin-bottom: 8px;
+}
+.mp-row select, .mp-row input {
+    width: 100%;
+    padding: 6px;
+    background: #333;
+    border: 1px solid #555;
+    color: #fff;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.mp-item-card {
+    background: #34495e;
+    border: 1px solid #4e6d8d;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.mp-item-card button {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.mp-item-card button:hover { background: #219653; }
     </style>
 </head>
 <body>
+
+<!-- MARKETPLACE SELL CONTAINER -->
+<div id="marketplace-sell-panel" class="draggable-panel" data-id="marketplace-sell-panel">
+    <div class="panel-header" style="background: #16a085;"><span>💰 Marketplace - Sell</span></div>
+    <div class="panel-content menu-section">
+        <div class="mp-row">
+            <label>Item Type:</label>
+            <select id="mp-sell-type" onchange="updateMaxPriceHint()">
+                <option value="food">Food (Max 1.60 Rinth/kg)</option>
+                <option value="loot">Loot (Max 80 Rinth/kg)</option>
+            </select>
+        </div>
+        <div class="mp-row">
+            <label>Quantity (kg):</label>
+            <input type="number" id="mp-sell-qty" min="1" value="1" placeholder="Amount in kg">
+        </div>
+        <div class="mp-row">
+            <label id="mp-price-label">Ask Price (Total Rinth):</label>
+            <input type="number" id="mp-sell-price" min="1" value="1" placeholder="Total price">
+        </div>
+        <button onclick="submitMarketplaceItem()" style="width: 100%; background: #16a085; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 4px;">Put on Marketplace</button>
+    </div>
+</div>
+
+<!-- MARKETPLACE BUY CONTAINER -->
+<div id="marketplace-buy-panel" class="draggable-panel" data-id="marketplace-buy-panel">
+    <div class="panel-header" style="background: #2980b9;"><span>🛒 Marketplace - Shop</span></div>
+    <div class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
+        <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Available offers from other players:</p>
+        <div id="marketplace-items-list">
+            <div style="font-size: 11px; color: #777;">Loading market offers...</div>
+        </div>
+        <button onclick="fetchMarketplaceItems()" style="width: 100%; background: #2980b9; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 6px;">Refresh Shop</button>
+    </div>
+</div>
 
     <!-- Asset Pop-up Overlay Container -->
     <div id="asset-overlay">
@@ -555,6 +626,14 @@
                 <span>Asset Sandbox</span>
                 <input type="checkbox" checked onchange="togglePanel('asset-sandbox-panel', this.checked)">
             </div>
+			<div class="toggle-row">
+    <span>MP - Sell Panel</span>
+    <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
+</div>
+<div class="toggle-row">
+    <span>MP - Buy Panel</span>
+    <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
+</div>
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -631,6 +710,86 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+	
+	// Hulpfunctie om dynamisch de max prijs hint te tonen
+function updateMaxPriceHint() {
+    const type = document.getElementById('mp-sell-type').value;
+    const label = document.getElementById('mp-price-label');
+    if (type === 'food') {
+        label.textContent = "Ask Price (Max 1.60 Rinth/kg):";
+    } else {
+        label.textContent = "Ask Price (Max 80 Rinth/kg):";
+    }
+}
+	
+	async function submitMarketplaceItem() {
+    const itemType = document.getElementById('mp-sell-type').value;
+    const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+    const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+
+    if (isNaN(qtyInput) || qtyInput <= 0) {
+        showToast("Please enter a valid quantity in kg.");
+        return;
+    }
+
+    if (isNaN(priceInput) || priceInput <= 0) {
+        showToast("Please enter a valid ask price.");
+        return;
+    }
+
+    // Bereken maximale marge (80% van de kiloprijs)
+    // Food = 2 rinth/kg (max 80% = 1.60 rinth/kg -> totaal qty * 1.60 -> afgerond naar int of exact)
+    // Loot = 100 rinth/kg (max 80% = 80 rinth/kg -> totaal qty * 80)
+    let maxAllowedPrice = 0;
+    if (itemType === 'food') {
+        maxAllowedPrice = Math.floor(qtyInput * 1.60);
+    } else {
+        maxAllowedPrice = qtyInput * 80;
+    }
+
+    if (priceInput > maxAllowedPrice) {
+        showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth (80% cap).`);
+        return;
+    }
+
+    // Haal of genereer een lokale seller_id voor deze speler
+    let sellerId = localStorage.getItem('dungeon_seller_id');
+    if (!sellerId) {
+        sellerId = Date.now() + Math.floor(Math.random() * 1000);
+        localStorage.setItem('dungeon_seller_id', sellerId);
+    }
+
+    try {
+        const { error } = await dbClient.from('marketplace').insert([
+            {
+                item_type: itemType,
+                quantity: qtyInput,
+                price_rinth: priceInput,
+                seller_id: parseInt(sellerId, 10),
+                sold: null
+            }
+        ]);
+
+        if (error) {
+            console.error(error);
+            showToast("Failed to put item on marketplace.");
+            return;
+        }
+
+        showToast("Item successfully listed on the marketplace!");
+        document.getElementById('mp-sell-qty').value = "1";
+        document.getElementById('mp-sell-price').value = "1";
+        
+        // Vernieuw eventueel de shopweergave als die open staat
+        if (typeof fetchMarketplaceItems === 'function') {
+            fetchMarketplaceItems();
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("An error occurred while listing the item.");
+    }
+}
+	
         // --- Player State & Economy ---
         let playerState = {
             score: 0,
@@ -819,26 +978,40 @@
             `);
         }
 
-        window.applySurvivalToggle = function(enable) {
-            playerState.survivalMode = enable;
-            const btn = document.getElementById('survival-toggle-btn');
-            const bodyContent = document.getElementById('survival-content-body');
+window.applySurvivalToggle = function(enable) {
+    playerState.survivalMode = enable;
+    const btn = document.getElementById('survival-toggle-btn');
+    const bodyContent = document.getElementById('survival-content-body');
 
-            if (playerState.survivalMode) {
-                btn.textContent = "ON";
-                btn.style.background = "#27ae60";
-                bodyContent.style.display = "block";
-                showToast("Survival Mode is enabled.");
-            } else {
-                btn.textContent = "OFF";
-                btn.style.background = "#c0392b";
-                bodyContent.style.display = "none";
-                showToast("Survival Mode is disabled.");
-                clearRoomAssets();
-                stopRobberPanic();
-            }
-            closeAssetPopup();
-        };
+    // Selecteer de marktplaats panels
+    const sellPanel = document.getElementById('marketplace-sell-panel');
+    const buyPanel = document.getElementById('marketplace-buy-panel');
+
+    if (playerState.survivalMode) {
+        btn.textContent = "ON";
+        btn.style.background = "#27ae60";
+        bodyContent.style.display = "block";
+        
+        // Zet marktplaats weer aan
+        if(sellPanel) sellPanel.style.display = 'block';
+        if(buyPanel) buyPanel.style.display = 'block';
+        
+        showToast("Survival Mode is enabled.");
+    } else {
+        btn.textContent = "OFF";
+        btn.style.background = "#c0392b";
+        bodyContent.style.display = "none";
+        
+        // Verberg marktplaats tijdens uitgeschakelde survival mode
+        if(sellPanel) sellPanel.style.display = 'none';
+        if(buyPanel) buyPanel.style.display = 'none';
+
+        showToast("Survival Mode is disabled.");
+        clearRoomAssets();
+        stopRobberPanic();
+    }
+    closeAssetPopup();
+};
 
         // --- Test Panel Functies ---
         function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
