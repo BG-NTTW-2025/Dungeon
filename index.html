@@ -725,64 +725,65 @@
         }
 
         async function submitMarketplaceItem() {
-            const itemType = document.getElementById('mp-sell-type').value;
-            const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
-            const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+    const itemType = document.getElementById('mp-sell-type').value;
+    const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+    const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
 
-            if (isNaN(qtyInput) || qtyInput <= 0) {
-                showToast("Please enter a valid quantity in kg.");
-                return;
-            }
+    if (isNaN(qtyInput) || qtyInput <= 0) {
+        showToast("Please enter a valid quantity in kg.");
+        return;
+    }
 
-            if (isNaN(priceInput) || priceInput <= 0) {
-                showToast("Please enter a valid ask price.");
-                return;
-            }
+    if (isNaN(priceInput) || priceInput <= 0) {
+        showToast("Please enter a valid ask price.");
+        return;
+    }
 
-            let maxAllowedPrice = 0;
-            if (itemType === 'food') {
-                maxAllowedPrice = Math.floor(qtyInput * 1.60);
-            } else {
-                maxAllowedPrice = qtyInput * 80;
-            }
+    let maxAllowedPrice = 0;
+    if (itemType === 'food') {
+        maxAllowedPrice = Math.floor(qtyInput * 1.60);
+    } else {
+        maxAllowedPrice = qtyInput * 80;
+    }
 
-            if (priceInput > maxAllowedPrice) {
-                showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth (80% cap).`);
-                return;
-            }
+    if (priceInput > maxAllowedPrice) {
+        showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
+        return;
+    }
 
-            let sellerId = localStorage.getItem('dungeon_seller_id');
-            if (!sellerId) {
-                sellerId = Date.now() + Math.floor(Math.random() * 1000);
-                localStorage.setItem('dungeon_seller_id', sellerId);
-            }
+    let sellerId = localStorage.getItem('dungeon_seller_id');
+    if (!sellerId) {
+        sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
+        localStorage.setItem('dungeon_seller_id', sellerId);
+    }
 
-            try {
-                const { error } = await dbClient.from('marketplace').insert([
-                    {
-                        item_type: itemType,
-                        quantity: qtyInput,
-                        price_rinth: priceInput,
-                        seller_id: parseInt(sellerId, 10)
-                    }
-                ]);
+    try {
+        // Zorg dat int8 velden als echte numbers worden meegegeven
+        const payload = {
+            item_type: itemType,
+            quantity: Number(qtyInput),
+            price_rinth: Number(priceInput),
+            seller_id: Number(sellerId)
+        };
 
-                if (error) {
-                    console.error(error);
-                    showToast("Failed to put item on marketplace.");
-                    return;
-                }
+        const { data, error } = await dbClient.from('marketplace').insert([payload]);
 
-                showToast("Item successfully listed on the marketplace!");
-                document.getElementById('mp-sell-qty').value = "1";
-                document.getElementById('mp-sell-price').value = "1";
-                
-                fetchMarketplaceItems();
-            } catch (err) {
-                console.error(err);
-                showToast("An error occurred while listing the item.");
-            }
+        if (error) {
+            console.error("Supabase Error Details:", error);
+            showToast("Failed: " + (error.message || "Database error"));
+            return;
         }
+
+        showToast("Item successfully listed on the marketplace!");
+        document.getElementById('mp-sell-qty').value = "1";
+        document.getElementById('mp-sell-price').value = "1";
+        
+        fetchMarketplaceItems();
+    } catch (err) {
+        console.error("Catch Error:", err);
+        showToast("An error occurred while listing the item.");
+    }
+}
 
         async function fetchMarketplaceItems() {
             const listContainer = document.getElementById('marketplace-items-list');
