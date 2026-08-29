@@ -834,51 +834,60 @@
             }
         }
 
-        async function buyMarketplaceItem(id, price, qty, itemType) {
-            let cost = parseInt(price, 10);
-            
-            if (playerState.cash < cost && playerState.credit < cost) {
-                showToast("You do not have enough money (Cash or Bank) to buy this item.");
-                return;
-            }
+async function buyMarketplaceItem(id, price, qty, itemType) {
+    let cost = parseInt(price, 10);
+    
+    if (playerState.cash < cost && playerState.credit < cost) {
+        showToast("You do not have enough money (Cash or Bank) to buy this item.");
+        return;
+    }
 
-            if (playerState.cash >= cost) {
-                playerState.cash -= cost;
-            } else {
-                playerState.credit -= cost;
-            }
+    if (playerState.cash >= cost) {
+        playerState.cash -= cost;
+    } else {
+        playerState.credit -= cost;
+    }
 
-            if (itemType === 'food') {
-                playerState.foodKg += qty;
-            } else {
-                playerState.lootValue += (qty * 100);
-            }
-            updatePlayerUI();
+    if (itemType === 'food') {
+        playerState.foodKg += qty;
+    } else {
+        playerState.lootValue += (qty * 100);
+    }
+    updatePlayerUI();
 
-            try {
-                const { error } = await dbClient
-                    .from('marketplace')
-                    .update({
-                        sold: cost,
-                        price_rinth: 0
-                    })
-                    .eq('id', id);
+    // Bepaal direct de juiste comment tekst op basis van het type
+    let saleComment = "";
+    if (itemType === 'food') {
+        saleComment = `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.`;
+    } else {
+        saleComment = `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
+    }
 
-                if (error) {
-                    console.error(error);
-                    showToast("Error updating marketplace transaction.");
-                    return;
-                }
+    try {
+        const { error } = await dbClient
+            .from('marketplace')
+            .update({
+                sold: cost,
+                price_rinth: 0,
+                comments: saleComment
+            })
+            .eq('id', id);
 
-                showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
-                fetchMarketplaceItems();
-            } catch (err) {
-                console.error(err);
-                showToast("An error occurred during purchase.");
-            }
+        if (error) {
+            console.error(error);
+            showToast("Error updating marketplace transaction.");
+            return;
         }
+
+        showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
+        fetchMarketplaceItems();
+    } catch (err) {
+        console.error(err);
+        showToast("An error occurred during purchase.");
+    }
+}
 		
-// --- 3 AM Marketplace Decay, Scavenger & Payout Logica ---
+// --- 3 AM Marketplace Decay & Scavenger Logica ---
 async function processMarketplaceDecay() {
     try {
         const { data: activeOffers, error } = await dbClient
@@ -892,34 +901,23 @@ async function processMarketplaceDecay() {
 
         for (const item of activeOffers) {
             const createdAt = new Date(item.created_at);
-            // Bereken hoeveel hele dagen (24 uur) het item op MP staat
             const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
 
             let currentPrice = item.price_rinth;
             let qty = item.quantity;
-            let soldVal = item.sold || 0;
             let newPrice = currentPrice;
-            let newSold = soldVal;
+            let newSold = item.sold || 0;
             let newComment = item.comments;
             let updateNeeded = false;
 
             if (item.item_type === 'food') {
-                // FOOD REGELING: Max 3 dagen houdbaar
-                if (diffDays === 1) {
-                    // Dag 2 (bijv. 2 juni 3am): gebeurt er niets extra's of volgend schema
-                } else if (diffDays === 2) {
-                    // Dag 3: prijs gehalveerd
-                    newPrice = Math.floor(currentPrice / 2);
-                    updateNeeded = true;
-                } else if (diffDays >= 3) {
-                    // Dag 4+: prijs naar 0
+                // FOOD REGELING: Na 3 dagen naar de voedselbank als het niet is verkocht
+                if (diffDays >= 3) {
                     newPrice = 0;
                     if (newSold === 0) {
                         newComment = `Your food offer ${qty}kg on MP was not sold, but donated to the food bank after 3 days.`;
-                    } else {
-                        newComment = `Your food offer ${qty}kg on MP was sold for ${newSold} Rinth.`;
+                        updateNeeded = true;
                     }
-                    updateNeeded = true;
                 }
             } else if (item.item_type === 'loot') {
                 // LOOT REGELING: Standaard waarde = 200 Rinth per kg
@@ -927,22 +925,18 @@ async function processMarketplaceDecay() {
                 const totalStandardValue = qty * standardValuePerKg;
                 const scavengerThreshold = totalStandardValue * 0.25; // 25% grens
 
-                // Elke dag gaat er 10% van de standaardwaarde * quantity af (of 60 Rinth bij qty=3)
+                // Elke dag gaat er 10% van de standaardwaarde * quantity af
                 const dailyDrop = Math.floor(standardValuePerKg * 0.10) * qty;
 
                 if (diffDays >= 1 && currentPrice > 0) {
-                    // Bereken nieuwe prijs na dagelijkse daling
                     newPrice = Math.max(0, currentPrice - dailyDrop);
                     updateNeeded = true;
 
-                    // Controleer of de nieuwe prijs onder of op de sjacheraar-grens (25%) komt
+                    // Als de prijs onder of op de 25% grens komt, koopt de sjacheraar het op
                     if (newPrice <= scavengerThreshold) {
-                        // Sjacheraar koopt de boel op voor de actuele resterende prijs
                         newSold = newPrice;
                         newPrice = 0;
                         newComment = `Your loot offer ${qty}kg on MP has been bought up by the wheeler-dealer for ${newSold} Rinth.`;
-                    } else if (newPrice === 0) {
-                        newComment = `Your loot offer ${qty}kg on MP has been sold for ${newSold} Rinth.`;
                     }
                 }
             }
