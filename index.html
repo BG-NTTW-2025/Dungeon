@@ -849,17 +849,17 @@ async function submitMarketplaceItem() {
                     const isOwnItem = currentSellerId && String(item.seller_id) === String(currentSellerId);
                     const label = item.item_type === 'food' ? 'Food' : 'Loot';
                     
-                    html += `
-                        <div class="mp-item-card">
-                            <div>
-                                <strong style="color: ${item.item_type === 'food' ? '#2ecc71' : '#f1c40f'};">${label}</strong>: ${item.quantity} kg<br>
-                                <span style="color: #ffd700;">Price: ${item.price_rinth} Rinth</span> ${isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : ''}
-                            </div>
-                            <div>
-                                ${!isOwnItem ? `<button onclick="buyMarketplaceItem(${item.id}, ${item.price_rinth}, ${item.quantity}, '${item.item_type}')">Buy</button>` : ''}
-                            </div>
-                        </div>
-                    `;
+html += 
+    '<div class="mp-item-card">' +
+        '<div>' +
+            '<strong style="color: ' + (item.item_type === 'food' ? '#2ecc71' : '#f1c40f') + ';">' + label + '</strong>: ' + item.quantity + ' kg<br>' +
+            '<span style="color: #ffd700;">Price: ' + item.price_rinth + ' Rinth</span> ' + (isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : '') +
+        '</div>' +
+        '<div>' +
+            (!isOwnItem ? '<button onclick="buyMarketplaceItem(' + item.id + ', ' + item.price_rinth + ', ' + item.quantity + ', \'' + item.item_type + '\')">Buy</button>' : '') +
+        '</div>' +
+    '</div>';
+
                 });
 
                 listContainer.innerHTML = html;
@@ -1215,13 +1215,13 @@ async function checkMarketplacePayouts() {
                 ? "Do you want to enable Survival Mode? Resources, energy penalties, and survival elements will become active."
                 : "Do you want to disable Survival Mode? All survival elements (Robin Robber, food, loot assets, and buildings) will be deactivated until the 03:00 AM reset.";
 
-            openAssetPopup(`
-                <p style="font-size: 15px; margin-bottom: 20px;">${msg}</p>
-                <div class="retro-popup-buttons">
-                    <button onclick="applySurvivalToggle(${nextMode})">Confirm</button>
-                    <button class="danger" onclick="closeAssetPopup()">Cancel</button>
-                </div>
-            `);
+openAssetPopup(
+    '<p style="font-size: 15px; margin-bottom: 20px;">' + msg + '</p>' +
+    '<div class="retro-popup-buttons">' +
+        '<button onclick="applySurvivalToggle(' + nextMode + ')">Confirm</button>' +
+        '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
+    '</div>'
+);
         }
 
         window.applySurvivalToggle = function(enable) {
@@ -1374,14 +1374,14 @@ async function checkMarketplacePayouts() {
                 assetElement.style.transform = 'rotate(' + robberRotation + ')';
             }
 
-            openAssetPopup(`
-                <img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display='none'">
-                <p>Hand over that cash and loot before I take it by force!</p>
-                <div class="retro-popup-buttons">
-                    <button onclick="robberDonateAction(document.getElementById('active-robber-elem'))">Donate</button>
-                    <button class="danger" onclick="robberNoWayAction('${roomKey}')">No Way</button>
-                </div>
-            `);
+openAssetPopup(
+    '<img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display=\'none\'">' +
+    '<p>Hand over that cash and loot before I take it by force!</p>' +
+    '<div class="retro-popup-buttons">' +
+        '<button onclick="robberDonateAction(document.getElementById(\'active-robber-elem\'))">Donate</button>' +
+        '<button class="danger" onclick="robberNoWayAction(\'' + roomKey + '\')">No Way</button>' +
+    '</div>'
+);
             document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
             assetElement.id = 'active-robber-elem';
         }
@@ -1393,53 +1393,54 @@ async function checkMarketplacePayouts() {
                 return;
             }
 
-            switch(assetType) {
-                case 'asset_bank_rs.png':
-                    openAssetPopup(`
-                        <img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display='none'">
-                        <p id="popup-text">How can I help you?</p>
-                        <div class="retro-popup-buttons" id="bank-btns">
-                            <button onclick="bankDepositAction()">Deposit</button>
-                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
-                        </div>
-                    `);
+switch(assetType) {
+    case 'asset_bank_rs.png':
+        openAssetPopup(
+            '<img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display=\'none\'">' +
+            '<p id="popup-text">How can I help you?</p>' +
+            '<div class="retro-popup-buttons" id="bank-btns">' +
+                '<button onclick="bankDepositAction()">Deposit</button>' +
+                '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+            '</div>'
+        );
                     break;
 
-                case 'asset_pawnshop_rs.png':
-                    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
-                    openAssetPopup(`
-                        <img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display='none'">
-                        <p id="popup-text">I can give you ${randomPercent}% cent on the Rinth buster. Take it or leave it</p>
-                        <div class="retro-popup-buttons" id="pawn-btns">
-                            <button onclick="pawnshopTakeAction(${randomPercent})">Take it</button>
-                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
-                        </div>
-                    `);
-                    break;
+case 'asset_pawnshop_rs.png':
+    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
+    openAssetPopup(
+        '<img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display=\'none\'">' +
+        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster. Take it or leave it</p>' +
+        '<div class="retro-popup-buttons" id="pawn-btns">' +
+            '<button onclick="pawnshopTakeAction(' + randomPercent + ')">Take it</button>' +
+            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+        '</div>'
+    );
+    break;
 
-                case 'asset_police_rs.png':
-                    openAssetPopup(`
-                        <img src="policeman.png" alt="Policeman" onerror="this.style.display='none'">
-                        <p id="popup-text">What crime do you have to report and where did it take place?</p>
-                        <input type="number" id="crime-room-input" placeholder="Room number..." min="1">
-                        <div class="retro-popup-buttons">
-                            <button onclick="policeReportAction()">Robbery</button>
-                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
-                        </div>
-                    `);
-                    break;
+case 'asset_police_rs.png':
+    openAssetPopup(
+        '<img src="policeman.png" alt="Policeman" onerror="this.style.display=\'none\'">' +
+        '<p id="popup-text">What crime do you have to report and where did it take place?</p>' +
+        '<input type="number" id="crime-room-input" placeholder="Room number..." min="1">' +
+        '<div class="retro-popup-buttons">' +
+            '<button onclick="policeReportAction()">Robbery</button>' +
+            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+        '</div>'
+    );
+    break;
 
-                case 'asset_super_rs.png':
-                    openAssetPopup(`
-                        <img src="supermarkt.png" alt="Supermarket" onerror="this.style.display='none'">
-                        <p id="popup-text">Anything else you need?</p>
-                        <input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">
-                        <div class="retro-popup-buttons" id="super-btns">
-                            <button onclick="supermarketBuyAction()">Buy</button>
-                            <button class="danger" onclick="closeAssetPopup()">Leave</button>
-                        </div>
-                    `);
-                    break;
+
+case 'asset_super_rs.png':
+    openAssetPopup(
+        '<img src="supermarkt.png" alt="Supermarket" onerror="this.style.display=\'none\'">' +
+        '<p id="popup-text">Anything else you need?</p>' +
+        '<input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">' +
+        '<div class="retro-popup-buttons" id="super-btns">' +
+            '<button onclick="supermarketBuyAction()">Buy</button>' +
+            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+        '</div>'
+    );
+    break;
 
                 case 'asset_robber_rs.png':
                     triggerRobberEncounter(assetElement, posX, posY, entrySide);
