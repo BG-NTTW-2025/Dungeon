@@ -732,7 +732,7 @@
             }
         }
 
-async function submitMarketplaceItem() {
+        async function submitMarketplaceItem() {
     const itemType = document.getElementById('mp-sell-type').value;
     const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
     const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
@@ -759,30 +759,6 @@ async function submitMarketplaceItem() {
         return;
     }
 
-    // 1. Haal de ingelogde gebruiker op uit Supabase Auth
-    const { data: { user } } = await dbClient.auth.getUser();
-    if (!user) {
-        showToast("You must be logged in to list items.");
-        return;
-    }
-
-    // 2. Haal direct de username op uit de designers-tabel op basis van user.id
-    const { data: designerData } = await dbClient
-        .from('designers')
-        .select('username')
-        .eq('id', user.id)
-        .single();
-
-    try {
-        // 3. Voeg designer_id en username toe aan de payload
-        const payload = {
-            item_type: itemType,
-            quantity: Number(qtyInput),
-            price_rinth: Number(priceInput),
-            designer_id: user.id, // Dit koppelt via je foreign key
-            username: designerData ? designerData.username : null // Slaat de naam direct op
-        };
-		
     let sellerId = localStorage.getItem('dungeon_seller_id');
     if (!sellerId) {
         sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
@@ -796,6 +772,81 @@ async function submitMarketplaceItem() {
             quantity: Number(qtyInput),
             price_rinth: Number(priceInput),
             seller_id: Number(sellerId)
+        };
+
+        const { data, error } = await dbClient.from('marketplace').insert([payload]);
+
+        if (error) {
+            console.error("Supabase Error Details:", error);
+            showToast("Failed: " + (error.message || "Database error"));
+            return;
+        }
+
+        showToast("Item successfully listed on the marketplace!");
+        document.getElementById('mp-sell-qty').value = "1";
+        document.getElementById('mp-sell-price').value = "1";
+        
+        fetchMarketplaceItems();
+    } catch (err) {
+        console.error("Catch Error:", err);
+        showToast("An error occurred while listing the item.");
+    }
+}async function submitMarketplaceItem() {
+    const itemType = document.getElementById('mp-sell-type').value;
+    const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+    const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+
+    if (isNaN(qtyInput) || qtyInput <= 0) {
+        showToast("Please enter a valid quantity in kg.");
+        return;
+    }
+
+    if (isNaN(priceInput) || priceInput <= 0) {
+        showToast("Please enter a valid ask price.");
+        return;
+    }
+
+    let maxAllowedPrice = 0;
+    if (itemType === 'food') {
+        maxAllowedPrice = Math.floor(qtyInput * 1.60);
+    } else {
+        maxAllowedPrice = qtyInput * 80;
+    }
+
+    if (priceInput > maxAllowedPrice) {
+        showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
+        return;
+    }
+
+    // 1. Haal de ingelogde gebruiker op via Supabase Auth
+    const { data: authData, error: authError } = await dbClient.auth.getUser();
+    if (authError || !authData?.user) {
+        showToast("You must be logged in to list items.");
+        return;
+    }
+    const user = authData.user;
+
+    // 2. Haal de username op uit de designers tabel
+    const { data: designerData, error: designerError } = await dbClient
+        .from('designers')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+    if (designerError) {
+        console.error("Designer Error Details:", designerError);
+        showToast("Could not retrieve designer profile.");
+        return;
+    }
+
+    try {
+        // 3. Bouw de payload met designer_id (foreign key) en de username
+        const payload = {
+            item_type: itemType,
+            quantity: Number(qtyInput),
+            price_rinth: Number(priceInput),
+            designer_id: user.id,
+            username: designerData ? designerData.username : null
         };
 
         const { data, error } = await dbClient.from('marketplace').insert([payload]);
