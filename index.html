@@ -736,6 +736,24 @@
     const itemType = document.getElementById('mp-sell-type').value;
     const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
     const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+	
+	// 1. Haal de username op van de ingelogde gebruiker (bijv. uit de designers tabel)
+const { data: designerData } = await supabase
+  .from('designers')
+  .select('username')
+  .eq('id', user.id)
+  .single();
+
+// 2. Voeg het item toe aan marketplace inclusief de username
+const { data, error } = await supabase
+  .from('marketplace')
+  .insert([
+    { 
+      title: 'Mijn Spel', 
+      designer_id: user.id, 
+      username: designerData.username 
+    }
+  ]);
 
     if (isNaN(qtyInput) || qtyInput <= 0) {
         showToast("Please enter a valid quantity in kg.");
