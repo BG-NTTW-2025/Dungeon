@@ -105,7 +105,6 @@
         #breadcrumb-panel { top: 560px; left: 410px; width: 190px; max-height: 160px; overflow-y: auto; }
         #gamemenu-panel { top: 50px; left: 770px; width: 180px; }
         #test-panel { top: 380px; left: 770px; width: 180px; background: #351c1c; border-color: #c0392b; }
-        #asset-sandbox-panel { top: 560px; left: 770px; width: 170px; background: #1c2833; border-color: #2980b9; }
         
         #marketplace-sell-panel { top: 50px; left: 1060px; width: 200px; background: #1a252f; border-color: #16a085; }
         #marketplace-buy-panel { top: 380px; left: 1060px; width: 200px; background: #2c3e50; border-color: #2980b9; }
@@ -131,9 +130,6 @@
             height: auto;
             max-width: none;
             max-height: none;
-        }
-        .room-placed-asset:active {
-            cursor: grabbing;
         }
 
         #asset-overlay {
@@ -420,35 +416,6 @@
         }
         .test-controls button:hover { background: #c0392b; }
 
-        .asset-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            margin-bottom: 8px;
-        }
-        .asset-thumb {
-            width: 44px;
-            height: 44px;
-            background: #222;
-            border: 2px solid #444;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-        }
-        .asset-thumb img {
-            max-width: 32px;
-            max-height: 32px;
-            object-fit: contain;
-        }
-        .asset-thumb.selected {
-            border-color: #ffd700;
-            background: #333;
-            box-shadow: 0 0 6px #ffd700;
-        }
-
         .mp-row {
             margin-bottom: 8px;
         }
@@ -613,33 +580,28 @@
             <label style="margin-bottom: 6px;">Toggle Panels:</label>
             <div class="toggle-row">
                 <span>Inventory</span>
-                <input type="checkbox" checked onchange="togglePanel('inventory-panel', this.checked)">
+                <input type="checkbox" id="chk-inventory-panel" checked onchange="togglePanel('inventory-panel', this.checked)">
             </div>
             <div class="toggle-row">
                 <span>Quests</span>
-                <input type="checkbox" checked onchange="togglePanel('quest-panel', this.checked)">
+                <input type="checkbox" id="chk-quest-panel" checked onchange="togglePanel('quest-panel', this.checked)">
             </div>
             <div class="toggle-row">
                 <span>Breadcrumbs</span>
-                <input type="checkbox" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
+                <input type="checkbox" id="chk-breadcrumb-panel" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
             </div>
-			            <div class="toggle-row">
+            <div class="toggle-row">
                 <span>MP - Sell Panel</span>
-                <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
+                <input type="checkbox" id="chk-marketplace-sell-panel" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
             </div>
             <div class="toggle-row">
                 <span>MP - Buy Panel</span>
-                <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
+                <input type="checkbox" id="chk-marketplace-buy-panel" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
             </div>
             <div class="toggle-row">
                 <span>Test Panel</span>
-                <input type="checkbox" checked onchange="togglePanel('test-panel', this.checked)">
+                <input type="checkbox" id="chk-test-panel" checked onchange="togglePanel('test-panel', this.checked)">
             </div>
-            <div class="toggle-row">
-                <span>Asset Sandbox</span>
-                <input type="checkbox" checked onchange="togglePanel('asset-sandbox-panel', this.checked)">
-            </div>
-
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -694,24 +656,6 @@
             <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Sim. Next Day Reset</button>
         </div>
     </div>
-
-    <!-- ASSET SANDBOX CONTAINER -->
-    <div id="asset-sandbox-panel" class="draggable-panel" data-id="asset-sandbox-panel">
-        <div class="panel-header" style="background: #1b4f72;"><span>🧱 Room Asset</span></div>
-        <div class="panel-content menu-section">
-            <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Select an asset, then click in the room to place it. Drag inside room to move. Double-click placed asset to delete.</p>
-            <div class="asset-grid" id="asset-selection-grid">
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_bank_rs.png', this)" title="Bank"><img src="asset_bank_rs.png" alt="Bank"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_food_rs.png', this)" title="Food"><img src="asset_food_rs.png" alt="Food"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_loot_rs.png', this)" title="Loot"><img src="asset_loot_rs.png" alt="Loot"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_pawnshop_rs.png', this)" title="Pawn Shop"><img src="asset_pawnshop_rs.png" alt="Pawn Shop"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_police_rs.png', this)" title="Police"><img src="asset_police_rs.png" alt="Police"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_robber_rs.png', this)" title="Robber"><img src="asset_robber_rs.png" alt="Robber"></div>
-                <div class="asset-thumb" onclick="selectSandboxAsset('asset_super_rs.png', this)" title="Supermarket"><img src="asset_super_rs.png" alt="Supermarket"></div>
-            </div>
-            <button onclick="clearRoomAssets()" style="width: 100%; background: #7f8c8d; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Clear All Room Assets</button>
-        </div>
-    </div>
 	
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -732,93 +676,87 @@
             }
         }
 
-async function submitMarketplaceItem() {
-    const itemType = document.getElementById('mp-sell-type').value;
-    const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
-    const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+        async function submitMarketplaceItem() {
+            const itemType = document.getElementById('mp-sell-type').value;
+            const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+            const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
 
-    if (isNaN(qtyInput) || qtyInput <= 0) {
-        showToast("Please enter a valid quantity in kg.");
-        return;
-    }
+            if (isNaN(qtyInput) || qtyInput <= 0) {
+                showToast("Please enter a valid quantity in kg.");
+                return;
+            }
 
-    if (isNaN(priceInput) || priceInput <= 0) {
-        showToast("Please enter a valid ask price.");
-        return;
-    }
+            if (isNaN(priceInput) || priceInput <= 0) {
+                showToast("Please enter a valid ask price.");
+                return;
+            }
 
-    let maxAllowedPrice = 0;
-    if (itemType === 'food') {
-        maxAllowedPrice = Math.floor(qtyInput * 1.60);
-    } else {
-        maxAllowedPrice = qtyInput * 80;
-    }
+            let maxAllowedPrice = 0;
+            if (itemType === 'food') {
+                maxAllowedPrice = Math.floor(qtyInput * 1.60);
+            } else {
+                maxAllowedPrice = qtyInput * 80;
+            }
 
-    if (priceInput > maxAllowedPrice) {
-        showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
-        return;
-    }
+            if (priceInput > maxAllowedPrice) {
+                showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
+                return;
+            }
 
-    // 1. Zorg dat elke verkoper ALTIJD een seller_id heeft (voor anonieme en normale spelers)
-    let sellerId = localStorage.getItem('dungeon_seller_id');
-    if (!sellerId) {
-        sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
-        localStorage.setItem('dungeon_seller_id', sellerId);
-    }
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) {
+                sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
+                localStorage.setItem('dungeon_seller_id', sellerId);
+            }
 
-    // 2. Check optioneel of er een ingelogde designer is (niet verplicht!)
-    let designerId = null;
-    let username = null;
+            let designerId = null;
+            let username = null;
 
-    try {
-        const { data: authData } = await dbClient.auth.getUser();
-        if (authData?.user) {
-            designerId = authData.user.id;
-            
-            // Haal desgewenst de username op
-            const { data: designerData } = await dbClient
-                .from('designers')
-                .select('username')
-                .eq('id', designerId)
-                .single();
+            try {
+                const { data: authData } = await dbClient.auth.getUser();
+                if (authData?.user) {
+                    designerId = authData.user.id;
+                    
+                    const { data: designerData } = await dbClient
+                        .from('designers')
+                        .select('username')
+                        .eq('id', designerId)
+                        .single();
+                        
+                    if (designerData) {
+                        username = designerData.username;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const payload = {
+                    item_type: itemType,
+                    quantity: Number(qtyInput),
+                    price_rinth: Number(priceInput),
+                    seller_id: Number(sellerId),
+                    designer_id: designerId,
+                    username: username
+                };
+
+                const { data, error } = await dbClient.from('marketplace').insert([payload]);
+
+                if (error) {
+                    console.error("Supabase Error Details:", error);
+                    showToast("Failed: " + (error.message || "Database error"));
+                    return;
+                }
+
+                showToast("Item successfully listed on the marketplace!");
+                document.getElementById('mp-sell-qty').value = "1";
+                document.getElementById('mp-sell-price').value = "1";
                 
-            if (designerData) {
-                username = designerData.username;
+                fetchMarketplaceItems();
+            } catch (err) {
+                console.error("Catch Error:", err);
+                showToast("An error occurred while listing the item.");
             }
         }
-    } catch (e) {
-        // Geen probleem als dit mislukt, de speler is dan gewoon anoniem
-    }
-
-    try {
-        // 3. Bouw de payload met verplichte seller_id en optionele designer info
-        const payload = {
-            item_type: itemType,
-            quantity: Number(qtyInput),
-            price_rinth: Number(priceInput),
-            seller_id: Number(sellerId), // Verplicht voor elke marktplaatsverkoop
-            designer_id: designerId,     // Alleen gevuld als ingelogd, anders null
-            username: username           // Alleen gevuld als ingelogd, anders null
-        };
-
-        const { data, error } = await dbClient.from('marketplace').insert([payload]);
-
-        if (error) {
-            console.error("Supabase Error Details:", error);
-            showToast("Failed: " + (error.message || "Database error"));
-            return;
-        }
-
-        showToast("Item successfully listed on the marketplace!");
-        document.getElementById('mp-sell-qty').value = "1";
-        document.getElementById('mp-sell-price').value = "1";
-        
-        fetchMarketplaceItems();
-    } catch (err) {
-        console.error("Catch Error:", err);
-        showToast("An error occurred while listing the item.");
-    }
-}
 
         async function fetchMarketplaceItems() {
             const listContainer = document.getElementById('marketplace-items-list');
@@ -849,17 +787,16 @@ async function submitMarketplaceItem() {
                     const isOwnItem = currentSellerId && String(item.seller_id) === String(currentSellerId);
                     const label = item.item_type === 'food' ? 'Food' : 'Loot';
                     
-html += 
-    '<div class="mp-item-card">' +
-        '<div>' +
-            '<strong style="color: ' + (item.item_type === 'food' ? '#2ecc71' : '#f1c40f') + ';">' + label + '</strong>: ' + item.quantity + ' kg<br>' +
-            '<span style="color: #ffd700;">Price: ' + item.price_rinth + ' Rinth</span> ' + (isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : '') +
-        '</div>' +
-        '<div>' +
-            (!isOwnItem ? '<button onclick="buyMarketplaceItem(' + item.id + ', ' + item.price_rinth + ', ' + item.quantity + ', \'' + item.item_type + '\')">Buy</button>' : '') +
-        '</div>' +
-    '</div>';
-
+                    html += 
+                        '<div class="mp-item-card">' +
+                            '<div>' +
+                                '<strong style="color: ' + (item.item_type === 'food' ? '#2ecc71' : '#f1c40f') + ';">' + label + '</strong>: ' + item.quantity + ' kg<br>' +
+                                '<span style="color: #ffd700;">Price: ' + item.price_rinth + ' Rinth</span> ' + (isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : '') +
+                            '</div>' +
+                            '<div>' +
+                                (!isOwnItem ? '<button onclick="buyMarketplaceItem(' + item.id + ', ' + item.price_rinth + ', ' + item.quantity + ', \'' + item.item_type + '\')">Buy</button>' : '') +
+                            '</div>' +
+                        '</div>';
                 });
 
                 listContainer.innerHTML = html;
@@ -869,172 +806,160 @@ html +=
             }
         }
 
-async function buyMarketplaceItem(id, price, qty, itemType) {
-    let cost = parseInt(price, 10);
-    
-    if (playerState.cash < cost && playerState.credit < cost) {
-        showToast("You do not have enough money (Cash or Bank) to buy this item.");
-        return;
-    }
-
-    if (playerState.cash >= cost) {
-        playerState.cash -= cost;
-    } else {
-        playerState.credit -= cost;
-    }
-
-    if (itemType === 'food') {
-        playerState.foodKg += qty;
-    } else {
-        playerState.lootValue += (qty * 100);
-    }
-    updatePlayerUI();
-
-    // Bepaal direct de juiste comment tekst op basis van het type
-    let saleComment = "";
-    if (itemType === 'food') {
-        saleComment = `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.`;
-    } else {
-        saleComment = `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
-    }
-
-    try {
-        const { error } = await dbClient
-            .from('marketplace')
-            .update({
-                sold: cost,
-                price_rinth: 0,
-                comments: saleComment
-            })
-            .eq('id', id);
-
-        if (error) {
-            console.error(error);
-            showToast("Error updating marketplace transaction.");
-            return;
-        }
-
-        showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
-        fetchMarketplaceItems();
-    } catch (err) {
-        console.error(err);
-        showToast("An error occurred during purchase.");
-    }
-}
-		
-// --- 3 AM Marketplace Decay & Scavenger Logica ---
-async function processMarketplaceDecay() {
-    try {
-        const { data: activeOffers, error } = await dbClient
-            .from('marketplace')
-            .select('*')
-            .gt('price_rinth', 0); // Alleen actieve aanbiedingen
-
-        if (error || !activeOffers) return;
-
-        const now = new Date();
-
-        for (const item of activeOffers) {
-            const createdAt = new Date(item.created_at);
-            const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-
-            let currentPrice = item.price_rinth;
-            let qty = item.quantity;
-            let newPrice = currentPrice;
-            let newSold = item.sold || 0;
-            let newComment = item.comments;
-            let updateNeeded = false;
-
-            if (item.item_type === 'food') {
-                // FOOD REGELING: Na 3 dagen naar de voedselbank als het niet is verkocht
-                if (diffDays >= 3) {
-                    newPrice = 0;
-                    if (newSold === 0) {
-                        newComment = `Your food offer ${qty}kg on MP was not sold, but donated to the food bank after 3 days.`;
-                        updateNeeded = true;
-                    }
-                }
-            } else if (item.item_type === 'loot') {
-                // LOOT REGELING: Standaard waarde = 200 Rinth per kg
-                const standardValuePerKg = 200;
-                const totalStandardValue = qty * standardValuePerKg;
-                const scavengerThreshold = totalStandardValue * 0.25; // 25% grens
-
-                // Elke dag gaat er 10% van de standaardwaarde * quantity af
-                const dailyDrop = Math.floor(standardValuePerKg * 0.10) * qty;
-
-                if (diffDays >= 1 && currentPrice > 0) {
-                    newPrice = Math.max(0, currentPrice - dailyDrop);
-                    updateNeeded = true;
-
-                    // Als de prijs onder of op de 25% grens komt, koopt de sjacheraar het op
-                    if (newPrice <= scavengerThreshold) {
-                        newSold = newPrice;
-                        newPrice = 0;
-                        newComment = `Your loot offer ${qty}kg on MP has been bought up by the wheeler-dealer for ${newSold} Rinth.`;
-                    }
-                }
+        async function buyMarketplaceItem(id, price, qty, itemType) {
+            let cost = parseInt(price, 10);
+            
+            if (playerState.cash < cost && playerState.credit < cost) {
+                showToast("You do not have enough money (Cash or Bank) to buy this item.");
+                return;
             }
 
-            if (updateNeeded) {
-                await dbClient
+            if (playerState.cash >= cost) {
+                playerState.cash -= cost;
+            } else {
+                playerState.credit -= cost;
+            }
+
+            if (itemType === 'food') {
+                playerState.foodKg += qty;
+            } else {
+                playerState.lootValue += (qty * 100);
+            }
+            updatePlayerUI();
+
+            let saleComment = "";
+            if (itemType === 'food') {
+                saleComment = `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.`;
+            } else {
+                saleComment = `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
+            }
+
+            try {
+                const { error } = await dbClient
                     .from('marketplace')
                     .update({
-                        price_rinth: newPrice,
-                        sold: newSold,
-                        comments: newComment
+                        sold: cost,
+                        price_rinth: 0,
+                        comments: saleComment
                     })
-                    .eq('id', item.id);
-            }
-        }
-    } catch (err) {
-        console.error("Error processing marketplace decay:", err);
-    }
-}
-
-// --- 5. Controleer op uitbetalingen bij opstarten / inloggen ---
-async function checkMarketplacePayouts() {
-    let sellerId = localStorage.getItem('dungeon_seller_id');
-    if (!sellerId) return;
-
-    try {
-        // Zoek items van deze seller die inmiddels verkocht zijn (sold is ingevuld, maar nog niet geclaimd)
-        // We kunnen een kolom of status controleren, of simpele logica: sold > 0 en prijs == 0
-        const { data: soldItems, error } = await dbClient
-            .from('marketplace')
-            .select('*')
-            .eq('seller_id', parseInt(sellerId, 10))
-            .gt('sold', 0);
-
-        if (error || !soldItems || soldItems.length === 0) return;
-
-        let totalEarnings = 0;
-        let idsToClear = [];
-
-        soldItems.forEach(item => {
-            totalEarnings += item.sold;
-            idsToClear.push(item.id);
-        });
-
-        if (totalEarnings > 0) {
-            // Stort de opbrengst in de bank (credit) of cash
-            playerState.credit += totalEarnings;
-            updatePlayerUI();
-            
-            showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
-
-            // Verwijder of markeer als afgehandeld zodat ze niet dubbel worden uitbetaald
-            for (const id of idsToClear) {
-                await dbClient
-                    .from('marketplace')
-                    .delete()
                     .eq('id', id);
+
+                if (error) {
+                    console.error(error);
+                    showToast("Error updating marketplace transaction.");
+                    return;
+                }
+
+                showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
+                fetchMarketplaceItems();
+            } catch (err) {
+                console.error(err);
+                showToast("An error occurred during purchase.");
             }
         }
-    } catch (err) {
-        console.error("Error checking marketplace payouts:", err);
-    }
-}
+		
+        async function processMarketplaceDecay() {
+            try {
+                const { data: activeOffers, error } = await dbClient
+                    .from('marketplace')
+                    .select('*')
+                    .gt('price_rinth', 0);
+
+                if (error || !activeOffers) return;
+
+                const now = new Date();
+
+                for (const item of activeOffers) {
+                    const createdAt = new Date(item.created_at);
+                    const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+
+                    let currentPrice = item.price_rinth;
+                    let qty = item.quantity;
+                    let newPrice = currentPrice;
+                    let newSold = item.sold || 0;
+                    let newComment = item.comments;
+                    let updateNeeded = false;
+
+                    if (item.item_type === 'food') {
+                        if (diffDays >= 3) {
+                            newPrice = 0;
+                            if (newSold === 0) {
+                                newComment = `Your food offer ${qty}kg on MP was not sold, but donated to the food bank after 3 days.`;
+                                updateNeeded = true;
+                            }
+                        }
+                    } else if (item.item_type === 'loot') {
+                        const standardValuePerKg = 200;
+                        const totalStandardValue = qty * standardValuePerKg;
+                        const scavengerThreshold = totalStandardValue * 0.25;
+                        const dailyDrop = Math.floor(standardValuePerKg * 0.10) * qty;
+
+                        if (diffDays >= 1 && currentPrice > 0) {
+                            newPrice = Math.max(0, currentPrice - dailyDrop);
+                            updateNeeded = true;
+
+                            if (newPrice <= scavengerThreshold) {
+                                newSold = newPrice;
+                                newPrice = 0;
+                                newComment = `Your loot offer ${qty}kg on MP has been bought up by the wheeler-dealer for ${newSold} Rinth.`;
+                            }
+                        }
+                    }
+
+                    if (updateNeeded) {
+                        await dbClient
+                            .from('marketplace')
+                            .update({
+                                price_rinth: newPrice,
+                                sold: newSold,
+                                comments: newComment
+                            })
+                            .eq('id', item.id);
+                    }
+                }
+            } catch (err) {
+                console.error("Error processing marketplace decay:", err);
+            }
+        }
+
+        async function checkMarketplacePayouts() {
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) return;
+
+            try {
+                const { data: soldItems, error } = await dbClient
+                    .from('marketplace')
+                    .select('*')
+                    .eq('seller_id', parseInt(sellerId, 10))
+                    .gt('sold', 0);
+
+                if (error || !soldItems || soldItems.length === 0) return;
+
+                let totalEarnings = 0;
+                let idsToClear = [];
+
+                soldItems.forEach(item => {
+                    totalEarnings += item.sold;
+                    idsToClear.push(item.id);
+                });
+
+                if (totalEarnings > 0) {
+                    playerState.credit += totalEarnings;
+                    updatePlayerUI();
+                    
+                    showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
+
+                    for (const id of idsToClear) {
+                        await dbClient
+                            .from('marketplace')
+                            .delete()
+                            .eq('id', id);
+                    }
+                }
+            } catch (err) {
+                console.error("Error checking marketplace payouts:", err);
+            }
+        }
 
         // --- 3. Player State & Economy ---
         let playerState = {
@@ -1064,39 +989,46 @@ async function checkMarketplacePayouts() {
             setTimeout(() => { toast.remove(); }, 3000);
         }
 
-        // --- Automatische plaatsing van vaste test-assets op basis van Room ID ---
+        // --- Automatische verdeling op basis van per 100 kamers quota ---
         async function applyDailyAutomatedAssets() {
             try {
-                const { data: roomsData } = await dbClient.from('puzzle_labyrinth').select('room_id, pos_x, pos_y').in('room_id', [3, 4]);
-                
-                if (roomsData) {
-                    let activeAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y');
+                if (!allRooms || allRooms.length === 0) return;
 
-                    roomsData.forEach(r => {
-                        let roomKey = r.pos_x + '_' + r.pos_y;
-                        if (!activeAssetsMap[roomKey]) {
-                            activeAssetsMap[roomKey] = [];
-                        }
+                let totalRooms = allRooms.length;
+                if (totalRooms < 100) return; // Onder 100 kamers niets plaatsen
 
-                        if (r.room_id === 3) {
-                            if (!activeAssetsMap[roomKey].includes('asset_police_rs.png')) {
-                                activeAssetsMap[roomKey].push('asset_police_rs.png');
-                            }
-                        } else if (r.room_id === 4) {
-                            if (!activeAssetsMap[roomKey].includes('asset_robber_rs.png')) {
-                                activeAssetsMap[roomKey].push('asset_robber_rs.png');
-                            }
-                        }
-                    });
+                let factor = Math.floor(totalRooms / 100);
 
-                    localStorage.setItem('dungeon_daily_assets', JSON.stringify(activeAssetsMap));
+                // Quota per 100 kamers
+                let assetsPool = [];
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_robber_rs.png');
+                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_police_rs.png');
+                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_super_rs.png');
+                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
+                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
+
+                // Shuffle de kamers willekeurig (uniek per speler / sessie)
+                let shuffledRooms = [...allRooms].sort(() => 0.5 - Math.random());
+                let activeAssetsMap = {};
+
+                for (let i = 0; i < assetsPool.length && i < shuffledRooms.length; i++) {
+                    let room = shuffledRooms[i];
+                    let roomKey = room.pos_x + '_' + room.pos_y;
+                    if (!activeAssetsMap[roomKey]) {
+                        activeAssetsMap[roomKey] = [];
+                    }
+                    activeAssetsMap[roomKey].push(assetsPool[i]);
                 }
+
+                localStorage.setItem('dungeon_daily_assets', JSON.stringify(activeAssetsMap));
             } catch (err) {
-                console.error("Error placing automated daily assets:", err);
+                console.error("Error distributing daily automated assets:", err);
             }
         }
 
-        // --- 3 AM Automated Reset & Asset Expiration Cycle ---
         function checkDailyReset() {
             const now = new Date();
             const currentHour = now.getHours();
@@ -1115,7 +1047,6 @@ async function checkMarketplacePayouts() {
                 localStorage.setItem('dungeon_last_reset_date', activeGameDayStr);
 
                 stopRobberPanic();
-                clearRoomAssets();
                 localStorage.removeItem('dungeon_daily_assets');
 
                 applyDailyAutomatedAssets().then(() => {
@@ -1208,20 +1139,47 @@ async function checkMarketplacePayouts() {
             }
         }
 
-        // --- Survival Mode Toggle ---
+        // --- Test Panel Functies ---
+        function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
+        function testAdjustEnergy(amount) { playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount)); updatePlayerUI(); }
+        function testAdjustCash(amount) { playerState.cash = Math.max(0, playerState.cash + amount); updatePlayerUI(); }
+        function testAdjustCredit(amount) { playerState.credit = Math.max(0, playerState.credit + amount); updatePlayerUI(); }
+        function testAdjustLoot(amount) { playerState.lootValue = Math.max(0, playerState.lootValue + amount); updatePlayerUI(); }
+        function testAdjustFood(amount) { playerState.foodKg = Math.max(0, playerState.foodKg + amount); updatePlayerUI(); }
+        
+        function simulateDailyReset() {
+            playerState.timeLeft = 600; 
+            playerState.energy = 100;
+            playerState.survivalMode = true;
+            document.getElementById('survival-toggle-btn').textContent = "ON";
+            document.getElementById('survival-toggle-btn').style.background = "#27ae60";
+            document.getElementById('survival-content-body').style.display = "block";
+            stopRobberPanic();
+            localStorage.removeItem('dungeon_daily_assets');
+
+            applyDailyAutomatedAssets().then(() => {
+                if (window.currentRoomX !== undefined) {
+                    loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
+                }
+            });
+
+            updatePlayerUI();
+            showToast("Simulated 3:00 AM Reset: Assets dynamically distributed based on room count!");
+        }
+
         function confirmToggleSurvival() {
             let nextMode = !playerState.survivalMode;
             let msg = nextMode 
                 ? "Do you want to enable Survival Mode? Resources, energy penalties, and survival elements will become active."
                 : "Do you want to disable Survival Mode? All survival elements (Robin Robber, food, loot assets, and buildings) will be deactivated until the 03:00 AM reset.";
 
-openAssetPopup(
-    '<p style="font-size: 15px; margin-bottom: 20px;">' + msg + '</p>' +
-    '<div class="retro-popup-buttons">' +
-        '<button onclick="applySurvivalToggle(' + nextMode + ')">Confirm</button>' +
-        '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
-    '</div>'
-);
+            openAssetPopup(
+                '<p style="font-size: 15px; margin-bottom: 20px;">' + msg + '</p>' +
+                '<div class="retro-popup-buttons">' +
+                    '<button onclick="applySurvivalToggle(' + nextMode + ')">Confirm</button>' +
+                    '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
+                '</div>'
+            );
         }
 
         window.applySurvivalToggle = function(enable) {
@@ -1249,60 +1207,12 @@ openAssetPopup(
                 if(buyPanel) buyPanel.style.display = 'none';
 
                 showToast("Survival Mode is disabled.");
-                clearRoomAssets();
                 stopRobberPanic();
             }
             closeAssetPopup();
         };
 
-        // --- Test Panel Functies ---
-        function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
-        function testAdjustEnergy(amount) { playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount)); updatePlayerUI(); }
-        function testAdjustCash(amount) { playerState.cash = Math.max(0, playerState.cash + amount); updatePlayerUI(); }
-        function testAdjustCredit(amount) { playerState.credit = Math.max(0, playerState.credit + amount); updatePlayerUI(); }
-        function testAdjustLoot(amount) { playerState.lootValue = Math.max(0, playerState.lootValue + amount); updatePlayerUI(); }
-        function testAdjustFood(amount) { playerState.foodKg = Math.max(0, playerState.foodKg + amount); updatePlayerUI(); }
-        
-        function simulateDailyReset() {
-            playerState.timeLeft = 600; 
-            playerState.energy = 100;
-            playerState.survivalMode = true;
-            document.getElementById('survival-toggle-btn').textContent = "ON";
-            document.getElementById('survival-toggle-btn').style.background = "#27ae60";
-            document.getElementById('survival-content-body').style.display = "block";
-            stopRobberPanic();
-            clearRoomAssets();
-            localStorage.removeItem('dungeon_daily_assets');
-
-            applyDailyAutomatedAssets().then(() => {
-                if (window.currentRoomX !== undefined) {
-                    loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
-                }
-            });
-
-            updatePlayerUI();
-            showToast("Simulated 3:00 AM Reset: Boef placed in Room 4, Police in Room 3!");
-        }
-
         updatePlayerUI();
-
-        // --- Asset Sandbox & Popup Logica ---
-        let selectedSandboxImg = null;
-
-        function selectSandboxAsset(imgSrc, element) {
-            document.querySelectorAll('.asset-thumb').forEach(el => el.classList.remove('selected'));
-            if (selectedSandboxImg === imgSrc) {
-                selectedSandboxImg = null;
-            } else {
-                selectedSandboxImg = imgSrc;
-                element.classList.add('selected');
-            }
-        }
-
-        function clearRoomAssets() {
-            const roomContent = document.getElementById('room-content');
-            roomContent.querySelectorAll('.room-placed-asset').forEach(a => a.remove());
-        }
 
         function openAssetPopup(htmlContent) {
             const overlay = document.getElementById('asset-overlay');
@@ -1316,7 +1226,6 @@ openAssetPopup(
             overlay.classList.remove('active');
         }
 
-        // --- Robin Robber Panic & Steal Logic ---
         function startRobberPanic(roomKey) {
             activeRobberRoomKey = roomKey;
             document.getElementById('inventory-section-box').classList.add('flashing');
@@ -1374,73 +1283,71 @@ openAssetPopup(
                 assetElement.style.transform = 'rotate(' + robberRotation + ')';
             }
 
-openAssetPopup(
-    '<img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display=\'none\'">' +
-    '<p>Hand over that cash and loot before I take it by force!</p>' +
-    '<div class="retro-popup-buttons">' +
-        '<button onclick="robberDonateAction(document.getElementById(\'active-robber-elem\'))">Donate</button>' +
-        '<button class="danger" onclick="robberNoWayAction(\'' + roomKey + '\')">No Way</button>' +
-    '</div>'
-);
+            openAssetPopup(
+                '<img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display=\'none\'">' +
+                '<p>Hand over that cash and loot before I take it by force!</p>' +
+                '<div class="retro-popup-buttons">' +
+                    '<button onclick="robberDonateAction(document.getElementById(\'active-robber-elem\'))">Donate</button>' +
+                    '<button class="danger" onclick="robberNoWayAction(\'' + roomKey + '\')">No Way</button>' +
+                '</div>'
+            );
             document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
             assetElement.id = 'active-robber-elem';
         }
 
-        // --- Specifieke Asset Interactie Handlers ---
         function handleAssetClick(assetType, assetElement, posX, posY, entrySide) {
             if (!playerState.survivalMode) {
                 showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
             }
 
-switch(assetType) {
-    case 'asset_bank_rs.png':
-        openAssetPopup(
-            '<img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display=\'none\'">' +
-            '<p id="popup-text">How can I help you?</p>' +
-            '<div class="retro-popup-buttons" id="bank-btns">' +
-                '<button onclick="bankDepositAction()">Deposit</button>' +
-                '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
-            '</div>'
-        );
+            switch(assetType) {
+                case 'asset_bank_rs.png':
+                    openAssetPopup(
+                        '<img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">How can I help you?</p>' +
+                        '<div class="retro-popup-buttons" id="bank-btns">' +
+                            '<button onclick="bankDepositAction()">Deposit</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
                     break;
 
-case 'asset_pawnshop_rs.png':
-    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
-    openAssetPopup(
-        '<img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display=\'none\'">' +
-        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster. Take it or leave it</p>' +
-        '<div class="retro-popup-buttons" id="pawn-btns">' +
-            '<button onclick="pawnshopTakeAction(' + randomPercent + ')">Take it</button>' +
-            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
-        '</div>'
-    );
-    break;
+                case 'asset_pawnshop_rs.png':
+                    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
+                    openAssetPopup(
+                        '<img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster. Take it or leave it</p>' +
+                        '<div class="retro-popup-buttons" id="pawn-btns">' +
+                            '<button onclick="pawnshopTakeAction(' + randomPercent + ')">Take it</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
 
-case 'asset_police_rs.png':
-    openAssetPopup(
-        '<img src="policeman.png" alt="Policeman" onerror="this.style.display=\'none\'">' +
-        '<p id="popup-text">What crime do you have to report and where did it take place?</p>' +
-        '<input type="number" id="crime-room-input" placeholder="Room number..." min="1">' +
-        '<div class="retro-popup-buttons">' +
-            '<button onclick="policeReportAction()">Robbery</button>' +
-            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
-        '</div>'
-    );
-    break;
+                case 'asset_police_rs.png':
+                    openAssetPopup(
+                        '<img src="policeman.png" alt="Policeman" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">What crime do you have to report and where did it take place?</p>' +
+                        '<input type="number" id="crime-room-input" placeholder="Room number..." min="1">' +
+                        '<div class="retro-popup-buttons">' +
+                            '<button onclick="policeReportAction()">Robbery</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
 
-
-case 'asset_super_rs.png':
-    openAssetPopup(
-        '<img src="supermarkt.png" alt="Supermarket" onerror="this.style.display=\'none\'">' +
-        '<p id="popup-text">Anything else you need?</p>' +
-        '<input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">' +
-        '<div class="retro-popup-buttons" id="super-btns">' +
-            '<button onclick="supermarketBuyAction()">Buy</button>' +
-            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
-        '</div>'
-    );
-    break;
+                case 'asset_super_rs.png':
+                    openAssetPopup(
+                        '<img src="supermarkt.png" alt="Supermarket" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">Anything else you need?</p>' +
+                        '<input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">' +
+                        '<div class="retro-popup-buttons" id="super-btns">' +
+                            '<button onclick="supermarketBuyAction()">Buy</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
 
                 case 'asset_robber_rs.png':
                     triggerRobberEncounter(assetElement, posX, posY, entrySide);
@@ -1536,75 +1443,26 @@ case 'asset_super_rs.png':
             document.getElementById('super-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
         };
 
-        // --- Room click handler om geselecteerde assets te plaatsen ---
-        document.getElementById('room').addEventListener('click', (e) => {
-            if (!selectedSandboxImg) return;
-            if (e.target.id !== 'room' && e.target.id !== 'room-content') return;
-
-            if (!playerState.survivalMode) {
-                showToast("Survival Mode is off. You cannot place survival assets.");
-                return;
-            }
-
-            const roomRect = document.getElementById('room').getBoundingClientRect();
-            const currentImg = selectedSandboxImg;
-            
-            const placedAsset = document.createElement('img');
-            placedAsset.className = 'room-placed-asset';
-            placedAsset.src = currentImg;
-            placedAsset.setAttribute('data-type', currentImg);
-
-            placedAsset.onload = () => {
-                const clickX = e.clientX - roomRect.left - (placedAsset.clientWidth / 2);
-                const clickY = e.clientY - roomRect.top - (placedAsset.clientHeight / 2);
-                
-                placedAsset.style.left = Math.max(0, Math.min(roomRect.width - placedAsset.clientWidth, clickX)) + 'px';
-                placedAsset.style.top = Math.max(0, Math.min(roomRect.height - placedAsset.clientHeight, clickY)) + 'px';
-            };
-
-            placedAsset.addEventListener('click', (ev) => {
-                handleAssetClick(currentImg, placedAsset, window.currentRoomX || 0, window.currentRoomY || 0, window.currentEntrySide || 'south');
-                ev.stopPropagation();
-            });
-
-            let isDraggingAsset = false;
-            let startX, startY;
-
-            placedAsset.addEventListener('mousedown', (ev) => {
-                isDraggingAsset = true;
-                startX = ev.clientX - placedAsset.offsetLeft;
-                startY = ev.clientY - placedAsset.offsetTop;
-                ev.stopPropagation();
-            });
-
-            document.addEventListener('mousemove', (ev) => {
-                if (!isDraggingAsset) return;
-                const r = document.getElementById('room').getBoundingClientRect();
-                let newX = ev.clientX - startX;
-                let newY = ev.clientY - startY;
-                placedAsset.style.left = Math.max(0, Math.min(r.width - placedAsset.clientWidth, newX)) + 'px';
-                placedAsset.style.top = Math.max(0, Math.min(r.height - placedAsset.clientHeight, newY)) + 'px';
-            });
-
-            document.addEventListener('mouseup', () => { isDraggingAsset = false; });
-
-            placedAsset.addEventListener('dblclick', (ev) => {
-                placedAsset.remove();
-                ev.stopPropagation();
-            });
-
-            document.getElementById('room-content').appendChild(placedAsset);
-        });
-
-        // --- Draggable Logic voor Panels ---
+        // --- Draggable Logic voor Panels met automatische state herstel ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
+            
+            // Herstel positie
             const savedPos = localStorage.getItem('panel_pos_' + panelId);
             if (savedPos) {
                 const pos = JSON.parse(savedPos);
                 panel.style.left = pos.left + 'px';
                 panel.style.top = pos.top + 'px';
+            }
+
+            // Herstel zichtbaarheid / aan-uit status
+            const savedState = localStorage.getItem('panel_state_' + panelId);
+            const chk = document.getElementById('chk-' + panelId);
+            if (savedState !== null) {
+                const isVisible = savedState === 'true';
+                panel.style.display = isVisible ? 'block' : 'none';
+                if (chk) chk.checked = isVisible;
             }
 
             const handle = panel.querySelector('.panel-header');
@@ -1663,6 +1521,7 @@ case 'asset_super_rs.png':
         function togglePanel(panelId, show) {
             const p = document.getElementById(panelId);
             if (p) p.style.display = show ? 'block' : 'none';
+            localStorage.setItem('panel_state_' + panelId, show);
         }
 
         function copyAdminEmail() {
@@ -1927,8 +1786,8 @@ case 'asset_super_rs.png':
             loadMaxRoomStat();
             loadRoomByCoords(0, 0, 'south');
             fetchMarketplaceItems();
-			checkMarketplacePayouts();
-			processMarketplaceDecay();
+            checkMarketplacePayouts();
+            processMarketplaceDecay();
         }
 
         initGame();
