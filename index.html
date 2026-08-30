@@ -758,35 +758,47 @@ async function submitMarketplaceItem() {
         showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
         return;
     }
-	
-	    let sellerId = localStorage.getItem('dungeon_seller_id');
+
+    // 1. Zorg dat elke verkoper ALTIJD een seller_id heeft (voor anonieme en normale spelers)
+    let sellerId = localStorage.getItem('dungeon_seller_id');
     if (!sellerId) {
         sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
         localStorage.setItem('dungeon_seller_id', sellerId);
     }
 
-    // 1. Haal de ingelogde gebruiker op uit Supabase Auth
-    const { data: { user } } = await dbClient.auth.getUser();
-    if (!user) {
-        showToast("You must be logged in to list items.");
-        return;
-    }
-
-    // 2. Haal de username op uit de designers-tabel op basis van user.id
-    const { data: designerData } = await dbClient
-        .from('designers')
-        .select('username')
-        .eq('id', user.id)
-        .single();
+    // 2. Check optioneel of er een ingelogde designer is (niet verplicht!)
+    let designerId = null;
+    let username = null;
 
     try {
-        // 3. Bouw de juiste payload met designer_id en username
+        const { data: authData } = await dbClient.auth.getUser();
+        if (authData?.user) {
+            designerId = authData.user.id;
+            
+            // Haal desgewenst de username op
+            const { data: designerData } = await dbClient
+                .from('designers')
+                .select('username')
+                .eq('id', designerId)
+                .single();
+                
+            if (designerData) {
+                username = designerData.username;
+            }
+        }
+    } catch (e) {
+        // Geen probleem als dit mislukt, de speler is dan gewoon anoniem
+    }
+
+    try {
+        // 3. Bouw de payload met verplichte seller_id en optionele designer info
         const payload = {
             item_type: itemType,
             quantity: Number(qtyInput),
             price_rinth: Number(priceInput),
-            designer_id: user.id,
-            username: designerData ? designerData.username : null
+            seller_id: Number(sellerId), // Verplicht voor elke marktplaatsverkoop
+            designer_id: designerId,     // Alleen gevuld als ingelogd, anders null
+            username: username           // Alleen gevuld als ingelogd, anders null
         };
 
         const { data, error } = await dbClient.from('marketplace').insert([payload]);
