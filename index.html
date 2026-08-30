@@ -732,7 +732,7 @@
             }
         }
 
-        async function submitMarketplaceItem() {
+async function submitMarketplaceItem() {
     const itemType = document.getElementById('mp-sell-type').value;
     const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
     const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
@@ -759,19 +759,28 @@
         return;
     }
 
-    let sellerId = localStorage.getItem('dungeon_seller_id');
-    if (!sellerId) {
-        sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
-        localStorage.setItem('dungeon_seller_id', sellerId);
+    // 1. Haal de ingelogde gebruiker op uit Supabase Auth
+    const { data: { user } } = await dbClient.auth.getUser();
+    if (!user) {
+        showToast("You must be logged in to list items.");
+        return;
     }
 
+    // 2. Haal de username op uit de designers-tabel op basis van user.id
+    const { data: designerData } = await dbClient
+        .from('designers')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
     try {
-        // Zorg dat int8 velden als echte numbers worden meegegeven
+        // 3. Bouw de juiste payload met designer_id en username
         const payload = {
             item_type: itemType,
             quantity: Number(qtyInput),
             price_rinth: Number(priceInput),
-            seller_id: Number(sellerId)
+            designer_id: user.id,
+            username: designerData ? designerData.username : null
         };
 
         const { data, error } = await dbClient.from('marketplace').insert([payload]);
