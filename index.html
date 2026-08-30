@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Game - Survival Mode & 3 AM Reset</title>
     <style>
+	
+	.small-text {
+    font-size: 11px;
+    font-weight: normal;
+    color: #ffd700;;
+}
+	
         body {
             margin: 0;
             padding: 0;
@@ -93,15 +100,15 @@
         }
 
         .ui-panel { width: 320px; min-height: 10px; }
-        #inventory-panel { top: 50px; left: 410px; width: 320px; }
-        #quest-panel { top: 320px; left: 410px; width: 350px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 560px; left: 410px; width: 350px; max-height: 160px; overflow-y: auto; }
-        #gamemenu-panel { top: 50px; left: 770px; width: 280px; }
-        #test-panel { top: 380px; left: 770px; width: 280px; background: #351c1c; border-color: #c0392b; }
-        #asset-sandbox-panel { top: 560px; left: 770px; width: 280px; background: #1c2833; border-color: #2980b9; }
+        #inventory-panel { top: 50px; left: 410px; width: 200px; }
+        #quest-panel { top: 320px; left: 410px; width: 320px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 410px; width: 190px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 770px; width: 180px; }
+        #test-panel { top: 380px; left: 770px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #asset-sandbox-panel { top: 560px; left: 770px; width: 170px; background: #1c2833; border-color: #2980b9; }
         
-        #marketplace-sell-panel { top: 50px; left: 1060px; width: 280px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 380px; left: 1060px; width: 280px; background: #2c3e50; border-color: #2980b9; }
+        #marketplace-sell-panel { top: 50px; left: 1060px; width: 200px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 380px; left: 1060px; width: 200px; background: #2c3e50; border-color: #2980b9; }
 
         .door-asset { 
             cursor: pointer; 
@@ -415,8 +422,8 @@
 
         .asset-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
             margin-bottom: 8px;
         }
         .asset-thumb {
@@ -584,7 +591,7 @@
 
     <!-- Breadcrumbs Container -->
     <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
-        <div class="panel-header"><span>Breadcrumbs (Last 10 rooms)</span></div>
+        <div class="panel-header"><span>Breadcrumbs <span class="small-text">(Last 10)</span></span></div>
         <div id="breadcrumb-content" class="panel-content quest-box">No rooms visited yet.</div>
     </div>
 
@@ -616,6 +623,14 @@
                 <span>Breadcrumbs</span>
                 <input type="checkbox" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
             </div>
+			            <div class="toggle-row">
+                <span>MP - Sell Panel</span>
+                <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>MP - Buy Panel</span>
+                <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
+            </div>
             <div class="toggle-row">
                 <span>Test Panel</span>
                 <input type="checkbox" checked onchange="togglePanel('test-panel', this.checked)">
@@ -624,14 +639,7 @@
                 <span>Asset Sandbox</span>
                 <input type="checkbox" checked onchange="togglePanel('asset-sandbox-panel', this.checked)">
             </div>
-            <div class="toggle-row">
-                <span>MP - Sell Panel</span>
-                <input type="checkbox" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
-            </div>
-            <div class="toggle-row">
-                <span>MP - Buy Panel</span>
-                <input type="checkbox" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
-            </div>
+
 
             <hr style="border-color: #444; margin: 10px 0;">
             <label style="margin-bottom: 4px;">Admin Email:</label>
@@ -644,7 +652,7 @@
 
     <!-- TEST CONTAINER -->
     <div id="test-panel" class="draggable-panel" data-id="test-panel">
-        <div class="panel-header" style="background: #78281f;"><span>🧪 Test Scenario Panel</span></div>
+        <div class="panel-header" style="background: #78281f;"><span>🧪 Test Scenario</span></div>
         <div class="panel-content menu-section">
             <label>Time Left:</label>
             <div class="test-controls">
@@ -666,8 +674,8 @@
 
             <label>Credit (Bank):</label>
             <div class="test-controls">
-                <button onclick="testAdjustCredit(-100)">- 100 Credit</button>
-                <button onclick="testAdjustCredit(100)">+ 100 Credit</button>
+                <button onclick="testAdjustCredit(-50)">- 50 Credit</button>
+                <button onclick="testAdjustCredit(50)">+ 50 Credit</button>
             </div>
 
             <label>Loot Value (Rinths):</label>
@@ -683,13 +691,13 @@
             </div>
 
             <hr style="border-color: #555; margin: 8px 0;">
-            <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Simulate Next Day Reset</button>
+            <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Sim. Next Day Reset</button>
         </div>
     </div>
 
     <!-- ASSET SANDBOX CONTAINER -->
     <div id="asset-sandbox-panel" class="draggable-panel" data-id="asset-sandbox-panel">
-        <div class="panel-header" style="background: #1b4f72;"><span>🧱 Room Asset Sandbox</span></div>
+        <div class="panel-header" style="background: #1b4f72;"><span>🧱 Room Asset</span></div>
         <div class="panel-content menu-section">
             <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Select an asset, then click in the room to place it. Drag inside room to move. Double-click placed asset to delete.</p>
             <div class="asset-grid" id="asset-selection-grid">
@@ -1689,8 +1697,8 @@ async function checkMarketplacePayouts() {
 
             let html = '';
             crumbs.forEach(c => {
-                html += '<div class="breadcrumb-item"><span>Room R-' + c.roomId + '</span>' +
-                        '<button onclick="jumpToBreadcrumb(' + c.posX + ', ' + c.posY + ')">Escape Here</button></div>';
+                html += '<div class="breadcrumb-item"><span>Room ' + c.roomId + '</span>' +
+                        '<button onclick="jumpToBreadcrumb(' + c.posX + ', ' + c.posY + ')">Goto</button></div>';
             });
             container.innerHTML = html;
         }
