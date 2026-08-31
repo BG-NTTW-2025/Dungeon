@@ -126,6 +126,9 @@
             position: absolute;
             cursor: pointer;
             z-index: 6;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             width: auto;
             height: auto;
             max-width: none;
@@ -989,16 +992,20 @@
             setTimeout(() => { toast.remove(); }, 3000);
         }
 
-        // --- Automatische verdeling op basis van per 100 kamers quota ---
+        // --- Automatische verdeling op basis van hoogste kamernummer en unieke kamers (while / Set logica) ---
         async function applyDailyAutomatedAssets() {
             try {
-                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y');
-                if (!allRooms || allRooms.length === 0) return;
+                // Haal het hoogste room_id op uit Supabase
+                const { data: maxRoomData } = await dbClient
+                    .from('puzzle_labyrinth')
+                    .select('room_id')
+                    .order('room_id', { ascending: false })
+                    .limit(1);
 
-                let totalRooms = allRooms.length;
-                if (totalRooms < 100) return; // Onder 100 kamers niets plaatsen
+                let maxRoomId = maxRoomData?.[0]?.room_id || 0;
+                if (maxRoomId < 100) return; // Onder de 100 kamers nog geen quota-assets verdelen
 
-                let factor = Math.floor(totalRooms / 100);
+                let factor = Math.floor(maxRoomId / 100);
 
                 // Quota per 100 kamers
                 let assetsPool = [];
@@ -1010,17 +1017,44 @@
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
 
-                // Shuffle de kamers willekeurig (uniek per speler / sessie)
-                let shuffledRooms = [...allRooms].sort(() => 0.5 - Math.random());
-                let activeAssetsMap = {};
+                // Haal alle unieke kamers op
+                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y');
+                if (!allRooms || allRooms.length === 0) return;
 
-                for (let i = 0; i < assetsPool.length && i < shuffledRooms.length; i++) {
-                    let room = shuffledRooms[i];
-                    let roomKey = room.pos_x + '_' + room.pos_y;
-                    if (!activeAssetsMap[roomKey]) {
-                        activeAssetsMap[roomKey] = [];
+                // Unieke lijst van kamer coördinaten maken
+                let uniqueRoomsMap = new Map();
+                allRooms.forEach(r => {
+                    let key = r.pos_x + '_' + r.pos_y;
+                    uniqueRoomsMap.set(key, { pos_x: r.pos_x, pos_y: r.pos_y });
+                });
+                let availableRooms = Array.from(uniqueRoomsMap.values());
+
+                let activeAssetsMap = {};
+                let occupiedRoomKeys = new Set(); // Zorgt dat elke kamer maximaal 1 asset krijgt
+
+                // Willekeurig verdelen via while/select loop zonder dubbele kamers
+                for (let asset of assetsPool) {
+                    if (availableRooms.length === 0) break;
+
+                    let chosenRoom;
+                    let roomKey;
+                    let safetyCounter = 0;
+
+                    do {
+                        let randomIndex = Math.floor(Math.random() * availableRooms.length);
+                        chosenRoom = availableRooms[randomIndex];
+                        roomKey = chosenRoom.pos_x + '_' + chosenRoom.pos_y;
+                        safetyCounter++;
+                        if (safetyCounter > 200) break; // Voorkom oneindige lus als kamers op zijn
+                    } while (occupiedRoomKeys.has(roomKey));
+
+                    if (!occupiedRoomKeys.has(roomKey)) {
+                        occupiedRoomKeys.add(roomKey);
+                        if (!activeAssetsMap[roomKey]) {
+                            activeAssetsMap[roomKey] = [];
+                        }
+                        activeAssetsMap[roomKey].push(asset);
                     }
-                    activeAssetsMap[roomKey].push(assetsPool[i]);
                 }
 
                 localStorage.setItem('dungeon_daily_assets', JSON.stringify(activeAssetsMap));
@@ -1280,7 +1314,7 @@
             else if (entrySide === 'west') robberRotation = '90deg';
 
             if (assetElement) {
-                assetElement.style.transform = 'rotate(' + robberRotation + ')';
+                assetElement.style.transform = 'translate(-50%, -50%) rotate(' + robberRotation + ')';
             }
 
             openAssetPopup(
@@ -1300,6 +1334,8 @@
                 showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
             }
+
+            let roomKey = posX + '_' + posY;
 
             switch(assetType) {
                 case 'asset_bank_rs.png':
@@ -1357,6 +1393,7 @@
                     playerState.foodKg += 1.0;
                     updatePlayerUI();
                     assetElement.remove();
+                    removeAssetFromLocalStorage(roomKey, assetType);
                     showToast("You picked up food! Food stock increased by 1 kg.");
                     break;
 
@@ -1364,12 +1401,25 @@
                     playerState.lootValue += 100;
                     updatePlayerUI();
                     assetElement.remove();
+                    removeAssetFromLocalStorage(roomKey, assetType);
                     showToast("You found loot! Loot value increased by 100 Rinth.");
                     break;
 
                 default:
                     closeAssetPopup();
                     break;
+            }
+        }
+
+        // Hulpfunctie om opgepakt item permanent uit de lokale cache te verwijderen
+        function removeAssetFromLocalStorage(roomKey, assetType) {
+            let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+            if (dailyAssetsMap[roomKey]) {
+                dailyAssetsMap[roomKey] = dailyAssetsMap[roomKey].filter(src => src !== assetType);
+                if (dailyAssetsMap[roomKey].length === 0) {
+                    delete dailyAssetsMap[roomKey];
+                }
+                localStorage.setItem('dungeon_daily_assets', JSON.stringify(dailyAssetsMap));
             }
         }
 
@@ -1695,9 +1745,6 @@
                             placedAsset.className = 'room-placed-asset';
                             placedAsset.src = assetSrc;
                             placedAsset.setAttribute('data-type', assetSrc);
-
-                            placedAsset.style.left = '130px';
-                            placedAsset.style.top = '80px';
 
                             placedAsset.addEventListener('click', (ev) => {
                                 handleAssetClick(assetSrc, placedAsset, posX, posY, entrySide);
