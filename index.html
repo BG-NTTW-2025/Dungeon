@@ -1733,7 +1733,7 @@
         }
 
         function renderBreadcrumbs() {
-            const container = document.getElementById('breadcrumb-content');
+            const container = document.getElementById('breadcrumb-body');
             const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
             
             if (crumbs.length === 0) {
@@ -1798,7 +1798,7 @@
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
             if (activeTimerInterval) clearInterval(activeTimerInterval);
-            document.getElementById('quest-content').innerHTML = "Click on a door to view details. Click again to play.";
+            document.getElementById('quest-body').innerHTML = "Click on a door to view details. Click again to play.";
 
             if (entrySide !== null) {
                 handleRoomTransitionTime(posX, posY);
@@ -1901,7 +1901,7 @@
         }
 
         function showDoorInfo(puzzle) {
-            const questContent = document.getElementById('quest-content');
+            const questContent = document.getElementById('quest-body');
             questContent.innerHTML = '<p><strong>Door found (' + puzzle.wall_side + ')</strong></p>' +
                 '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Click door again to start.</p>' +
                 '<button onclick="confirmStartPuzzle()">Start Puzzle</button>';
@@ -1933,7 +1933,7 @@
         }
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
-            const questContent = document.getElementById('quest-content');
+            const questContent = document.getElementById('quest-body');
             const q = puzzle.question || "Solve:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
             const maxReward = parseInt(puzzle.max_reward) || 30;
