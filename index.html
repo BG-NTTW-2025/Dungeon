@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Game - Survival Mode & 3 AM Reset</title>
     <style>
-	
-	.small-text {
-    font-size: 11px;
-    font-weight: normal;
-    color: #ffd700;;
-}
-	
+        .small-text {
+            font-size: 11px;
+            font-weight: normal;
+            color: #ffd700;
+        }
+        
         body {
             margin: 0;
             padding: 0;
@@ -108,6 +107,7 @@
         
         #marketplace-sell-panel { top: 50px; left: 1060px; width: 200px; background: #1a252f; border-color: #16a085; }
         #marketplace-buy-panel { top: 380px; left: 1060px; width: 200px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 620px; left: 770px; width: 180px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
@@ -231,14 +231,24 @@
             font-size: 13px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.7);
             text-align: center;
-            animation: fadeInOut 3s ease forwards;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            min-width: 250px;
         }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(10px); }
-            15% { opacity: 1; transform: translateY(0); }
-            85% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-10px); }
+        .toast-close-btn {
+            background: #c0392b;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
         }
+        .toast-close-btn:hover { background: #e74c3c; }
 
         @keyframes flashRedBlack {
             0% { background-color: #222; }
@@ -458,8 +468,11 @@
 
     <!-- MARKETPLACE SELL CONTAINER -->
     <div id="marketplace-sell-panel" class="draggable-panel" data-id="marketplace-sell-panel">
-        <div class="panel-header" style="background: #16a085;"><span>💰 Marketplace - Sell</span></div>
-        <div class="panel-content menu-section">
+        <div class="panel-header" style="background: #16a085;">
+            <span>💰 Marketplace - Sell</span>
+            <button class="collapse-btn" onclick="togglePanelBody('marketplace-sell-body', this)">-</button>
+        </div>
+        <div id="marketplace-sell-body" class="panel-content menu-section">
             <div class="mp-row">
                 <label>Item Type:</label>
                 <select id="mp-sell-type" onchange="updateMaxPriceHint()">
@@ -481,13 +494,29 @@
 
     <!-- MARKETPLACE BUY CONTAINER -->
     <div id="marketplace-buy-panel" class="draggable-panel" data-id="marketplace-buy-panel">
-        <div class="panel-header" style="background: #2980b9;"><span>🛒 Marketplace - Shop</span></div>
-        <div class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
+        <div class="panel-header" style="background: #2980b9;">
+            <span>🛒 Marketplace - Shop</span>
+            <button class="collapse-btn" onclick="togglePanelBody('marketplace-buy-body', this)">-</button>
+        </div>
+        <div id="marketplace-buy-body" class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
             <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Available offers from other players:</p>
             <div id="marketplace-items-list">
                 <div style="font-size: 11px; color: #777;">Loading market offers...</div>
             </div>
             <button onclick="fetchMarketplaceItems()" style="width: 100%; background: #2980b9; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 6px;">Refresh Shop</button>
+        </div>
+    </div>
+
+    <!-- LIFT CONTAINER -->
+    <div id="lift-panel" class="draggable-panel" data-id="lift-panel">
+        <div class="panel-header" style="background: #8e44ad;">
+            <span>🛗 Lift / Elevator</span>
+            <button class="collapse-btn" onclick="togglePanelBody('lift-body', this)">-</button>
+        </div>
+        <div id="lift-body" class="panel-content menu-section">
+            <label>Jump to Floor / Room:</label>
+            <input type="number" id="lift-room-input" min="1" value="1" placeholder="Room number">
+            <button onclick="executeLiftJump()" style="width: 100%; background: #8e44ad; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Take Lift</button>
         </div>
     </div>
 
@@ -518,8 +547,11 @@
 
     <!-- Status & Inventory Container -->
     <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
-        <div class="panel-header"><span>Status & Inventory</span></div>
-        <div class="panel-content">
+        <div class="panel-header">
+            <span>Status & Inventory</span>
+            <button class="collapse-btn" onclick="togglePanelBody('inventory-body', this)">-</button>
+        </div>
+        <div id="inventory-body" class="panel-content">
             <div class="survival-toggle-bar">
                 <span>Survival Mode:</span>
                 <button id="survival-toggle-btn" onclick="confirmToggleSurvival()" style="background: #27ae60; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">ON</button>
@@ -528,24 +560,24 @@
                 <div class="status-section">
                     <div class="status-row"><span>Time left:</span> <strong id="time-left-val" style="color: #ffd700;">10:00h</strong></div>
                     <div class="status-row"><span>Energy:</span> <strong id="energy-val" style="color: #4cd137;">100%</strong></div>
-                    <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">5</strong></div>
+                    <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">Unlimited</strong></div>
                     <div class="status-row"><span>Total Weight:</span> <strong id="weight-val" style="color: #e67e22;">0.0 kg</strong></div>
                 </div>
                 <div class="inventory-section" id="inventory-section-box">
                     <div class="inventory-item">
-                        <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">310 Rinth</strong>
+                        <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">0 Rinth</strong>
                     </div>
                     <div class="inventory-item">
-                        <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">400 Rinth</strong>
+                        <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">0 Rinth</strong>
                     </div>
                     <hr style="border-color: #444; margin: 8px 0;">
                     <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Treasures (Loot):</div>
                     <div id="treasures-display" style="font-size: 12px; color: #aaa; margin-bottom: 6px;">
-                        Value: <strong id="loot-value-val">200</strong> Rinth (<span id="loot-weight-val">1.0</span> kg)
+                        Value: <strong id="loot-value-val">0</strong> Rinth (<span id="loot-weight-val">0.0</span> kg)
                     </div>
                     <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Food:</div>
                     <div id="food-display" style="font-size: 12px; color: #aaa; display: flex; justify-content: space-between; align-items: center;">
-                        <span><strong id="food-kg-val">1.5</strong> kg Food</span>
+                        <span><strong id="food-kg-val">0.0</strong> kg Food</span>
                         <button onclick="consumeFood()" style="background:#27ae60; color:#fff; border:none; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">Eat 500g</button>
                     </div>
                 </div>
@@ -555,21 +587,27 @@
 
     <!-- Communication & Assignments -->
     <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
-        <div class="panel-header"><span>Communication & Assignments</span></div>
-        <div id="quest-content" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
+        <div class="panel-header">
+            <span>Communication & Assignments</span>
+            <button class="collapse-btn" onclick="togglePanelBody('quest-body', this)">-</button>
+        </div>
+        <div id="quest-body" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
     </div>
 
     <!-- Breadcrumbs Container -->
     <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
-        <div class="panel-header"><span>Breadcrumbs <span class="small-text">(Last 10)</span></span></div>
-        <div id="breadcrumb-content" class="panel-content quest-box">No rooms visited yet.</div>
+        <div class="panel-header">
+            <span>Breadcrumbs <span class="small-text">(Last 10)</span></span>
+            <button class="collapse-btn" onclick="togglePanelBody('breadcrumb-body', this)">-</button>
+        </div>
+        <div id="breadcrumb-body" class="panel-content quest-box">No rooms visited yet.</div>
     </div>
 
     <!-- Game Menu -->
     <div id="gamemenu-panel" class="draggable-panel" data-id="gamemenu-panel">
         <div class="panel-header">
             <span>Game Menu</span>
-            <button id="collapse-icon-btn" class="collapse-btn" onclick="toggleMenuBody()">-</button>
+            <button class="collapse-btn" onclick="togglePanelBody('gamemenu-body', this)">-</button>
         </div>
         <div id="gamemenu-body" class="panel-content menu-section">
             <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 8px;">
@@ -602,6 +640,10 @@
                 <input type="checkbox" id="chk-marketplace-buy-panel" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
             </div>
             <div class="toggle-row">
+                <span>Lift Panel</span>
+                <input type="checkbox" id="chk-lift-panel" checked onchange="togglePanel('lift-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
                 <span>Test Panel</span>
                 <input type="checkbox" id="chk-test-panel" checked onchange="togglePanel('test-panel', this.checked)">
             </div>
@@ -617,8 +659,11 @@
 
     <!-- TEST CONTAINER -->
     <div id="test-panel" class="draggable-panel" data-id="test-panel">
-        <div class="panel-header" style="background: #78281f;"><span>🧪 Test Scenario</span></div>
-        <div class="panel-content menu-section">
+        <div class="panel-header" style="background: #78281f;">
+            <span>🧪 Test Scenario</span>
+            <button class="collapse-btn" onclick="togglePanelBody('test-body', this)">-</button>
+        </div>
+        <div id="test-body" class="panel-content menu-section">
             <label>Time Left:</label>
             <div class="test-controls">
                 <button onclick="testAdjustTime(-30)">- 30 min</button>
@@ -659,7 +704,7 @@
             <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Sim. Next Day Reset</button>
         </div>
     </div>
-	
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -705,6 +750,24 @@
                 showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
                 return;
             }
+
+            // Check if user has enough items in inventory before putting on MP
+            if (itemType === 'food') {
+                if (playerState.foodKg < qtyInput) {
+                    showToast(`You don't have ${qtyInput}kg of food in your inventory!`);
+                    return;
+                }
+                playerState.foodKg -= qtyInput;
+            } else {
+                let requiredLootVal = qtyInput * 200;
+                if (playerState.lootValue < requiredLootVal) {
+                    showToast(`You don't have enough loot value for ${qtyInput}kg (${requiredLootVal} Rinth required)!`);
+                    return;
+                }
+                playerState.lootValue -= requiredLootVal;
+            }
+            updatePlayerUI();
+            savePlayerStateToLocal();
 
             let sellerId = localStorage.getItem('dungeon_seller_id');
             if (!sellerId) {
@@ -826,9 +889,10 @@
             if (itemType === 'food') {
                 playerState.foodKg += qty;
             } else {
-                playerState.lootValue += (qty * 100);
+                playerState.lootValue += (qty * 200);
             }
             updatePlayerUI();
+            savePlayerStateToLocal();
 
             let saleComment = "";
             if (itemType === 'food') {
@@ -860,7 +924,7 @@
                 showToast("An error occurred during purchase.");
             }
         }
-		
+        
         async function processMarketplaceDecay() {
             try {
                 const { data: activeOffers, error } = await dbClient
@@ -949,6 +1013,7 @@
                 if (totalEarnings > 0) {
                     playerState.credit += totalEarnings;
                     updatePlayerUI();
+                    savePlayerStateToLocal();
                     
                     showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
 
@@ -964,20 +1029,56 @@
             }
         }
 
+        function initRealtimeMarketplace() {
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) return;
+
+            dbClient
+                .channel('public:marketplace')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'marketplace' }, payload => {
+                    const updatedItem = payload.new;
+                    if (updatedItem && String(updatedItem.seller_id) === String(sellerId) && updatedItem.sold > 0) {
+                        checkMarketplacePayouts();
+                    }
+                })
+                .subscribe();
+        }
+
         // --- 3. Player State & Economy ---
         let playerState = {
             score: 0,
-            cash: 310,       
-            credit: 400,      
+            cash: 0,       
+            credit: 0,      
             energy: 100,    
             timeLeft: 595,  
-            warpsLeft: 5,   
-            lootValue: 200, 
-            foodKg: 1.5,    
+            lootValue: 0, 
+            foodKg: 0.0,    
             survivalMode: true,
             lastResetDate: localStorage.getItem('dungeon_last_reset_date') || '',
             lastRoomEnterTime: Date.now()
         };
+
+        function loadPlayerStateFromLocal() {
+            const savedState = localStorage.getItem('dungeon_player_state');
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    playerState.score = parsed.score ?? 0;
+                    playerState.cash = parsed.cash ?? 0;
+                    playerState.credit = parsed.credit ?? 0;
+                    playerState.energy = parsed.energy ?? 100;
+                    playerState.timeLeft = parsed.timeLeft ?? 595;
+                    playerState.lootValue = parsed.lootValue ?? 0;
+                    playerState.foodKg = parsed.foodKg ?? 0.0;
+                    playerState.survivalMode = parsed.survivalMode ?? true;
+                } catch(e) {}
+            }
+        }
+        loadPlayerStateFromLocal();
+
+        function savePlayerStateToLocal() {
+            localStorage.setItem('dungeon_player_state', JSON.stringify(playerState));
+        }
 
         let activeRobberRoomKey = null;
         let robberIntervalId = null;
@@ -987,15 +1088,22 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = 'toast-message';
-            toast.textContent = message;
+            
+            const textSpan = document.createElement('span');
+            textSpan.textContent = message;
+            toast.appendChild(textSpan);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'toast-close-btn';
+            closeBtn.textContent = 'OK';
+            closeBtn.onclick = () => { toast.remove(); };
+            toast.appendChild(closeBtn);
+
             container.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 3000);
         }
 
-        // --- Automatische verdeling op basis van hoogste kamernummer en unieke kamers (while / Set logica) ---
         async function applyDailyAutomatedAssets() {
             try {
-                // Haal het hoogste room_id op uit Supabase
                 const { data: maxRoomData } = await dbClient
                     .from('puzzle_labyrinth')
                     .select('room_id')
@@ -1003,11 +1111,10 @@
                     .limit(1);
 
                 let maxRoomId = maxRoomData?.[0]?.room_id || 0;
-                if (maxRoomId < 100) return; // Onder de 100 kamers nog geen quota-assets verdelen
+                if (maxRoomId < 100) return;
 
                 let factor = Math.floor(maxRoomId / 100);
 
-                // Quota per 100 kamers
                 let assetsPool = [];
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
@@ -1017,11 +1124,9 @@
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
 
-                // Haal alle unieke kamers op
                 const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y');
                 if (!allRooms || allRooms.length === 0) return;
 
-                // Unieke lijst van kamer coördinaten maken
                 let uniqueRoomsMap = new Map();
                 allRooms.forEach(r => {
                     let key = r.pos_x + '_' + r.pos_y;
@@ -1030,9 +1135,8 @@
                 let availableRooms = Array.from(uniqueRoomsMap.values());
 
                 let activeAssetsMap = {};
-                let occupiedRoomKeys = new Set(); // Zorgt dat elke kamer maximaal 1 asset krijgt
+                let occupiedRoomKeys = new Set();
 
-                // Willekeurig verdelen via while/select loop zonder dubbele kamers
                 for (let asset of assetsPool) {
                     if (availableRooms.length === 0) break;
 
@@ -1045,7 +1149,7 @@
                         chosenRoom = availableRooms[randomIndex];
                         roomKey = chosenRoom.pos_x + '_' + chosenRoom.pos_y;
                         safetyCounter++;
-                        if (safetyCounter > 200) break; // Voorkom oneindige lus als kamers op zijn
+                        if (safetyCounter > 200) break;
                     } while (occupiedRoomKeys.has(roomKey));
 
                     if (!occupiedRoomKeys.has(roomKey)) {
@@ -1091,6 +1195,7 @@
 
                 showToast("🌅 Daily Reset (3:00 AM): New day started, assets refreshed!");
                 updatePlayerUI();
+                savePlayerStateToLocal();
             }
         }
         checkDailyReset();
@@ -1121,13 +1226,15 @@
                 timeLeftElem.style.color = playerState.timeLeft < 60 ? '#ff6b6b' : '#ffd700';
             }
 
-            let lootWeight = (playerState.lootValue / 100) * 0.5;
+            let lootWeight = (playerState.lootValue / 200) * 1.0;
             let totalWeight = lootWeight + playerState.foodKg;
 
             if (weightElem) weightElem.textContent = totalWeight.toFixed(1) + ' kg';
             if (lootValueElem) lootValueElem.textContent = playerState.lootValue;
             if (lootWeightElem) lootWeightElem.textContent = lootWeight.toFixed(1);
             if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
+
+            savePlayerStateToLocal();
         }
 
         function handleRoomTransitionTime(currentPosX, currentPosY) {
@@ -1153,7 +1260,7 @@
             playerState.timeLeft = Math.max(0, playerState.timeLeft - countedMinutes);
             playerState.lastRoomEnterTime = now;
 
-            let lootWeight = (playerState.lootValue / 100) * 0.5;
+            let lootWeight = (playerState.lootValue / 200) * 1.0;
             let totalWeight = lootWeight + playerState.foodKg;
 
             let energyCost = Math.max(1, Math.floor(2 + (totalWeight * 0.5)));
@@ -1173,7 +1280,6 @@
             }
         }
 
-        // --- Test Panel Functies ---
         function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
         function testAdjustEnergy(amount) { playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount)); updatePlayerUI(); }
         function testAdjustCash(amount) { playerState.cash = Math.max(0, playerState.cash + amount); updatePlayerUI(); }
@@ -1267,17 +1373,24 @@
 
             if (robberIntervalId) clearInterval(robberIntervalId);
             robberIntervalId = setInterval(() => {
-                if (playerState.cash > 0) {
-                    playerState.cash = Math.max(0, playerState.cash - 5);
+                if (playerState.cash >= 100) {
+                    playerState.cash -= 100;
                     updatePlayerUI();
+                    showToast("You just lost 100 Rinth.");
+                } else if (playerState.cash > 0) {
+                    let lost = playerState.cash;
+                    playerState.cash = 0;
+                    updatePlayerUI();
+                    showToast(`You just lost ${lost} Rinth.`);
                 }
-            }, 1000);
+            }, 10000);
 
             if (lootDrainTimerId) clearInterval(lootDrainTimerId);
             lootDrainTimerId = setInterval(() => {
-                if (playerState.lootValue > 0) {
-                    playerState.lootValue = Math.max(0, playerState.lootValue - 100);
+                if (playerState.lootValue >= 200) {
+                    playerState.lootValue -= 200;
                     updatePlayerUI();
+                    showToast("You just lost 1 Loot.");
                 }
             }, 60000);
         }
@@ -1398,11 +1511,11 @@
                     break;
 
                 case 'asset_loot_rs.png':
-                    playerState.lootValue += 100;
+                    playerState.lootValue += 200;
                     updatePlayerUI();
                     assetElement.remove();
                     removeAssetFromLocalStorage(roomKey, assetType);
-                    showToast("You found loot! Loot value increased by 100 Rinth.");
+                    showToast("You found loot! Loot value increased by 200 Rinth.");
                     break;
 
                 default:
@@ -1411,7 +1524,6 @@
             }
         }
 
-        // Hulpfunctie om opgepakt item permanent uit de lokale cache te verwijderen
         function removeAssetFromLocalStorage(roomKey, assetType) {
             let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
             if (dailyAssetsMap[roomKey]) {
@@ -1498,7 +1610,6 @@
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
             
-            // Herstel positie
             const savedPos = localStorage.getItem('panel_pos_' + panelId);
             if (savedPos) {
                 const pos = JSON.parse(savedPos);
@@ -1506,7 +1617,6 @@
                 panel.style.top = pos.top + 'px';
             }
 
-            // Herstel zichtbaarheid / aan-uit status
             const savedState = localStorage.getItem('panel_state_' + panelId);
             const chk = document.getElementById('chk-' + panelId);
             if (savedState !== null) {
@@ -1556,15 +1666,14 @@
             }
         });
 
-        function toggleMenuBody() {
-            const body = document.getElementById('gamemenu-body');
-            const btn = document.getElementById('collapse-icon-btn');
+        function togglePanelBody(bodyId, btnElem) {
+            const body = document.getElementById(bodyId);
             if (body.style.display === 'none') {
                 body.style.display = 'block';
-                btn.textContent = '-';
+                btnElem.textContent = '-';
             } else {
                 body.style.display = 'none';
-                btn.textContent = '+';
+                btnElem.textContent = '+';
             }
         }
 
@@ -1659,6 +1768,25 @@
             try {
                 const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', targetRoomId).limit(1);
                 if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+            } catch (err) { console.error(err); }
+        }
+
+        async function executeLiftJump() {
+            const roomInput = document.getElementById('lift-room-input').value.trim();
+            const targetRoomId = parseInt(roomInput, 10);
+            if (isNaN(targetRoomId) || targetRoomId < 1) {
+                showToast("Please enter a valid room number for the lift.");
+                return;
+            }
+            
+            try {
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', targetRoomId).limit(1);
+                if (data && data.length > 0) {
+                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                    showToast(`Elevator successfully transported you to Room ${targetRoomId}!`);
+                } else {
+                    showToast(`Room ${targetRoomId} could not be found.`);
+                }
             } catch (err) { console.error(err); }
         }
 
@@ -1835,6 +1963,7 @@
             fetchMarketplaceItems();
             checkMarketplacePayouts();
             processMarketplaceDecay();
+            initRealtimeMarketplace();
         }
 
         initGame();
