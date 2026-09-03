@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Game - Survival Mode & 3 AM Reset</title>
+    <title>Dungeon Game - Survival Mode & Categories</title>
     <style>
         .small-text {
             font-size: 11px;
@@ -43,6 +43,16 @@
             cursor: grab;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
+        }
+
+        /* Specifieke strakke tweekoloms header voor de game container */
+        #game-container .panel-header {
+            height: 60px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
         }
 
         .panel-header:active {
@@ -107,7 +117,7 @@
         
         #marketplace-sell-panel { top: 50px; left: 1060px; width: 220px; background: #1a252f; border-color: #16a085; }
         #marketplace-buy-panel { top: 380px; left: 1060px; width: 220px; background: #2c3e50; border-color: #2980b9; }
-        #lift-panel { top: 620px; left: 770px; width: 180px; background: #4a235a; border-color: #8e44ad; }
+        #lift-panel { top: 620px; left: 770px; width: 195px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
@@ -181,7 +191,7 @@
             margin-bottom: 15px;
             color: #ddd;
         }
-        .retro-popup input[type="text"], .retro-popup input[type="number"] {
+        .retro-popup input[type="text"], .retro-popup input[type="number"], .retro-popup select, .retro-popup textarea {
             width: 85%;
             padding: 8px 10px;
             font-size: 14px;
@@ -191,6 +201,11 @@
             border-radius: 4px;
             margin-bottom: 12px;
             text-align: center;
+            box-sizing: border-box;
+        }
+        .retro-popup textarea {
+            text-align: left;
+            height: 70px;
         }
         .retro-popup-buttons {
             display: flex;
@@ -263,10 +278,11 @@
             background: #c0392b;
             color: white;
             border: none;
-            padding: 2px 6px;
-            font-size: 10px;
-            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
             cursor: pointer;
+            font-weight: bold;
         }
         .reset-btn:hover { background: #e74c3c; }
 
@@ -361,7 +377,7 @@
             font-weight: bold;
             color: #ffd700;
         }
-        .menu-section input[type="number"] {
+        .menu-section input[type="number"], .menu-section select {
             width: 100%;
             padding: 6px;
             background: #333;
@@ -507,15 +523,28 @@
         </div>
     </div>
 
-    <!-- LIFT CONTAINER -->
+    <!-- LIFT CONTAINER WITH 10 CATEGORIES -->
     <div id="lift-panel" class="draggable-panel" data-id="lift-panel">
         <div class="panel-header" style="background: #8e44ad;">
             <span><img src="lift_symb.png" alt="" style="vertical-align: middle;"> Lift / Elevator</span>
 			<button class="collapse-btn" onclick="togglePanelBody('lift-body', this)">-</button>
         </div>
         <div id="lift-body" class="panel-content menu-section">
-            <label>Jump to Floor / Room:</label>
-            <input type="number" id="lift-room-input" min="1" value="1" placeholder="Room number">
+            <label>Select Category:</label>
+            <select id="lift-category-select">
+                <option value="General">General</option>
+                <option value="Logic">Logic</option>
+                <option value="Geography">Geography</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="History">History</option>
+                <option value="Art and Literature">Art and Literature</option>
+                <option value="Science and Nature">Science and Nature</option>
+                <option value="Sports and Recreation">Sports and Recreation</option>
+                <option value="Kids">Kids</option>
+                <option value="Nerds">Nerds</option>
+            </select>
+            <label>Jump to Floor / Room (Opt.):</label>
+            <input type="number" id="lift-room-input" min="1" placeholder="Room number">
             <button onclick="executeLiftJump()" style="width: 100%; background: #8e44ad; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Take Lift</button>
         </div>
     </div>
@@ -528,11 +557,14 @@
     <!-- Toast Meldingen Container -->
     <div id="toast-container"></div>
 
-    <!-- Game Container -->
+    <!-- Game Container met strakke tweekoloms header -->
     <div id="game-container" class="draggable-panel" data-id="game-container">
         <div class="panel-header">
-            <span id="game-header-title">Playfield</span>
-            <button class="reset-btn" onclick="resetGameCache()" title="Clear local cache and reload">Reset Cache</button>
+            <div style="display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                <div id="game-room-title" style="font-size: 16px; font-weight: bold; color: #ffd700;">Playfield</div>
+                <div id="game-score-title" style="font-size: 16px; color: #ccc;">Score: <strong style="color: #4cd137;">0</strong></div>
+            </div>
+            <button class="reset-btn" onclick="resetGameCache()" title="Clear local cache and reload">Reset<br>Cache</button>
         </div>
         <div class="panel-content">
             <div class="room-wrapper">
@@ -708,12 +740,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // --- 1. Supabase Client Initialisatie (Bovenaan) ---
+        // --- 1. Supabase Client Initialisatie ---
         const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
         const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // --- 2. Marketplace Helper & Interactie Logica ---
+        // --- Categorie & Lift Beheer ---
+        let currentGameCategory = localStorage.getItem('dungeon_current_category') || 'General';
+        document.getElementById('lift-category-select').value = currentGameCategory;
+
+        // Globale variabele om de actieve opgeloste puzzel te onthouden voor de rapportage popup
+        window.activeSolvedPuzzle = null;
+
+        // --- Marketplace Helper & Interactie Logica ---
         function updateMaxPriceHint() {
             const type = document.getElementById('mp-sell-type').value;
             const label = document.getElementById('mp-price-label');
@@ -751,7 +790,6 @@
                 return;
             }
 
-            // Check if user has enough items in inventory before putting on MP
             if (itemType === 'food') {
                 if (playerState.foodKg < qtyInput) {
                     showToast(`You don't have ${qtyInput}kg of food in your inventory!`);
@@ -782,13 +820,11 @@
                 const { data: authData } = await dbClient.auth.getUser();
                 if (authData?.user) {
                     designerId = authData.user.id;
-                    
                     const { data: designerData } = await dbClient
                         .from('designers')
                         .select('username')
                         .eq('id', designerId)
                         .single();
-                        
                     if (designerData) {
                         username = designerData.username;
                     }
@@ -805,10 +841,9 @@
                     username: username
                 };
 
-                const { data, error } = await dbClient.from('marketplace').insert([payload]);
+                const { error } = await dbClient.from('marketplace').insert([payload]);
 
                 if (error) {
-                    console.error("Supabase Error Details:", error);
                     showToast("Failed: " + (error.message || "Database error"));
                     return;
                 }
@@ -816,10 +851,8 @@
                 showToast("Item successfully listed on the marketplace!");
                 document.getElementById('mp-sell-qty').value = "1";
                 document.getElementById('mp-sell-price').value = "1";
-                
                 fetchMarketplaceItems();
             } catch (err) {
-                console.error("Catch Error:", err);
                 showToast("An error occurred while listing the item.");
             }
         }
@@ -835,13 +868,7 @@
                     .gt('price_rinth', 0)
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error(error);
-                    listContainer.innerHTML = '<div style="font-size: 11px; color: #e74c3c;">Failed to load offers.</div>';
-                    return;
-                }
-
-                if (!data || data.length === 0) {
+                if (error || !data || data.length === 0) {
                     listContainer.innerHTML = '<div style="font-size: 11px; color: #777;">No active items on the market.</div>';
                     return;
                 }
@@ -867,7 +894,6 @@
 
                 listContainer.innerHTML = html;
             } catch (err) {
-                console.error(err);
                 listContainer.innerHTML = '<div style="font-size: 11px; color: #e74c3c;">Error loading market items.</div>';
             }
         }
@@ -894,12 +920,7 @@
             updatePlayerUI();
             savePlayerStateToLocal();
 
-            let saleComment = "";
-            if (itemType === 'food') {
-                saleComment = `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.`;
-            } else {
-                saleComment = `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
-            }
+            let saleComment = itemType === 'food' ? `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.` : `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
 
             try {
                 const { error } = await dbClient
@@ -912,7 +933,6 @@
                     .eq('id', id);
 
                 if (error) {
-                    console.error(error);
                     showToast("Error updating marketplace transaction.");
                     return;
                 }
@@ -920,72 +940,7 @@
                 showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
                 fetchMarketplaceItems();
             } catch (err) {
-                console.error(err);
                 showToast("An error occurred during purchase.");
-            }
-        }
-        
-        async function processMarketplaceDecay() {
-            try {
-                const { data: activeOffers, error } = await dbClient
-                    .from('marketplace')
-                    .select('*')
-                    .gt('price_rinth', 0);
-
-                if (error || !activeOffers) return;
-
-                const now = new Date();
-
-                for (const item of activeOffers) {
-                    const createdAt = new Date(item.created_at);
-                    const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-
-                    let currentPrice = item.price_rinth;
-                    let qty = item.quantity;
-                    let newPrice = currentPrice;
-                    let newSold = item.sold || 0;
-                    let newComment = item.comments;
-                    let updateNeeded = false;
-
-                    if (item.item_type === 'food') {
-                        if (diffDays >= 3) {
-                            newPrice = 0;
-                            if (newSold === 0) {
-                                newComment = `Your food offer ${qty}kg on MP was not sold, but donated to the food bank after 3 days.`;
-                                updateNeeded = true;
-                            }
-                        }
-                    } else if (item.item_type === 'loot') {
-                        const standardValuePerKg = 200;
-                        const totalStandardValue = qty * standardValuePerKg;
-                        const scavengerThreshold = totalStandardValue * 0.25;
-                        const dailyDrop = Math.floor(standardValuePerKg * 0.10) * qty;
-
-                        if (diffDays >= 1 && currentPrice > 0) {
-                            newPrice = Math.max(0, currentPrice - dailyDrop);
-                            updateNeeded = true;
-
-                            if (newPrice <= scavengerThreshold) {
-                                newSold = newPrice;
-                                newPrice = 0;
-                                newComment = `Your loot offer ${qty}kg on MP has been bought up by the wheeler-dealer for ${newSold} Rinth.`;
-                            }
-                        }
-                    }
-
-                    if (updateNeeded) {
-                        await dbClient
-                            .from('marketplace')
-                            .update({
-                                price_rinth: newPrice,
-                                sold: newSold,
-                                comments: newComment
-                            })
-                            .eq('id', item.id);
-                    }
-                }
-            } catch (err) {
-                console.error("Error processing marketplace decay:", err);
             }
         }
 
@@ -1018,15 +973,10 @@
                     showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
 
                     for (const id of idsToClear) {
-                        await dbClient
-                            .from('marketplace')
-                            .delete()
-                            .eq('id', id);
+                        await dbClient.from('marketplace').delete().eq('id', id);
                     }
                 }
-            } catch (err) {
-                console.error("Error checking marketplace payouts:", err);
-            }
+            } catch (err) {}
         }
 
         function initRealtimeMarketplace() {
@@ -1044,7 +994,7 @@
                 .subscribe();
         }
 
-        // --- 3. Player State & Economy ---
+        // --- Player State & Economy ---
         let playerState = {
             score: 0,
             cash: 0,       
@@ -1107,6 +1057,7 @@
                 const { data: maxRoomData } = await dbClient
                     .from('puzzle_labyrinth')
                     .select('room_id')
+                    .eq('category', currentGameCategory)
                     .order('room_id', { ascending: false })
                     .limit(1);
 
@@ -1114,7 +1065,6 @@
                 if (maxRoomId < 100) return;
 
                 let factor = Math.floor(maxRoomId / 100);
-
                 let assetsPool = [];
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
@@ -1124,7 +1074,7 @@
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
                 for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
 
-                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y');
+                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory);
                 if (!allRooms || allRooms.length === 0) return;
 
                 let uniqueRoomsMap = new Map();
@@ -1139,11 +1089,7 @@
 
                 for (let asset of assetsPool) {
                     if (availableRooms.length === 0) break;
-
-                    let chosenRoom;
-                    let roomKey;
-                    let safetyCounter = 0;
-
+                    let chosenRoom, roomKey, safetyCounter = 0;
                     do {
                         let randomIndex = Math.floor(Math.random() * availableRooms.length);
                         chosenRoom = availableRooms[randomIndex];
@@ -1154,51 +1100,14 @@
 
                     if (!occupiedRoomKeys.has(roomKey)) {
                         occupiedRoomKeys.add(roomKey);
-                        if (!activeAssetsMap[roomKey]) {
-                            activeAssetsMap[roomKey] = [];
-                        }
+                        if (!activeAssetsMap[roomKey]) activeAssetsMap[roomKey] = [];
                         activeAssetsMap[roomKey].push(asset);
                     }
                 }
 
-                localStorage.setItem('dungeon_daily_assets', JSON.stringify(activeAssetsMap));
-            } catch (err) {
-                console.error("Error distributing daily automated assets:", err);
-            }
+                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
+            } catch (err) {}
         }
-
-        function checkDailyReset() {
-            const now = new Date();
-            const currentHour = now.getHours();
-
-            let activeGameDay = new Date(now);
-            if (currentHour < 3) {
-                activeGameDay.setDate(activeGameDay.getDate() - 1);
-            }
-            let activeGameDayStr = activeGameDay.toDateString();
-
-            if (playerState.lastResetDate !== activeGameDayStr && currentHour >= 3) {
-                playerState.timeLeft = 600; 
-                playerState.energy = 100;
-                playerState.survivalMode = true;
-                playerState.lastResetDate = activeGameDayStr;
-                localStorage.setItem('dungeon_last_reset_date', activeGameDayStr);
-
-                stopRobberPanic();
-                localStorage.removeItem('dungeon_daily_assets');
-
-                applyDailyAutomatedAssets().then(() => {
-                    if (window.currentRoomX !== undefined) {
-                        loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
-                    }
-                });
-
-                showToast("🌅 Daily Reset (3:00 AM): New day started, assets refreshed!");
-                updatePlayerUI();
-                savePlayerStateToLocal();
-            }
-        }
-        checkDailyReset();
 
         function updatePlayerUI() {
             const cashElem = document.getElementById('cash-count');
@@ -1238,8 +1147,6 @@
         }
 
         function handleRoomTransitionTime(currentPosX, currentPosY) {
-            checkDailyReset();
-            
             let currentRoomKey = currentPosX + '_' + currentPosY;
             if (activeRobberRoomKey && activeRobberRoomKey !== currentRoomKey) {
                 stopRobberPanic();
@@ -1295,7 +1202,7 @@
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
             document.getElementById('survival-content-body').style.display = "block";
             stopRobberPanic();
-            localStorage.removeItem('dungeon_daily_assets');
+            localStorage.removeItem('dungeon_daily_assets_' + currentGameCategory);
 
             applyDailyAutomatedAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
@@ -1304,14 +1211,12 @@
             });
 
             updatePlayerUI();
-            showToast("Simulated 3:00 AM Reset: Assets dynamically distributed based on room count!");
+            showToast("Simulated Reset: Assets dynamically distributed for " + currentGameCategory + "!");
         }
 
         function confirmToggleSurvival() {
             let nextMode = !playerState.survivalMode;
-            let msg = nextMode 
-                ? "Do you want to enable Survival Mode? Resources, energy penalties, and survival elements will become active."
-                : "Do you want to disable Survival Mode? All survival elements (Robin Robber, food, loot assets, and buildings) will be deactivated until the 03:00 AM reset.";
+            let msg = nextMode ? "Do you want to enable Survival Mode?" : "Do you want to disable Survival Mode?";
 
             openAssetPopup(
                 '<p style="font-size: 15px; margin-bottom: 20px;">' + msg + '</p>' +
@@ -1333,19 +1238,15 @@
                 btn.textContent = "ON";
                 btn.style.background = "#27ae60";
                 bodyContent.style.display = "block";
-                
                 if(sellPanel) sellPanel.style.display = 'block';
                 if(buyPanel) buyPanel.style.display = 'block';
-                
                 showToast("Survival Mode is enabled.");
             } else {
                 btn.textContent = "OFF";
                 btn.style.background = "#c0392b";
                 bodyContent.style.display = "none";
-                
                 if(sellPanel) sellPanel.style.display = 'none';
                 if(buyPanel) buyPanel.style.display = 'none';
-
                 showToast("Survival Mode is disabled.");
                 stopRobberPanic();
             }
@@ -1420,12 +1321,7 @@
 
         function triggerRobberEncounter(assetElement, posX, posY, entrySide) {
             let roomKey = posX + '_' + posY;
-            let robberRotation = '0deg';
-            if (entrySide === 'north') robberRotation = '180deg';
-            else if (entrySide === 'south') robberRotation = '0deg';
-            else if (entrySide === 'east') robberRotation = '-90deg';
-            else if (entrySide === 'west') robberRotation = '90deg';
-
+            let robberRotation = entrySide === 'north' ? '180deg' : (entrySide === 'south' ? '0deg' : (entrySide === 'east' ? '-90deg' : '90deg'));
             if (assetElement) {
                 assetElement.style.transform = 'translate(-50%, -50%) rotate(' + robberRotation + ')';
             }
@@ -1461,19 +1357,17 @@
                         '</div>'
                     );
                     break;
-
                 case 'asset_pawnshop_rs.png':
                     let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
                     openAssetPopup(
                         '<img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display=\'none\'">' +
-                        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster. Take it or leave it</p>' +
+                        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster.</p>' +
                         '<div class="retro-popup-buttons" id="pawn-btns">' +
                             '<button onclick="pawnshopTakeAction(' + randomPercent + ')">Take it</button>' +
                             '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
                         '</div>'
                     );
                     break;
-
                 case 'asset_police_rs.png':
                     openAssetPopup(
                         '<img src="policeman.png" alt="Policeman" onerror="this.style.display=\'none\'">' +
@@ -1485,7 +1379,6 @@
                         '</div>'
                     );
                     break;
-
                 case 'asset_super_rs.png':
                     openAssetPopup(
                         '<img src="supermarkt.png" alt="Supermarket" onerror="this.style.display=\'none\'">' +
@@ -1497,11 +1390,9 @@
                         '</div>'
                     );
                     break;
-
                 case 'asset_robber_rs.png':
                     triggerRobberEncounter(assetElement, posX, posY, entrySide);
                     break;
-
                 case 'asset_food_rs.png':
                     playerState.foodKg += 1.0;
                     updatePlayerUI();
@@ -1509,7 +1400,6 @@
                     removeAssetFromLocalStorage(roomKey, assetType);
                     showToast("You picked up food! Food stock increased by 1 kg.");
                     break;
-
                 case 'asset_loot_rs.png':
                     playerState.lootValue += 200;
                     updatePlayerUI();
@@ -1517,21 +1407,15 @@
                     removeAssetFromLocalStorage(roomKey, assetType);
                     showToast("You found loot! Loot value increased by 200 Rinth.");
                     break;
-
-                default:
-                    closeAssetPopup();
-                    break;
             }
         }
 
         function removeAssetFromLocalStorage(roomKey, assetType) {
-            let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+            let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
             if (dailyAssetsMap[roomKey]) {
                 dailyAssetsMap[roomKey] = dailyAssetsMap[roomKey].filter(src => src !== assetType);
-                if (dailyAssetsMap[roomKey].length === 0) {
-                    delete dailyAssetsMap[roomKey];
-                }
-                localStorage.setItem('dungeon_daily_assets', JSON.stringify(dailyAssetsMap));
+                if (dailyAssetsMap[roomKey].length === 0) delete dailyAssetsMap[roomKey];
+                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(dailyAssetsMap));
             }
         }
 
@@ -1560,56 +1444,49 @@
             }
             document.getElementById('popup-text').textContent = "Don’t you worry, we will take care of it.";
             
-            dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', parseInt(roomVal, 10)).limit(1).then(({data}) => {
+            dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', parseInt(roomVal, 10)).limit(1).then(({data}) => {
                 if (data && data.length > 0) {
                     let targetKey = data[0].pos_x + '_' + data[0].pos_y;
-                    if (activeRobberRoomKey === targetKey) {
-                        stopRobberPanic();
-                    }
+                    if (activeRobberRoomKey === targetKey) stopRobberPanic();
 
-                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
                     if (dailyAssetsMap[targetKey]) {
                         dailyAssetsMap[targetKey] = dailyAssetsMap[targetKey].filter(src => src !== 'asset_robber_rs.png');
-                        localStorage.setItem('dungeon_daily_assets', JSON.stringify(dailyAssetsMap));
+                        localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(dailyAssetsMap));
                     }
                 }
             });
 
             document.querySelectorAll('.room-placed-asset').forEach(el => {
-                if(el.getAttribute('data-type') === 'asset_robber_rs.png') {
-                    el.remove();
-                }
+                if(el.getAttribute('data-type') === 'asset_robber_rs.png') el.remove();
             });
         };
 
         window.supermarketBuyAction = function() {
             let kgInput = parseInt(document.getElementById('super-kg-input').value, 10);
             if(isNaN(kgInput) || kgInput <= 0) {
-                showToast("Please enter a valid whole number of kilograms.");
+                showToast("Please enter a valid amount.");
                 return;
             }
             let cost = kgInput * 2;
-            
-            if (playerState.cash >= cost) {
+            if (playerState.cash >= kgInput * 2) {
                 playerState.cash -= cost;
             } else if (playerState.credit >= cost) {
                 playerState.credit -= cost;
             } else {
-                document.getElementById('popup-text').textContent = "Sorry, You don’t have enough money.";
+                document.getElementById('popup-text').textContent = "You don’t have enough money.";
                 return;
             }
-
             playerState.foodKg += kgInput;
             updatePlayerUI();
-            document.getElementById('popup-text').textContent = `That will be ${cost} Rinth, please.`;
+            document.getElementById('popup-text').textContent = `That will be ${cost} Rinth.`;
             document.getElementById('super-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
         };
 
-        // --- Draggable Logic voor Panels met automatische state herstel ---
+        // --- Draggable Logic ---
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
-            
             const savedPos = localStorage.getItem('panel_pos_' + panelId);
             if (savedPos) {
                 const pos = JSON.parse(savedPos);
@@ -1699,17 +1576,16 @@
         }
 
         const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
-        let activeTimerInterval = null;
         let selectedDoorKey = null;
 
         function getLocalDoorStatus(x, y, wallSide) {
-            const savedState = localStorage.getItem('dungeon_unlocked_doors');
+            const savedState = localStorage.getItem('dungeon_unlocked_doors_' + currentGameCategory);
             const stateMap = savedState ? JSON.parse(savedState) : {};
             return !!stateMap[x + '_' + y + '_' + wallSide];
         }
 
         function setLocalDoorStatus(posX, posY, wallSide) {
-            const savedState = localStorage.getItem('dungeon_unlocked_doors');
+            const savedState = localStorage.getItem('dungeon_unlocked_doors_' + currentGameCategory);
             const stateMap = savedState ? JSON.parse(savedState) : {};
             stateMap[posX + '_' + posY + '_' + wallSide] = true;
 
@@ -1720,21 +1596,21 @@
             if (wallSide === 'west') targetX -= 1;
 
             stateMap[targetX + '_' + targetY + '_' + oppositeSideMap[wallSide]] = true;
-            localStorage.setItem('dungeon_unlocked_doors', JSON.stringify(stateMap));
+            localStorage.setItem('dungeon_unlocked_doors_' + currentGameCategory, JSON.stringify(stateMap));
         }
 
         function addBreadcrumb(roomId, posX, posY) {
-            let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
+            let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs_' + currentGameCategory)) || [];
             crumbs = crumbs.filter(c => c.roomId !== roomId);
             crumbs.unshift({ roomId, posX, posY });
             if (crumbs.length > 10) crumbs.pop();
-            localStorage.setItem('dungeon_breadcrumbs', JSON.stringify(crumbs));
+            localStorage.setItem('dungeon_breadcrumbs_' + currentGameCategory, JSON.stringify(crumbs));
             renderBreadcrumbs();
         }
 
         function renderBreadcrumbs() {
             const container = document.getElementById('breadcrumb-body');
-            const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs')) || [];
+            const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs_' + currentGameCategory)) || [];
             
             if (crumbs.length === 0) {
                 container.innerHTML = "No rooms visited yet.";
@@ -1755,9 +1631,10 @@
 
         async function loadMaxRoomStat() {
             try {
-                const { data } = await dbClient.from('puzzle_labyrinth').select('room_id').order('room_id', { ascending: false }).limit(1);
+                const { data } = await dbClient.from('puzzle_labyrinth').select('room_id').eq('category', currentGameCategory).order('room_id', { ascending: false }).limit(1);
                 if (data && data.length > 0) document.getElementById('max-room-stat').textContent = data[0].room_id || '1';
-            } catch (err) { console.error(err); }
+                else document.getElementById('max-room-stat').textContent = '1';
+            } catch (err) {}
         }
 
         async function executeWarp() {
@@ -1766,28 +1643,147 @@
             if (isNaN(targetRoomId) || targetRoomId < 1) return;
             
             try {
-                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', targetRoomId).limit(1);
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', targetRoomId).limit(1);
                 if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
-            } catch (err) { console.error(err); }
+            } catch (err) {}
         }
 
+        // --- Lift Jump met Categoriegeheugen ---
         async function executeLiftJump() {
+            const selectedCat = document.getElementById('lift-category-select').value;
             const roomInput = document.getElementById('lift-room-input').value.trim();
-            const targetRoomId = parseInt(roomInput, 10);
-            if (isNaN(targetRoomId) || targetRoomId < 1) {
-                showToast("Please enter a valid room number for the lift.");
+            const targetRoomId = roomInput !== '' ? parseInt(roomInput, 10) : null;
+
+            if (window.currentRoomX !== undefined && window.currentRoomY !== undefined) {
+                localStorage.setItem('dungeon_last_coords_' + currentGameCategory, JSON.stringify({x: window.currentRoomX, y: window.currentRoomY}));
+            }
+
+            currentGameCategory = selectedCat;
+            localStorage.setItem('dungeon_current_category', currentGameCategory);
+
+            try {
+                if (targetRoomId !== null && !isNaN(targetRoomId)) {
+                    const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', targetRoomId).limit(1);
+                    if (data && data.length > 0) {
+                        loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        showToast(`Elevator transported you to ${currentGameCategory} - Room ${targetRoomId}!`);
+                    } else {
+                        showToast(`Room ${targetRoomId} not found in ${currentGameCategory}.`);
+                    }
+                } else {
+                    let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
+                    if (lastCoordsStr) {
+                        let coords = JSON.parse(lastCoordsStr);
+                        loadRoomByCoords(coords.x, coords.y, 'south');
+                        showToast(`Elevator restored your position in ${currentGameCategory}!`);
+                    } else {
+                        const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).order('room_id', { ascending: true }).limit(1);
+                        if (data && data.length > 0) {
+                            loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        } else {
+                            loadRoomByCoords(0, 0, 'south');
+                        }
+                        showToast(`Welcome to ${currentGameCategory} (Room 1)!`);
+                    }
+                }
+                loadMaxRoomStat();
+                fetchMarketplaceItems();
+            } catch (err) {
+                showToast("Error switching category via lift.");
+            }
+        }
+
+        // --- Like, Dislike & Retro Report Functies ---
+        async function votePuzzle(puzzleId, voteType) {
+            let votedKey = 'dungeon_voted_' + puzzleId;
+            if (localStorage.getItem(votedKey)) {
+                showToast("You have already voted for this puzzle!");
                 return;
             }
-            
+
             try {
-                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('room_id', targetRoomId).limit(1);
-                if (data && data.length > 0) {
-                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
-                    showToast(`Elevator successfully transported you to Room ${targetRoomId}!`);
-                } else {
-                    showToast(`Room ${targetRoomId} could not be found.`);
+                const { data: currentPuzzle } = await dbClient.from('puzzle_labyrinth').select('likes, dislikes').eq('id', puzzleId).single();
+                if (!currentPuzzle) {
+                    showToast("Puzzle not found.");
+                    return;
                 }
-            } catch (err) { console.error(err); }
+
+                let updatePayload = {};
+                if (voteType === 'like') {
+                    updatePayload.likes = (currentPuzzle.likes || 0) + 1;
+                } else {
+                    updatePayload.dislikes = (currentPuzzle.dislikes || 0) + 1;
+                }
+
+                const { error } = await dbClient.from('puzzle_labyrinth').update(updatePayload).eq('id', puzzleId);
+                if (error) {
+                    showToast("Failed to record vote.");
+                    return;
+                }
+
+                localStorage.setItem(votedKey, 'true');
+                showToast(voteType === 'like' ? "👍 Thank you for liking this puzzle!" : "👎 Feedback received.");
+            } catch (err) {
+                showToast("Error submitting vote.");
+            }
+        }
+
+        function reportActivePuzzle() {
+            const puzzle = window.activeSolvedPuzzle;
+            if (!puzzle) {
+                showToast("No active puzzle selected to report.");
+                return;
+            }
+
+            openAssetPopup(
+                '<div style="text-align: left;">' +
+                    '<h3 style="color: #e74c3c; margin-top: 0; margin-bottom: 10px; text-align: center;">Report Offensive Content</h3>' +
+                    '<p style="font-size: 12px; color: #aaa; margin-bottom: 12px; text-align: center;">Puzzle: "' + (puzzle.puzzle_name || 'Unknown') + '" | Room: R-' + puzzle.room_id + ' | Wall: ' + puzzle.wall_side + '</p>' +
+                    '<label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px; color:#ffd700;">Reason / Comment:</label>' +
+                    '<textarea id="report-comment-input" placeholder="Describe why this content is offensive..."></textarea>' +
+                    '<label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px; color:#ffd700;">Your E-mail (Optional):</label>' +
+                    '<input type="text" id="report-email-input" placeholder="your@email.com">' +
+                    '<div class="retro-popup-buttons" style="margin-top: 15px;">' +
+                        '<button onclick="submitPuzzleReport()" style="background: #27ae60;">Submit Report</button>' +
+                        '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
+                    '</div>' +
+                '</div>'
+            );
+        }
+
+        async function submitPuzzleReport() {
+            const puzzle = window.activeSolvedPuzzle;
+            const commentText = document.getElementById('report-comment-input').value.trim();
+            const emailText = document.getElementById('report-email-input').value.trim();
+
+            if (!commentText) {
+                showToast("Please enter a reason for reporting.");
+                return;
+            }
+
+            try {
+                const payload = {
+                    puzzle_id: puzzle.id,
+                    puzzle_name: puzzle.puzzle_name || null,
+                    room_id: Number(puzzle.room_id) || null,
+                    wall_side: puzzle.wall_side || null,
+                    designer_id: puzzle.designer_id && puzzle.designer_id !== 'null' && puzzle.designer_id !== '' ? puzzle.designer_id : null,
+                    reporter_email: emailText || null,
+                    report_comment: commentText
+                };
+
+                const { error } = await dbClient.from('puzzle_reports').insert([payload]);
+
+                if (error) {
+                    showToast("Failed to submit report: " + error.message);
+                    return;
+                }
+
+                closeAssetPopup();
+                showToast("🚨 Puzzle successfully reported to administrators.");
+            } catch (err) {
+                showToast("An error occurred while reporting.");
+            }
         }
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
@@ -1797,19 +1793,18 @@
 
             const roomContent = document.getElementById('room-content');
             selectedDoorKey = null;
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
             document.getElementById('quest-body').innerHTML = "Click on a door to view details. Click again to play.";
 
-            if (entrySide !== null) {
-                handleRoomTransitionTime(posX, posY);
-            }
+            if (entrySide !== null) handleRoomTransitionTime(posX, posY);
             
             const updateRoomContent = async () => {
                 try {
-                    const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY);
+                    const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('category', currentGameCategory);
                     const roomId = puzzles?.[0]?.room_id || '?';
                     
-                    document.getElementById('game-header-title').innerHTML = 'Room ' + roomId + ' | Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+                    document.getElementById('game-room-title').textContent = 'Room ' + roomId + ' (' + currentGameCategory + ')';
+                    document.getElementById('game-score-title').innerHTML = 'Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+
                     if (roomId !== '?') addBreadcrumb(roomId, posX, posY);
                     
                     const hero = document.getElementById('hero');
@@ -1838,7 +1833,7 @@
                             setDoorPositionAndStyle(img, wallSide);
 
                             img.addEventListener('click', async () => {
-                                const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).single();
+                                const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
                                 const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
 
                                 document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
@@ -1865,7 +1860,7 @@
                         });
                     }
 
-                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets')) || {};
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
                     let roomKey = posX + '_' + posY;
                     if (dailyAssetsMap[roomKey]) {
                         dailyAssetsMap[roomKey].forEach(assetSrc => {
@@ -1882,14 +1877,12 @@
                             roomContent.appendChild(placedAsset);
 
                             if (assetSrc === 'asset_robber_rs.png' && playerState.survivalMode) {
-                                setTimeout(() => {
-                                    triggerRobberEncounter(placedAsset, posX, posY, entrySide);
-                                }, 150);
+                                setTimeout(() => triggerRobberEncounter(placedAsset, posX, posY, entrySide), 150);
                             }
                         });
                     }
 
-                } catch (err) { console.error(err); }
+                } catch (err) {}
             };
 
             if (entrySide === null) {
@@ -1947,7 +1940,18 @@
                 const userAnswer = document.getElementById('p-ans').value.trim();
                 if(userAnswer.toLowerCase() === a.toLowerCase()) {
                     playerState.score += maxReward;
-                    questContent.innerHTML = '<span style="color: #4cd137;">Correct! Earned ' + maxReward + ' points. Door is open.</span>';
+                    
+                    // Sla de opgeloste puzzel globaal op zodat de report-functie er altijd bij kan
+                    window.activeSolvedPuzzle = puzzle;
+                    updatePlayerUI();
+
+                    // Succes + Like, Dislike & Retro Report knoppen
+                    questContent.innerHTML = '<span style="color: #4cd137;">Correct! Earned ' + maxReward + ' points. Door is open.</span>' +
+                        '<div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">' +
+                            '<button onclick="votePuzzle(\'' + puzzle.id + '\', \'like\')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>' +
+                            '<button onclick="votePuzzle(\'' + puzzle.id + '\', \'dislike\')" style="background: transparent; border: none; cursor: pointer;" title="Dislike"><img src="disLike_red_symb.png" style="width: 28px; height: 28px;" alt="Dislike"></button>' +
+                            '<button onclick="reportActivePuzzle()" style="background: transparent; border: none; cursor: pointer;" title="Report Puzzle"><img src="report_symb.png" style="width: 28px; height: 28px;" alt="Report"></button>' +
+                        '</div>';
                     callback(true);
                 } else {
                     document.getElementById('feedback-msg').innerHTML = '<span style="color: #ff6b6b;">Wrong answer!</span>';
@@ -1959,10 +1963,19 @@
         async function initGame() {
             renderBreadcrumbs();
             loadMaxRoomStat();
-            loadRoomByCoords(0, 0, 'south');
+            
+            let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
+            if (lastCoordsStr) {
+                let coords = JSON.parse(lastCoordsStr);
+                loadRoomByCoords(coords.x, coords.y, 'south');
+            } else {
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).order('room_id', { ascending: true }).limit(1);
+                if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                else loadRoomByCoords(0, 0, 'south');
+            }
+
             fetchMarketplaceItems();
             checkMarketplacePayouts();
-            processMarketplaceDecay();
             initRealtimeMarketplace();
         }
 
