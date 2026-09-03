@@ -1964,6 +1964,25 @@
             renderBreadcrumbs();
             loadMaxRoomStat();
             
+            // Controleer of we via een dubbelklik vanuit de Map zijn gekomen
+            let targetRoomId = localStorage.getItem('target_room');
+            
+            if (targetRoomId) {
+                localStorage.removeItem('target_room'); // Wis hem zodat het eenmalig is
+                try {
+                    const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', parseInt(targetRoomId, 10)).limit(1);
+                    if (data && data.length > 0) {
+                        loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        showToast(`Transferred to Room ${targetRoomId} from Map!`);
+                        fetchMarketplaceItems();
+                        checkMarketplacePayouts();
+                        initRealtimeMarketplace();
+                        return;
+                    }
+                } catch (err) {}
+            }
+
+            // Normale opstartlogica (laatste bekende coördinaten of kamer 1)
             let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
             if (lastCoordsStr) {
                 let coords = JSON.parse(lastCoordsStr);
