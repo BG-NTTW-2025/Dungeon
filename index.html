@@ -111,7 +111,7 @@
         .ui-panel { width: 320px; min-height: 10px; }
         #inventory-panel { top: 50px; left: 410px; width: 200px; }
         #quest-panel { top: 320px; left: 410px; width: 320px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 560px; left: 410px; width: 190px; max-height: 160px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 410px; width: 200px; max-height: 160px; overflow-y: auto; }
         #gamemenu-panel { top: 50px; left: 770px; width: 180px; }
         #test-panel { top: 380px; left: 770px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
@@ -493,7 +493,7 @@
                 <label>Item Type:</label>
                 <select id="mp-sell-type" onchange="updateMaxPriceHint()">
                     <option value="food">Food (Max 1.60 Rinth/kg)</option>
-                    <option value="loot">Loot (Max 80 Rinth/kg)</option>
+                    <option value="loot">Loot (Max 160 Rinth/kg)</option>
                 </select>
             </div>
             <div class="mp-row">
@@ -592,7 +592,7 @@
                 <div class="status-section">
                     <div class="status-row"><span>Time left:</span> <strong id="time-left-val" style="color: #ffd700;">10:00h</strong></div>
                     <div class="status-row"><span>Energy:</span> <strong id="energy-val" style="color: #4cd137;">100%</strong></div>
-                    <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">Unlimited</strong></div>
+                    <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">5</strong></div>
                     <div class="status-row"><span>Total Weight:</span> <strong id="weight-val" style="color: #e67e22;">0.0 kg</strong></div>
                 </div>
                 <div class="inventory-section" id="inventory-section-box">
@@ -759,7 +759,7 @@
             if (type === 'food') {
                 label.textContent = "Ask Price (Max 1.60 Rinth/kg):";
             } else {
-                label.textContent = "Ask Price (Max 80 Rinth/kg):";
+                label.textContent = "Ask Price (Max 160 Rinth/kg):";
             }
         }
 
@@ -782,7 +782,7 @@
             if (itemType === 'food') {
                 maxAllowedPrice = Math.floor(qtyInput * 1.60);
             } else {
-                maxAllowedPrice = qtyInput * 80;
+                maxAllowedPrice = qtyInput * 160;
             }
 
             if (priceInput > maxAllowedPrice) {
@@ -1001,6 +1001,7 @@
             credit: 0,      
             energy: 100,    
             timeLeft: 595,  
+            warpsLeft: 5,   
             lootValue: 0, 
             foodKg: 0.0,    
             survivalMode: true,
@@ -1018,6 +1019,7 @@
                     playerState.credit = parsed.credit ?? 0;
                     playerState.energy = parsed.energy ?? 100;
                     playerState.timeLeft = parsed.timeLeft ?? 595;
+                    playerState.warpsLeft = parsed.warpsLeft ?? 5;
                     playerState.lootValue = parsed.lootValue ?? 0;
                     playerState.foodKg = parsed.foodKg ?? 0.0;
                     playerState.survivalMode = parsed.survivalMode ?? true;
@@ -1114,6 +1116,7 @@
             const creditElem = document.getElementById('credit-count');
             const energyElem = document.getElementById('energy-val');
             const timeLeftElem = document.getElementById('time-left-val');
+            const warpsElem = document.getElementById('warps-val');
             const weightElem = document.getElementById('weight-val');
             
             const lootValueElem = document.getElementById('loot-value-val');
@@ -1122,6 +1125,7 @@
             
             if (cashElem) cashElem.textContent = playerState.cash + ' Rinth';
             if (creditElem) creditElem.textContent = playerState.credit + ' Rinth';
+            if (warpsElem) warpsElem.textContent = playerState.warpsLeft;
             
             if (energyElem) {
                 energyElem.textContent = playerState.energy + '%';
@@ -1197,6 +1201,7 @@
         function simulateDailyReset() {
             playerState.timeLeft = 600; 
             playerState.energy = 100;
+            playerState.warpsLeft = 5;
             playerState.survivalMode = true;
             document.getElementById('survival-toggle-btn').textContent = "ON";
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
@@ -1211,7 +1216,7 @@
             });
 
             updatePlayerUI();
-            showToast("Simulated Reset: Assets dynamically distributed for " + currentGameCategory + "!");
+            showToast("Simulated Reset: Assets dynamically distributed & warps refilled!");
         }
 
         function confirmToggleSurvival() {
@@ -1638,13 +1643,25 @@
         }
 
         async function executeWarp() {
+            if (playerState.warpsLeft <= 0) {
+                showToast("You have no warps left!");
+                return;
+            }
+
             const roomInput = document.getElementById('warp-room-input').value.trim();
             const targetRoomId = parseInt(roomInput, 10);
             if (isNaN(targetRoomId) || targetRoomId < 1) return;
             
             try {
                 const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', targetRoomId).limit(1);
-                if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                if (data && data.length > 0) {
+                    playerState.warpsLeft -= 1;
+                    updatePlayerUI();
+                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                    showToast(`Warp successful! ${playerState.warpsLeft} warps remaining.`);
+                } else {
+                    showToast(`Room ${targetRoomId} not found.`);
+                }
             } catch (err) {}
         }
 
@@ -1792,6 +1809,7 @@
             window.currentEntrySide = entrySide;
 
             const roomContent = document.getElementById('room-content');
+            const roomElement = document.getElementById('room');
             selectedDoorKey = null;
             document.getElementById('quest-body').innerHTML = "Click on a door to view details. Click again to play.";
 
@@ -1800,6 +1818,30 @@
             const updateRoomContent = async () => {
                 try {
                     const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('category', currentGameCategory);
+                    
+                    // Twilight Zone check: als er geen deuren/puzzles zijn op deze coördinaten
+                    if (!puzzles || puzzles.length === 0) {
+                        roomElement.style.backgroundImage = "url('twilight_room.png')";
+                        document.getElementById('game-room-title').textContent = 'The Twilight Zone (' + currentGameCategory + ')';
+                        document.getElementById('game-score-title').innerHTML = 'Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+
+                        const hero = document.getElementById('hero');
+                        roomContent.innerHTML = ''; 
+                        roomContent.appendChild(hero);
+                        setHeroPosition(hero, entrySide);
+
+                        openAssetPopup(
+                            '<h3 style="color: #9b59b6; margin-top: 0;">Welcome to the Twilight Zone</h3>' +
+                            '<p>Because of automatic correction, you have now entered a forgotten sector. Try to escape with Warp, your Breadcrumbs trail, or use the elevator to another room.</p>' +
+                            '<div class="retro-popup-buttons">' +
+                                '<button onclick="closeAssetPopup()" style="background: #9b59b6;">Accept Fate</button>' +
+                            '</div>'
+                        );
+                        return;
+                    } else {
+                        roomElement.style.backgroundImage = "url('Empty_Room.png')";
+                    }
+
                     const roomId = puzzles?.[0]?.room_id || '?';
                     
                     document.getElementById('game-room-title').textContent = 'Room ' + roomId + ' (' + currentGameCategory + ')';
@@ -1812,53 +1854,51 @@
                     roomContent.appendChild(hero);
                     setHeroPosition(hero, entrySide);
 
-                    if (puzzles) {
-                        puzzles.forEach(puzzle => {
-                            const img = document.createElement('img');
-                            const wallSide = puzzle.wall_side;
-                            const doorKey = posX + '_' + posY + '_' + wallSide;
-                            img.setAttribute('data-doorkey', doorKey);
+                    puzzles.forEach(puzzle => {
+                        const img = document.createElement('img');
+                        const wallSide = puzzle.wall_side;
+                        const doorKey = posX + '_' + posY + '_' + wallSide;
+                        img.setAttribute('data-doorkey', doorKey);
 
-                            let targetX = posX, targetY = posY;
-                            if (wallSide === 'north') targetY += 1;
-                            if (wallSide === 'south') targetY -= 1;
-                            if (wallSide === 'east') targetX += 1;
-                            if (wallSide === 'west') targetX -= 1;
+                        let targetX = posX, targetY = posY;
+                        if (wallSide === 'north') targetY += 1;
+                        if (wallSide === 'south') targetY -= 1;
+                        if (wallSide === 'east') targetX += 1;
+                        if (wallSide === 'west') targetX -= 1;
 
-                            const hasActivePuzzle = puzzle.question && puzzle.question.trim() !== "";
-                            let isSolved = !hasActivePuzzle || getLocalDoorStatus(posX, posY, wallSide);
+                        const hasActivePuzzle = puzzle.question && puzzle.question.trim() !== "";
+                        let isSolved = !hasActivePuzzle || getLocalDoorStatus(posX, posY, wallSide);
 
-                            img.src = isSolved ? 'DoorWay.png' : 'Door.png';
-                            img.className = 'door-asset';
-                            setDoorPositionAndStyle(img, wallSide);
+                        img.src = isSolved ? 'DoorWay.png' : 'Door.png';
+                        img.className = 'door-asset';
+                        setDoorPositionAndStyle(img, wallSide);
 
-                            img.addEventListener('click', async () => {
-                                const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
-                                const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
+                        img.addEventListener('click', async () => {
+                            const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
+                            const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
 
-                                document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
+                            document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
 
-                                if (liveSolved) {
-                                    loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
+                            if (liveSolved) {
+                                loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
+                            } else {
+                                if (selectedDoorKey !== doorKey) {
+                                    selectedDoorKey = doorKey;
+                                    img.classList.add('selected');
+                                    showDoorInfo(freshData);
                                 } else {
-                                    if (selectedDoorKey !== doorKey) {
-                                        selectedDoorKey = doorKey;
-                                        img.classList.add('selected');
-                                        showDoorInfo(freshData);
-                                    } else {
-                                        triggerDoorPuzzle(freshData, doorKey, (success) => {
-                                            if (success) {
-                                                setLocalDoorStatus(posX, posY, wallSide);
-                                                img.src = 'DoorWay.png';
-                                                selectedDoorKey = null;
-                                            }
-                                        });
-                                    }
+                                    triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                        if (success) {
+                                            setLocalDoorStatus(posX, posY, wallSide);
+                                            img.src = 'DoorWay.png';
+                                            selectedDoorKey = null;
+                                        }
+                                    });
                                 }
-                            });
-                            roomContent.appendChild(img);
+                            }
                         });
-                    }
+                        roomContent.appendChild(img);
+                    });
 
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
                     let roomKey = posX + '_' + posY;
@@ -1941,11 +1981,9 @@
                 if(userAnswer.toLowerCase() === a.toLowerCase()) {
                     playerState.score += maxReward;
                     
-                    // Sla de opgeloste puzzel globaal op zodat de report-functie er altijd bij kan
                     window.activeSolvedPuzzle = puzzle;
                     updatePlayerUI();
 
-                    // Succes + Like, Dislike & Retro Report knoppen
                     questContent.innerHTML = '<span style="color: #4cd137;">Correct! Earned ' + maxReward + ' points. Door is open.</span>' +
                         '<div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">' +
                             '<button onclick="votePuzzle(\'' + puzzle.id + '\', \'like\')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>' +
@@ -1964,11 +2002,10 @@
             renderBreadcrumbs();
             loadMaxRoomStat();
             
-            // Controleer of we via een dubbelklik vanuit de Map zijn gekomen
             let targetRoomId = localStorage.getItem('target_room');
             
             if (targetRoomId) {
-                localStorage.removeItem('target_room'); // Wis hem zodat het eenmalig is
+                localStorage.removeItem('target_room');
                 try {
                     const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', parseInt(targetRoomId, 10)).limit(1);
                     if (data && data.length > 0) {
@@ -1982,7 +2019,6 @@
                 } catch (err) {}
             }
 
-            // Normale opstartlogica (laatste bekende coördinaten of kamer 1)
             let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
             if (lastCoordsStr) {
                 let coords = JSON.parse(lastCoordsStr);
