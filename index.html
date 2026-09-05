@@ -1979,7 +1979,6 @@
             const creditsCost = parseInt(puzzle.credits_cost) || 5;
 
             let failedAttempts = 0;
-            let timerHtml = "";
             let remainingTime = googleTimerSec;
             let timerInterval = null;
 
@@ -1999,20 +1998,24 @@
                         remainingTime--;
                         const timerSpan = document.getElementById('timer-val');
                         if (timerSpan) timerSpan.textContent = remainingTime;
+                        
                         if (remainingTime <= 0) {
                             clearInterval(timerInterval);
                             playerState.score = Math.max(0, playerState.score - wrongPenalty);
                             updatePlayerUI();
                             showToast("Anti-Google Timer expired! Penalty applied.");
+                            
+                            const timerBox = document.getElementById('google-timer-box');
+                            if (timerBox) timerBox.style.color = "#ff3333";
                         }
                     }, 1000);
                 }
 
                 document.getElementById('btn-ans').onclick = () => {
-                    if (timerInterval) clearInterval(timerInterval);
                     const userAnswer = document.getElementById('p-ans').value.trim();
 
                     if (userAnswer.toLowerCase() === a.toLowerCase()) {
+                        if (timerInterval) clearInterval(timerInterval); // Stop de timer pas bij een CORRECT antwoord
                         playerState.score += maxReward;
                         window.activeSolvedPuzzle = puzzle;
                         updatePlayerUI();
@@ -2025,6 +2028,7 @@
                             </div>`;
                         callback(true);
                     } else {
+                        // Bij een fout antwoord blijft de timer gewoon doorlopen!
                         failedAttempts++;
                         playerState.score = Math.max(0, playerState.score - wrongPenalty);
                         updatePlayerUI();
@@ -2035,6 +2039,7 @@
                         document.getElementById('hint-box').textContent = hintBoxText;
 
                         if (failedAttempts >= 3) {
+                            if (timerInterval) clearInterval(timerInterval); // Stop timer bij 3 fouten
                             if (revealOpt === 'free_answer') {
                                 questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
                                 callback(false);
@@ -2056,6 +2061,12 @@
                             }
                         } else {
                             document.getElementById('feedback-msg').innerHTML = `<span style="color: #ff6b6b;">Wrong answer! (-${wrongPenalty} pts)</span>`;
+                            // Reset invoerveld zodat de speler direct door kan raden terwijl de tijd wegtikt
+                            const ansInput = document.getElementById('p-ans');
+                            if (ansInput) {
+                                ansInput.value = "";
+                                ansInput.focus();
+                            }
                         }
                     }
                 };
