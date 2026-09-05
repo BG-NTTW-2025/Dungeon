@@ -122,7 +122,7 @@
         .door-asset { 
             cursor: pointer; 
             position: absolute; 
-            width: 160px; 
+            width: 80px; 
             height: 40px; 
             z-index: 5; 
             transition: filter 0.2s;
@@ -1948,20 +1948,20 @@
         function setHeroPosition(hero, side) {
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
             switch(side) {
-                case 'north': hero.style.left = '150px'; hero.style.top = '38px'; break;
-                case 'east': hero.style.left = '300px'; hero.style.top = '126px'; break;
-                case 'south': hero.style.left = '150px'; hero.style.top = '210px'; break;
-                case 'west': hero.style.left = '10px'; hero.style.top = '126px'; break;
+                case 'north': hero.style.left = '201px'; hero.style.top = '38px'; break;
+                case 'east': hero.style.left = '353px'; hero.style.top = '126px'; break;
+                case 'south': hero.style.left = '201px'; hero.style.top = '210px'; break;
+                case 'west': hero.style.left = '45px'; hero.style.top = '126px'; break;
             }
             hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
         }
 
         function setDoorPositionAndStyle(img, wallSide) {
             switch(wallSide) {
-                case 'north': img.style.top = '15px'; img.style.left = '185px'; img.style.transform = 'rotate(0deg)'; break;
-                case 'east': img.style.top = '130px'; img.style.left = '370px'; img.style.transform = 'rotate(90deg)'; break;
-                case 'south': img.style.top = '245px'; img.style.left = '185px'; img.style.transform = 'rotate(180deg)'; break;
-                case 'west': img.style.top = '130px'; img.style.left = '0px'; img.style.transform = 'rotate(-90deg)'; break;
+                case 'north': img.style.top = '0px'; img.style.left = '185px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '120px'; img.style.left = '370px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '260px'; img.style.left = '185px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '120px'; img.style.left = '0px'; img.style.transform = 'rotate(-90deg)'; break;
             }
         }
 
