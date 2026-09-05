@@ -63,20 +63,20 @@
             padding: 0;
         }
 
-        #game-container { top: 50px; left: 50px; width: 340px; }
+        #game-container { top: 50px; left: 50px; width: 510px; }
 
         .room-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            height: 220px;
+            height: 330px;
         }
 
         #room {
             position: relative;
-            width: 300px;
-            height: 200px;
+            width: 450px;
+            height: 300px;
             background-color: #333;
             background-image: url('Empty_Room.png');
             background-size: cover;
@@ -98,8 +98,8 @@
 
         #hero {
             position: absolute;
-            width: 32px;
-            height: 32px;
+            width: 48px;
+            height: 48px;
             background-image: url('Hero.png');
             background-size: contain;
             background-repeat: no-repeat;
@@ -109,15 +109,15 @@
         }
 
         .ui-panel { width: 320px; min-height: 10px; }
-        #inventory-panel { top: 50px; left: 410px; width: 200px; }
-        #quest-panel { top: 320px; left: 410px; width: 320px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 560px; left: 410px; width: 200px; max-height: 160px; overflow-y: auto; }
-        #gamemenu-panel { top: 50px; left: 770px; width: 180px; }
-        #test-panel { top: 380px; left: 770px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #inventory-panel { top: 50px; left: 580px; width: 200px; }
+        #quest-panel { top: 320px; left: 580px; width: 320px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 580px; width: 200px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 940px; width: 180px; }
+        #test-panel { top: 380px; left: 940px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
-        #marketplace-sell-panel { top: 50px; left: 1060px; width: 220px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 380px; left: 1060px; width: 220px; background: #2c3e50; border-color: #2980b9; }
-        #lift-panel { top: 620px; left: 770px; width: 195px; background: #4a235a; border-color: #8e44ad; }
+        #marketplace-sell-panel { top: 50px; left: 1140px; width: 220px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 380px; left: 1140px; width: 220px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 620px; left: 940px; width: 195px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
@@ -1948,22 +1948,22 @@
         function setHeroPosition(hero, side) {
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
             switch(side) {
-                case 'north': hero.style.left = '134px'; hero.style.top = '25px'; break;
-                case 'east': hero.style.left = '235px'; hero.style.top = '84px'; break;
-                case 'south': hero.style.left = '134px'; hero.style.top = '140px'; break;
-                case 'west': hero.style.left = '30px'; hero.style.top = '84px'; break;
+                case 'north': hero.style.left = '201px'; hero.style.top = '38px'; break;
+                case 'east': hero.style.left = '353px'; hero.style.top = '126px'; break;
+                case 'south': hero.style.left = '201px'; hero.style.top = '210px'; break;
+                case 'west': hero.style.left = '45px'; hero.style.top = '126px'; break;
             }
             hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
         }
 
         function setDoorPositionAndStyle(img, wallSide) {
-    switch(wallSide) {
-        case 'north': img.style.top = '0px'; img.style.left = '110px'; img.style.transform = 'rotate(0deg)'; break;
-        case 'east': img.style.top = '80px'; img.style.left = '240px'; img.style.transform = 'rotate(90deg)'; break;
-        case 'south': img.style.top = '160px'; img.style.left = '110px'; img.style.transform = 'rotate(180deg)'; break;
-        case 'west': img.style.top = '80px'; img.style.left = '-20px'; img.style.transform = 'rotate(-90deg)'; break;
-    }
-}
+            switch(wallSide) {
+                case 'north': img.style.top = '0px'; img.style.left = '185px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '120px'; img.style.left = '370px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '260px'; img.style.left = '185px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '120px'; img.style.left = '0px'; img.style.transform = 'rotate(-90deg)'; break;
+            }
+        }
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
             const questContent = document.getElementById('quest-body');
@@ -2015,7 +2015,7 @@
                     const userAnswer = document.getElementById('p-ans').value.trim();
 
                     if (userAnswer.toLowerCase() === a.toLowerCase()) {
-                        if (timerInterval) clearInterval(timerInterval); // Stop de timer pas bij een CORRECT antwoord
+                        if (timerInterval) clearInterval(timerInterval);
                         playerState.score += maxReward;
                         window.activeSolvedPuzzle = puzzle;
                         updatePlayerUI();
@@ -2028,7 +2028,6 @@
                             </div>`;
                         callback(true);
                     } else {
-                        // Bij een fout antwoord blijft de timer gewoon doorlopen!
                         failedAttempts++;
                         playerState.score = Math.max(0, playerState.score - wrongPenalty);
                         updatePlayerUI();
@@ -2039,7 +2038,7 @@
                         document.getElementById('hint-box').textContent = hintBoxText;
 
                         if (failedAttempts >= 3) {
-                            if (timerInterval) clearInterval(timerInterval); // Stop timer bij 3 fouten
+                            if (timerInterval) clearInterval(timerInterval);
                             if (revealOpt === 'free_answer') {
                                 questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
                                 callback(false);
@@ -2061,7 +2060,6 @@
                             }
                         } else {
                             document.getElementById('feedback-msg').innerHTML = `<span style="color: #ff6b6b;">Wrong answer! (-${wrongPenalty} pts)</span>`;
-                            // Reset invoerveld zodat de speler direct door kan raden terwijl de tijd wegtikt
                             const ansInput = document.getElementById('p-ans');
                             if (ansInput) {
                                 ansInput.value = "";
