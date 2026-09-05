@@ -1948,10 +1948,10 @@
         function setHeroPosition(hero, side) {
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
             switch(side) {
-                case 'north': hero.style.left = '201px'; hero.style.top = '38px'; break;
-                case 'east': hero.style.left = '353px'; hero.style.top = '126px'; break;
-                case 'south': hero.style.left = '201px'; hero.style.top = '210px'; break;
-                case 'west': hero.style.left = '45px'; hero.style.top = '126px'; break;
+                case 'north': hero.style.left = '160px'; hero.style.top = '38px'; break;
+                case 'east': hero.style.left = '330px'; hero.style.top = '126px'; break;
+                case 'south': hero.style.left = '160px'; hero.style.top = '210px'; break;
+                case 'west': hero.style.left = '25px'; hero.style.top = '126px'; break;
             }
             hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
         }
