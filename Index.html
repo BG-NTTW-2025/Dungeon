@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Game - Survival Mode & Categories</title>
+    <style>
+        .small-text {
+            font-size: 11px;
+            font-weight: normal;
+            color: #ffd700;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .draggable-panel {
+            position: absolute;
+            background: #2b2b2b;
+            border: 2px solid #555;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            cursor: default;
+            user-select: none;
+        }
+
+        .panel-header {
+            height: 30px;
+            background: #444;
+            color: #ffd700;
+            padding: 0 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold;
+            cursor: grab;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        /* Specifieke strakke tweekoloms header voor de game container */
+        #game-container .panel-header {
+            height: 60px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .panel-header:active {
+            cursor: grabbing;
+        }
+
+        .panel-content {
+            padding: 0;
+        }
+
+        #game-container { top: 50px; left: 50px; width: 510px; }
+
+        .room-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 330px;
+        }
+
+        #room {
+            position: relative;
+            width: 450px;
+            height: 300px;
+            background-color: #333;
+            background-image: url('Empty_Room.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+
+        #room-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #room-content.fade-out { opacity: 0; }
+
+        #hero {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            background-image: url('Hero.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            transition: left 0.1s, top 0.1s;
+            z-index: 10;
+        }
+
+        .ui-panel { width: 320px; min-height: 10px; }
+        #inventory-panel { top: 50px; left: 580px; width: 200px; }
+        #quest-panel { top: 320px; left: 580px; width: 320px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 580px; width: 200px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 940px; width: 180px; }
+        #test-panel { top: 380px; left: 940px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        
+        #marketplace-sell-panel { top: 50px; left: 1140px; width: 220px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 380px; left: 1140px; width: 220px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 620px; left: 940px; width: 195px; background: #4a235a; border-color: #8e44ad; }
+
+        .door-asset { 
+            cursor: pointer; 
+            position: absolute; 
+            width: 80px; 
+            height: 40px; 
+            z-index: 5; 
+            transition: filter 0.2s;
+        }
+
+        .door-asset.selected {
+            filter: drop-shadow(0 0 6px #ffd700);
+        }
+
+        .room-placed-asset {
+            position: absolute;
+            cursor: pointer;
+            z-index: 6;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: auto;
+            height: auto;
+            max-width: none;
+            max-height: none;
+        }
+
+        #asset-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #asset-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .retro-popup {
+            background: #2b2b2b;
+            border: 3px solid #ffd700;
+            border-radius: 8px;
+            padding: 24px;
+            width: 440px;
+            max-width: 90vw;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            text-align: center;
+            color: #fff;
+        }
+        .retro-popup img {
+            max-width: 100%;
+            max-height: 250px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .retro-popup p {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        .retro-popup input[type="text"], .retro-popup input[type="number"], .retro-popup select, .retro-popup textarea {
+            width: 85%;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: #111;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .retro-popup textarea {
+            text-align: left;
+            height: 70px;
+        }
+        .retro-popup-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .retro-popup button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .retro-popup button:hover { background: #2980b9; }
+        .retro-popup button.danger { background: #c0392b; }
+        .retro-popup button.danger:hover { background: #e74c3c; }
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast-message {
+            background: #2b2b2b;
+            border: 2px solid #ffd700;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+            text-align: center;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            min-width: 250px;
+        }
+        .toast-close-btn {
+            background: #c0392b;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .toast-close-btn:hover { background: #e74c3c; }
+
+        @keyframes flashRedBlack {
+            0% { background-color: #222; }
+            50% { background-color: #8b0000; }
+            100% { background-color: #222; }
+        }
+        .inventory-section.flashing {
+            animation: flashRedBlack 1s infinite;
+        }
+
+        .reset-btn {
+            background: #c0392b;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .reset-btn:hover { background: #e74c3c; }
+
+        .quest-box {
+            padding: 12px;
+            font-size: 13px;
+            color: #ddd;
+            line-height: 1.4;
+        }
+
+        .quest-box button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 6px;
+            font-weight: bold;
+        }
+        .quest-box button:hover { background: #2980b9; }
+
+        .status-section {
+            background: #222;
+            padding: 8px 12px;
+            border-bottom: 1px solid #444;
+            font-size: 13px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .inventory-section {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #ccc;
+            transition: background-color 0.3s ease;
+        }
+
+        .survival-toggle-bar {
+            background: #1e1e1e;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .quest-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #333;
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .breadcrumb-item button {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .breadcrumb-item button:hover { background: #d35400; }
+
+        .menu-section {
+            padding: 12px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .menu-section label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .menu-section input[type="number"], .menu-section select {
+            width: 100%;
+            padding: 6px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: #ffd700;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .copy-box {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .copy-box input {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 11px;
+            width: 100%;
+        }
+        .copy-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .copy-btn:hover { background: #2980b9; }
+
+        .test-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+        .test-controls button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .test-controls button:hover { background: #c0392b; }
+
+        .mp-row {
+            margin-bottom: 8px;
+        }
+        .mp-row select, .mp-row input {
+            width: 100%;
+            padding: 6px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .mp-item-card {
+            background: #34495e;
+            border: 1px solid #4e6d8d;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mp-item-card button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .mp-item-card button:hover { background: #219653; }
+    </style>
+</head>
+<body>
+
+    <!-- MARKETPLACE SELL CONTAINER -->
+    <div id="marketplace-sell-panel" class="draggable-panel" data-id="marketplace-sell-panel">
+        <div class="panel-header" style="background: #16a085;">
+            <span><img src="mp_sell_symb.png" alt="" style="vertical-align: middle;"> Marketplace - Sell</span>
+            <button class="collapse-btn" onclick="togglePanelBody('marketplace-sell-body', this)">-</button>
+        </div>
+        <div id="marketplace-sell-body" class="panel-content menu-section">
+            <div class="mp-row">
+                <label>Item Type:</label>
+                <select id="mp-sell-type" onchange="updateMaxPriceHint()">
+                    <option value="food">Food (Max 1.60 Rinth/kg)</option>
+                    <option value="loot">Loot (Max 160 Rinth/kg)</option>
+                </select>
+            </div>
+            <div class="mp-row">
+                <label>Quantity (kg):</label>
+                <input type="number" id="mp-sell-qty" min="1" value="1" placeholder="Amount in kg">
+            </div>
+            <div class="mp-row">
+                <label id="mp-price-label">Ask Price (Total Rinth):</label>
+                <input type="number" id="mp-sell-price" min="1" value="1" placeholder="Total price">
+            </div>
+            <button onclick="submitMarketplaceItem()" style="width: 100%; background: #16a085; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 4px;">Put on Marketplace</button>
+        </div>
+    </div>
+
+    <!-- MARKETPLACE BUY CONTAINER -->
+    <div id="marketplace-buy-panel" class="draggable-panel" data-id="marketplace-buy-panel">
+        <div class="panel-header" style="background: #2980b9;">
+            <span><img src="mp_buy_symb.png" alt="" style="vertical-align: middle;"> Marketplace - Shop</span>
+			<button class="collapse-btn" onclick="togglePanelBody('marketplace-buy-body', this)">-</button>
+        </div>
+        <div id="marketplace-buy-body" class="panel-content menu-section" style="max-height: 220px; overflow-y: auto;">
+            <p style="font-size: 11px; color: #aaa; margin-top:0; margin-bottom: 8px;">Available offers from other players:</p>
+            <div id="marketplace-items-list">
+                <div style="font-size: 11px; color: #777;">Loading market offers...</div>
+            </div>
+            <button onclick="fetchMarketplaceItems()" style="width: 100%; background: #2980b9; color: white; border: none; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 6px;">Refresh Shop</button>
+        </div>
+    </div>
+
+    <!-- LIFT CONTAINER WITH 10 CATEGORIES -->
+    <div id="lift-panel" class="draggable-panel" data-id="lift-panel">
+        <div class="panel-header" style="background: #8e44ad;">
+            <span><img src="lift_symb.png" alt="" style="vertical-align: middle;"> Lift / Elevator</span>
+			<button class="collapse-btn" onclick="togglePanelBody('lift-body', this)">-</button>
+        </div>
+        <div id="lift-body" class="panel-content menu-section">
+            <label>Select Category:</label>
+            <select id="lift-category-select">
+                <option value="General">General</option>
+                <option value="Logic">Logic</option>
+                <option value="Geography">Geography</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="History">History</option>
+                <option value="Art and Literature">Art and Literature</option>
+                <option value="Science and Nature">Science and Nature</option>
+                <option value="Sports and Recreation">Sports and Recreation</option>
+                <option value="Kids">Kids</option>
+                <option value="Nerds">Nerds</option>
+            </select>
+            <label>Jump to Floor / Room (Opt.):</label>
+            <input type="number" id="lift-room-input" min="1" placeholder="Room number">
+            <button onclick="executeLiftJump()" style="width: 100%; background: #8e44ad; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Take Lift</button>
+        </div>
+    </div>
+
+    <!-- Asset Pop-up Overlay Container -->
+    <div id="asset-overlay">
+        <div class="retro-popup" id="retro-popup-box"></div>
+    </div>
+
+    <!-- Toast Meldingen Container -->
+    <div id="toast-container"></div>
+
+    <!-- Game Container met strakke tweekoloms header -->
+    <div id="game-container" class="draggable-panel" data-id="game-container">
+        <div class="panel-header">
+            <div style="display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                <div id="game-room-title" style="font-size: 16px; font-weight: bold; color: #ffd700;">Playfield</div>
+                <div id="game-score-title" style="font-size: 16px; color: #ccc;">Score: <strong style="color: #4cd137;">0</strong></div>
+            </div>
+            <button class="reset-btn" onclick="resetGameCache()" title="Clear local cache and reload">Reset<br>Cache</button>
+        </div>
+        <div class="panel-content">
+            <div class="room-wrapper">
+                <div id="room">
+                    <div id="room-content">
+                        <div id="hero"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status & Inventory Container -->
+    <div id="inventory-panel" class="draggable-panel ui-panel" data-id="inventory-panel">
+        <div class="panel-header">
+            <span>Status & Inventory</span>
+            <button class="collapse-btn" onclick="togglePanelBody('inventory-body', this)">-</button>
+        </div>
+        <div id="inventory-body" class="panel-content">
+            <div class="survival-toggle-bar">
+                <span>Survival Mode:</span>
+                <button id="survival-toggle-btn" onclick="confirmToggleSurvival()" style="background: #27ae60; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">ON</button>
+            </div>
+            <div id="survival-content-body">
+                <div class="status-section">
+                    <div class="status-row"><span>Time left:</span> <strong id="time-left-val" style="color: #ffd700;">10:00h</strong></div>
+                    <div class="status-row"><span>Energy:</span> <strong id="energy-val" style="color: #4cd137;">100%</strong></div>
+                    <div class="status-row"><span>Warps left:</span> <strong id="warps-val" style="color: #3498db;">5</strong></div>
+                    <div class="status-row"><span>Total Weight:</span> <strong id="weight-val" style="color: #e67e22;">0.0 kg</strong></div>
+                </div>
+                <div class="inventory-section" id="inventory-section-box">
+                    <div class="inventory-item">
+                        <span>Cash (Pocket):</span> <strong id="cash-count" style="color: #ffd700;">0 Rinth</strong>
+                    </div>
+                    <div class="inventory-item">
+                        <span>Credit (Bank):</span> <strong id="credit-count" style="color: #3498db;">0 Rinth</strong>
+                    </div>
+                    <hr style="border-color: #444; margin: 8px 0;">
+                    <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Treasures (Loot):</div>
+                    <div id="treasures-display" style="font-size: 12px; color: #aaa; margin-bottom: 6px;">
+                        Value: <strong id="loot-value-val">0</strong> Rinth (<span id="loot-weight-val">0.0</span> kg)
+                    </div>
+                    <div style="font-weight: bold; color: #ffd700; margin-bottom: 4px;">Food:</div>
+                    <div id="food-display" style="font-size: 12px; color: #aaa; display: flex; justify-content: space-between; align-items: center;">
+                        <span><strong id="food-kg-val">0.0</strong> kg Food</span>
+                        <button onclick="consumeFood()" style="background:#27ae60; color:#fff; border:none; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:11px; font-weight:bold;">Eat 500g</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communication & Assignments -->
+    <div id="quest-panel" class="draggable-panel ui-panel" data-id="quest-panel">
+        <div class="panel-header">
+            <span>Communication & Assignments</span>
+            <button class="collapse-btn" onclick="togglePanelBody('quest-body', this)">-</button>
+        </div>
+        <div id="quest-body" class="panel-content quest-box">Click on a door to view the details. Click again to play the puzzle.</div>
+    </div>
+
+    <!-- Breadcrumbs Container -->
+    <div id="breadcrumb-panel" class="draggable-panel ui-panel" data-id="breadcrumb-panel">
+        <div class="panel-header">
+            <span>Breadcrumbs <span class="small-text">(Last 10)</span></span>
+            <button class="collapse-btn" onclick="togglePanelBody('breadcrumb-body', this)">-</button>
+        </div>
+        <div id="breadcrumb-body" class="panel-content quest-box">No rooms visited yet.</div>
+    </div>
+
+    <!-- Game Menu -->
+    <div id="gamemenu-panel" class="draggable-panel" data-id="gamemenu-panel">
+        <div class="panel-header">
+            <span>Game Menu</span>
+            <button class="collapse-btn" onclick="togglePanelBody('gamemenu-body', this)">-</button>
+        </div>
+        <div id="gamemenu-body" class="panel-content menu-section">
+            <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 8px;">
+                <span>Highest Room: </span><strong id="max-room-stat" style="color: #ffd700;">Loading...</strong>
+            </div>
+
+            <label>Warp / Room Number:</label>
+            <input type="number" id="warp-room-input" min="1" value="1" placeholder="e.g. 5">
+            <button onclick="executeWarp()" style="width: 100%; background: #27ae60; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 12px;">Go to Room</button>
+
+            <label style="margin-bottom: 6px;">Toggle Panels:</label>
+            <div class="toggle-row">
+                <span>Inventory</span>
+                <input type="checkbox" id="chk-inventory-panel" checked onchange="togglePanel('inventory-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Quests</span>
+                <input type="checkbox" id="chk-quest-panel" checked onchange="togglePanel('quest-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Breadcrumbs</span>
+                <input type="checkbox" id="chk-breadcrumb-panel" checked onchange="togglePanel('breadcrumb-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>MP - Sell Panel</span>
+                <input type="checkbox" id="chk-marketplace-sell-panel" checked onchange="togglePanel('marketplace-sell-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>MP - Buy Panel</span>
+                <input type="checkbox" id="chk-marketplace-buy-panel" checked onchange="togglePanel('marketplace-buy-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Lift Panel</span>
+                <input type="checkbox" id="chk-lift-panel" checked onchange="togglePanel('lift-panel', this.checked)">
+            </div>
+            <div class="toggle-row">
+                <span>Test Panel</span>
+                <input type="checkbox" id="chk-test-panel" checked onchange="togglePanel('test-panel', this.checked)">
+            </div>
+
+            <hr style="border-color: #444; margin: 10px 0;">
+            <label style="margin-bottom: 4px;">Admin Email:</label>
+            <div class="copy-box">
+                <input type="text" id="admin-email-field" value="jaca.eis@gmail.com" readonly>
+                <button class="copy-btn" onclick="copyAdminEmail()">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEST CONTAINER -->
+    <div id="test-panel" class="draggable-panel" data-id="test-panel">
+        <div class="panel-header" style="background: #78281f;">
+			<span><img src="test_scen_symb.png" alt="" style="vertical-align: middle;"> Test Scenario</span>
+            <button class="collapse-btn" onclick="togglePanelBody('test-body', this)">-</button>
+        </div>
+        <div id="test-body" class="panel-content menu-section">
+            <label>Time Left:</label>
+            <div class="test-controls">
+                <button onclick="testAdjustTime(-30)">- 30 min</button>
+                <button onclick="testAdjustTime(30)">+ 30 min</button>
+            </div>
+
+            <label>Energy (%):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustEnergy(-10)">- 10%</button>
+                <button onclick="testAdjustEnergy(10)">+ 10%</button>
+            </div>
+
+            <label>Cash (Pocket):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustCash(-50)">- 50 Cash</button>
+                <button onclick="testAdjustCash(50)">+ 50 Cash</button>
+            </div>
+
+            <label>Credit (Bank):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustCredit(-50)">- 50 Credit</button>
+                <button onclick="testAdjustCredit(50)">+ 50 Credit</button>
+            </div>
+
+            <label>Loot Value (Rinths):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustLoot(-100)">- 100 Val</button>
+                <button onclick="testAdjustLoot(100)">+ 100 Val</button>
+            </div>
+
+            <label>Food Quantity (Kg):</label>
+            <div class="test-controls">
+                <button onclick="testAdjustFood(-0.5)">- 0.5 kg</button>
+                <button onclick="testAdjustFood(0.5)">+ 0.5 kg</button>
+            </div>
+
+            <hr style="border-color: #555; margin: 8px 0;">
+            <button onclick="simulateDailyReset()" style="width: 100%; background: #c0392b; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">Sim. Next Day Reset</button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // --- 1. Supabase Client Initialisatie ---
+        const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';
+        const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- Categorie & Lift Beheer ---
+        let currentGameCategory = localStorage.getItem('dungeon_current_category') || 'General';
+        document.getElementById('lift-category-select').value = currentGameCategory;
+
+        // Globale variabele om de actieve opgeloste puzzel te onthouden voor de rapportage popup
+        window.activeSolvedPuzzle = null;
+
+        // --- Marketplace Helper & Interactie Logica ---
+        function updateMaxPriceHint() {
+            const type = document.getElementById('mp-sell-type').value;
+            const label = document.getElementById('mp-price-label');
+            if (type === 'food') {
+                label.textContent = "Ask Price (Max 1.60 Rinth/kg):";
+            } else {
+                label.textContent = "Ask Price (Max 160 Rinth/kg):";
+            }
+        }
+
+        async function submitMarketplaceItem() {
+            const itemType = document.getElementById('mp-sell-type').value;
+            const qtyInput = parseInt(document.getElementById('mp-sell-qty').value, 10);
+            const priceInput = parseInt(document.getElementById('mp-sell-price').value, 10);
+
+            if (isNaN(qtyInput) || qtyInput <= 0) {
+                showToast("Please enter a valid quantity in kg.");
+                return;
+            }
+
+            if (isNaN(priceInput) || priceInput <= 0) {
+                showToast("Please enter a valid ask price.");
+                return;
+            }
+
+            let maxAllowedPrice = 0;
+            if (itemType === 'food') {
+                maxAllowedPrice = Math.floor(qtyInput * 1.60);
+            } else {
+                maxAllowedPrice = qtyInput * 160;
+            }
+
+            if (priceInput > maxAllowedPrice) {
+                showToast(`Price too high! Maximum allowed for ${qtyInput}kg ${itemType} is ${maxAllowedPrice} Rinth.`);
+                return;
+            }
+
+            if (itemType === 'food') {
+                if (playerState.foodKg < qtyInput) {
+                    showToast(`You don't have ${qtyInput}kg of food in your inventory!`);
+                    return;
+                }
+                playerState.foodKg -= qtyInput;
+            } else {
+                let requiredLootVal = qtyInput * 200;
+                if (playerState.lootValue < requiredLootVal) {
+                    showToast(`You don't have enough loot value for ${qtyInput}kg (${requiredLootVal} Rinth required)!`);
+                    return;
+                }
+                playerState.lootValue -= requiredLootVal;
+            }
+            updatePlayerUI();
+            savePlayerStateToLocal();
+
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) {
+                sellerId = String(Date.now() + Math.floor(Math.random() * 1000));
+                localStorage.setItem('dungeon_seller_id', sellerId);
+            }
+
+            let designerId = null;
+            let username = null;
+
+            try {
+                const { data: authData } = await dbClient.auth.getUser();
+                if (authData?.user) {
+                    designerId = authData.user.id;
+                    const { data: designerData } = await dbClient
+                        .from('designers')
+                        .select('username')
+                        .eq('id', designerId)
+                        .single();
+                    if (designerData) {
+                        username = designerData.username;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const payload = {
+                    item_type: itemType,
+                    quantity: Number(qtyInput),
+                    price_rinth: Number(priceInput),
+                    seller_id: Number(sellerId),
+                    designer_id: designerId,
+                    username: username
+                };
+
+                const { error } = await dbClient.from('marketplace').insert([payload]);
+
+                if (error) {
+                    showToast("Failed: " + (error.message || "Database error"));
+                    return;
+                }
+
+                showToast("Item successfully listed on the marketplace!");
+                document.getElementById('mp-sell-qty').value = "1";
+                document.getElementById('mp-sell-price').value = "1";
+                fetchMarketplaceItems();
+            } catch (err) {
+                showToast("An error occurred while listing the item.");
+            }
+        }
+
+        async function fetchMarketplaceItems() {
+            const listContainer = document.getElementById('marketplace-items-list');
+            listContainer.innerHTML = '<div style="font-size: 11px; color: #777;">Loading market offers...</div>';
+
+            try {
+                const { data, error } = await dbClient
+                    .from('marketplace')
+                    .select('*')
+                    .gt('price_rinth', 0)
+                    .order('created_at', { ascending: false });
+
+                if (error || !data || data.length === 0) {
+                    listContainer.innerHTML = '<div style="font-size: 11px; color: #777;">No active items on the market.</div>';
+                    return;
+                }
+
+                let currentSellerId = localStorage.getItem('dungeon_seller_id');
+                let html = '';
+
+                data.forEach(item => {
+                    const isOwnItem = currentSellerId && String(item.seller_id) === String(currentSellerId);
+                    const label = item.item_type === 'food' ? 'Food' : 'Loot';
+                    
+                    html += 
+                        '<div class="mp-item-card">' +
+                            '<div>' +
+                                '<strong style="color: ' + (item.item_type === 'food' ? '#2ecc71' : '#f1c40f') + ';">' + label + '</strong>: ' + item.quantity + ' kg<br>' +
+                                '<span style="color: #ffd700;">Price: ' + item.price_rinth + ' Rinth</span> ' + (isOwnItem ? '<span style="color: #3498db;">(Your offer)</span>' : '') +
+                            '</div>' +
+                            '<div>' +
+                                (!isOwnItem ? '<button onclick="buyMarketplaceItem(' + item.id + ', ' + item.price_rinth + ', ' + item.quantity + ', \'' + item.item_type + '\')">Buy</button>' : '') +
+                            '</div>' +
+                        '</div>';
+                });
+
+                listContainer.innerHTML = html;
+            } catch (err) {
+                listContainer.innerHTML = '<div style="font-size: 11px; color: #e74c3c;">Error loading market items.</div>';
+            }
+        }
+
+        async function buyMarketplaceItem(id, price, qty, itemType) {
+            let cost = parseInt(price, 10);
+            
+            if (playerState.cash < cost && playerState.credit < cost) {
+                showToast("You do not have enough money (Cash or Bank) to buy this item.");
+                return;
+            }
+
+            if (playerState.cash >= cost) {
+                playerState.cash -= cost;
+            } else {
+                playerState.credit -= cost;
+            }
+
+            if (itemType === 'food') {
+                playerState.foodKg += qty;
+            } else {
+                playerState.lootValue += (qty * 200);
+            }
+            updatePlayerUI();
+            savePlayerStateToLocal();
+
+            let saleComment = itemType === 'food' ? `Your food offer ${qty}kg on MP was sold for ${cost} Rinth.` : `Your loot offer ${qty}kg on MP has been sold for ${cost} Rinth.`;
+
+            try {
+                const { error } = await dbClient
+                    .from('marketplace')
+                    .update({
+                        sold: cost,
+                        price_rinth: 0,
+                        comments: saleComment
+                    })
+                    .eq('id', id);
+
+                if (error) {
+                    showToast("Error updating marketplace transaction.");
+                    return;
+                }
+
+                showToast(`Successfully bought ${qty}kg ${itemType} for ${cost} Rinth!`);
+                fetchMarketplaceItems();
+            } catch (err) {
+                showToast("An error occurred during purchase.");
+            }
+        }
+
+        async function checkMarketplacePayouts() {
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) return;
+
+            try {
+                const { data: soldItems, error } = await dbClient
+                    .from('marketplace')
+                    .select('*')
+                    .eq('seller_id', parseInt(sellerId, 10))
+                    .gt('sold', 0);
+
+                if (error || !soldItems || soldItems.length === 0) return;
+
+                let totalEarnings = 0;
+                let idsToClear = [];
+
+                soldItems.forEach(item => {
+                    totalEarnings += item.sold;
+                    idsToClear.push(item.id);
+                });
+
+                if (totalEarnings > 0) {
+                    playerState.credit += totalEarnings;
+                    updatePlayerUI();
+                    savePlayerStateToLocal();
+                    
+                    showToast(`💰 Marketplace Payout: You earned ${totalEarnings} Rinth from sold goods!`);
+
+                    for (const id of idsToClear) {
+                        await dbClient.from('marketplace').delete().eq('id', id);
+                    }
+                }
+            } catch (err) {}
+        }
+
+        function initRealtimeMarketplace() {
+            let sellerId = localStorage.getItem('dungeon_seller_id');
+            if (!sellerId) return;
+
+            dbClient
+                .channel('public:marketplace')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'marketplace' }, payload => {
+                    const updatedItem = payload.new;
+                    if (updatedItem && String(updatedItem.seller_id) === String(sellerId) && updatedItem.sold > 0) {
+                        checkMarketplacePayouts();
+                    }
+                })
+                .subscribe();
+        }
+
+        // --- Player State & Economy ---
+        let playerState = {
+            score: 0,
+            cash: 0,       
+            credit: 0,      
+            energy: 100,    
+            timeLeft: 595,  
+            warpsLeft: 5,   
+            lootValue: 0, 
+            foodKg: 0.0,    
+            survivalMode: true,
+            lastResetDate: localStorage.getItem('dungeon_last_reset_date') || '',
+            lastRoomEnterTime: Date.now()
+        };
+
+        function loadPlayerStateFromLocal() {
+            const savedState = localStorage.getItem('dungeon_player_state');
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    playerState.score = parsed.score ?? 0;
+                    playerState.cash = parsed.cash ?? 0;
+                    playerState.credit = parsed.credit ?? 0;
+                    playerState.energy = parsed.energy ?? 100;
+                    playerState.timeLeft = parsed.timeLeft ?? 595;
+                    playerState.warpsLeft = parsed.warpsLeft ?? 5;
+                    playerState.lootValue = parsed.lootValue ?? 0;
+                    playerState.foodKg = parsed.foodKg ?? 0.0;
+                    playerState.survivalMode = parsed.survivalMode ?? true;
+                } catch(e) {}
+            }
+        }
+        loadPlayerStateFromLocal();
+
+        function savePlayerStateToLocal() {
+            localStorage.setItem('dungeon_player_state', JSON.stringify(playerState));
+        }
+
+        let activeRobberRoomKey = null;
+        let robberIntervalId = null;
+        let lootDrainTimerId = null;
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-message';
+            
+            const textSpan = document.createElement('span');
+            textSpan.textContent = message;
+            toast.appendChild(textSpan);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'toast-close-btn';
+            closeBtn.textContent = 'OK';
+            closeBtn.onclick = () => { toast.remove(); };
+            toast.appendChild(closeBtn);
+
+            container.appendChild(toast);
+        }
+
+        async function applyDailyAutomatedAssets() {
+            try {
+                const { data: maxRoomData } = await dbClient
+                    .from('puzzle_labyrinth')
+                    .select('room_id')
+                    .eq('category', currentGameCategory)
+                    .order('room_id', { ascending: false })
+                    .limit(1);
+
+                let maxRoomId = maxRoomData?.[0]?.room_id || 0;
+                if (maxRoomId < 100) return;
+
+                let factor = Math.floor(maxRoomId / 100);
+                let assetsPool = [];
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
+                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_robber_rs.png');
+                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_police_rs.png');
+                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_super_rs.png');
+                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
+                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
+
+                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory);
+                if (!allRooms || allRooms.length === 0) return;
+
+                let uniqueRoomsMap = new Map();
+                allRooms.forEach(r => {
+                    let key = r.pos_x + '_' + r.pos_y;
+                    uniqueRoomsMap.set(key, { pos_x: r.pos_x, pos_y: r.pos_y });
+                });
+                let availableRooms = Array.from(uniqueRoomsMap.values());
+
+                let activeAssetsMap = {};
+                let occupiedRoomKeys = new Set();
+
+                for (let asset of assetsPool) {
+                    if (availableRooms.length === 0) break;
+                    let chosenRoom, roomKey, safetyCounter = 0;
+                    do {
+                        let randomIndex = Math.floor(Math.random() * availableRooms.length);
+                        chosenRoom = availableRooms[randomIndex];
+                        roomKey = chosenRoom.pos_x + '_' + chosenRoom.pos_y;
+                        safetyCounter++;
+                        if (safetyCounter > 200) break;
+                    } while (occupiedRoomKeys.has(roomKey));
+
+                    if (!occupiedRoomKeys.has(roomKey)) {
+                        occupiedRoomKeys.add(roomKey);
+                        if (!activeAssetsMap[roomKey]) activeAssetsMap[roomKey] = [];
+                        activeAssetsMap[roomKey].push(asset);
+                    }
+                }
+
+                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
+            } catch (err) {}
+        }
+
+        function updatePlayerUI() {
+            const cashElem = document.getElementById('cash-count');
+            const creditElem = document.getElementById('credit-count');
+            const energyElem = document.getElementById('energy-val');
+            const timeLeftElem = document.getElementById('time-left-val');
+            const warpsElem = document.getElementById('warps-val');
+            const weightElem = document.getElementById('weight-val');
+            
+            const lootValueElem = document.getElementById('loot-value-val');
+            const lootWeightElem = document.getElementById('loot-weight-val');
+            const foodKgElem = document.getElementById('food-kg-val');
+            
+            if (cashElem) cashElem.textContent = playerState.cash + ' Rinth';
+            if (creditElem) creditElem.textContent = playerState.credit + ' Rinth';
+            if (warpsElem) warpsElem.textContent = playerState.warpsLeft;
+            
+            if (energyElem) {
+                energyElem.textContent = playerState.energy + '%';
+                energyElem.style.color = playerState.energy < 30 ? '#ff6b6b' : '#4cd137';
+            }
+
+            if (timeLeftElem) {
+                let hours = Math.floor(playerState.timeLeft / 60);
+                let mins = playerState.timeLeft % 60;
+                timeLeftElem.textContent = `${hours}:${mins < 10 ? '0' : ''}${mins}h`;
+                timeLeftElem.style.color = playerState.timeLeft < 60 ? '#ff6b6b' : '#ffd700';
+            }
+
+            let lootWeight = (playerState.lootValue / 200) * 1.0;
+            let totalWeight = lootWeight + playerState.foodKg;
+
+            if (weightElem) weightElem.textContent = totalWeight.toFixed(1) + ' kg';
+            if (lootValueElem) lootValueElem.textContent = playerState.lootValue;
+            if (lootWeightElem) lootWeightElem.textContent = lootWeight.toFixed(1);
+            if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
+
+            savePlayerStateToLocal();
+        }
+
+        function handleRoomTransitionTime(currentPosX, currentPosY) {
+            let currentRoomKey = currentPosX + '_' + currentPosY;
+            if (activeRobberRoomKey && activeRobberRoomKey !== currentRoomKey) {
+                stopRobberPanic();
+            }
+
+            const now = Date.now();
+            const elapsedMinutes = Math.floor((now - playerState.lastRoomEnterTime) / 60000);
+            let countedMinutes = Math.min(10, Math.max(1, elapsedMinutes));
+            
+            if (playerState.energy < 10) {
+                countedMinutes += 3;
+            } else if (playerState.energy < 20) {
+                countedMinutes += 2;
+            } else if (playerState.energy < 30) {
+                countedMinutes += 1;
+            }
+
+            playerState.timeLeft = Math.max(0, playerState.timeLeft - countedMinutes);
+            playerState.lastRoomEnterTime = now;
+
+            let lootWeight = (playerState.lootValue / 200) * 1.0;
+            let totalWeight = lootWeight + playerState.foodKg;
+
+            let energyCost = Math.max(1, Math.floor(2 + (totalWeight * 0.5)));
+            playerState.energy = Math.max(0, playerState.energy - energyCost);
+
+            updatePlayerUI();
+        }
+
+        function consumeFood() {
+            if (playerState.foodKg >= 0.5) {
+                playerState.foodKg -= 0.5;
+                playerState.energy = Math.min(100, playerState.energy + 15);
+                updatePlayerUI();
+                showToast("You consumed 500g of food. Energy restored by 15%!");
+            } else {
+                showToast("You don't have enough food left!");
+            }
+        }
+
+        function testAdjustTime(amount) { playerState.timeLeft = Math.max(0, playerState.timeLeft + amount); updatePlayerUI(); }
+        function testAdjustEnergy(amount) { playerState.energy = Math.min(100, Math.max(0, playerState.energy + amount)); updatePlayerUI(); }
+        function testAdjustCash(amount) { playerState.cash = Math.max(0, playerState.cash + amount); updatePlayerUI(); }
+        function testAdjustCredit(amount) { playerState.credit = Math.max(0, playerState.credit + amount); updatePlayerUI(); }
+        function testAdjustLoot(amount) { playerState.lootValue = Math.max(0, playerState.lootValue + amount); updatePlayerUI(); }
+        function testAdjustFood(amount) { playerState.foodKg = Math.max(0, playerState.foodKg + amount); updatePlayerUI(); }
+        
+        function simulateDailyReset() {
+            playerState.timeLeft = 600; 
+            playerState.energy = 100;
+            playerState.warpsLeft = 5;
+            playerState.survivalMode = true;
+            document.getElementById('survival-toggle-btn').textContent = "ON";
+            document.getElementById('survival-toggle-btn').style.background = "#27ae60";
+            document.getElementById('survival-content-body').style.display = "block";
+            stopRobberPanic();
+            localStorage.removeItem('dungeon_daily_assets_' + currentGameCategory);
+
+            applyDailyAutomatedAssets().then(() => {
+                if (window.currentRoomX !== undefined) {
+                    loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
+                }
+            });
+
+            updatePlayerUI();
+            showToast("Simulated Reset: Assets dynamically distributed & warps refilled!");
+        }
+
+        function confirmToggleSurvival() {
+            let nextMode = !playerState.survivalMode;
+            let msg = nextMode ? "Do you want to enable Survival Mode?" : "Do you want to disable Survival Mode?";
+
+            openAssetPopup(
+                '<p style="font-size: 15px; margin-bottom: 20px;">' + msg + '</p>' +
+                '<div class="retro-popup-buttons">' +
+                    '<button onclick="applySurvivalToggle(' + nextMode + ')">Confirm</button>' +
+                    '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
+                '</div>'
+            );
+        }
+
+        window.applySurvivalToggle = function(enable) {
+            playerState.survivalMode = enable;
+            const btn = document.getElementById('survival-toggle-btn');
+            const bodyContent = document.getElementById('survival-content-body');
+            const sellPanel = document.getElementById('marketplace-sell-panel');
+            const buyPanel = document.getElementById('marketplace-buy-panel');
+
+            if (playerState.survivalMode) {
+                btn.textContent = "ON";
+                btn.style.background = "#27ae60";
+                bodyContent.style.display = "block";
+                if(sellPanel) sellPanel.style.display = 'block';
+                if(buyPanel) buyPanel.style.display = 'block';
+                showToast("Survival Mode is enabled.");
+            } else {
+                btn.textContent = "OFF";
+                btn.style.background = "#c0392b";
+                bodyContent.style.display = "none";
+                if(sellPanel) sellPanel.style.display = 'none';
+                if(buyPanel) buyPanel.style.display = 'none';
+                showToast("Survival Mode is disabled.");
+                stopRobberPanic();
+            }
+            closeAssetPopup();
+        };
+
+        updatePlayerUI();
+
+        function openAssetPopup(htmlContent) {
+            const overlay = document.getElementById('asset-overlay');
+            const popupBox = document.getElementById('retro-popup-box');
+            popupBox.innerHTML = htmlContent;
+            overlay.classList.add('active');
+        }
+
+        function closeAssetPopup() {
+            const overlay = document.getElementById('asset-overlay');
+            overlay.classList.remove('active');
+        }
+
+        function startRobberPanic(roomKey) {
+            activeRobberRoomKey = roomKey;
+            document.getElementById('inventory-section-box').classList.add('flashing');
+            document.getElementById('inventory-panel').style.display = 'block';
+
+            if (robberIntervalId) clearInterval(robberIntervalId);
+            robberIntervalId = setInterval(() => {
+                if (playerState.cash >= 100) {
+                    playerState.cash -= 100;
+                    updatePlayerUI();
+                    showToast("You just lost 100 Rinth.");
+                } else if (playerState.cash > 0) {
+                    let lost = playerState.cash;
+                    playerState.cash = 0;
+                    updatePlayerUI();
+                    showToast(`You just lost ${lost} Rinth.`);
+                }
+            }, 10000);
+
+            if (lootDrainTimerId) clearInterval(lootDrainTimerId);
+            lootDrainTimerId = setInterval(() => {
+                if (playerState.lootValue >= 200) {
+                    playerState.lootValue -= 200;
+                    updatePlayerUI();
+                    showToast("You just lost 1 Loot.");
+                }
+            }, 60000);
+        }
+
+        function stopRobberPanic() {
+            activeRobberRoomKey = null;
+            if (robberIntervalId) { clearInterval(robberIntervalId); robberIntervalId = null; }
+            if (lootDrainTimerId) { clearInterval(lootDrainTimerId); lootDrainTimerId = null; }
+            const invBox = document.getElementById('inventory-section-box');
+            if (invBox) invBox.classList.remove('flashing');
+        }
+
+        window.robberDonateAction = function(assetElement) {
+            playerState.cash = 0;
+            playerState.lootValue = 0;
+            updatePlayerUI();
+            stopRobberPanic();
+            if (assetElement) assetElement.remove();
+            closeAssetPopup();
+            showToast("You donated everything. The robber vanished forever!");
+        };
+
+        window.robberNoWayAction = function(roomKey) {
+            closeAssetPopup();
+            startRobberPanic(roomKey);
+        };
+
+        function triggerRobberEncounter(assetElement, posX, posY, entrySide) {
+            let roomKey = posX + '_' + posY;
+            let robberRotation = entrySide === 'north' ? '180deg' : (entrySide === 'south' ? '0deg' : (entrySide === 'east' ? '-90deg' : '90deg'));
+            if (assetElement) {
+                assetElement.style.transform = 'translate(-50%, -50%) rotate(' + robberRotation + ')';
+            }
+
+            openAssetPopup(
+                '<img src="rob_attack.png" alt="Robin Robber" onerror="this.style.display=\'none\'">' +
+                '<p>Hand over that cash and loot before I take it by force!</p>' +
+                '<div class="retro-popup-buttons">' +
+                    '<button onclick="robberDonateAction(document.getElementById(\'active-robber-elem\'))">Donate</button>' +
+                    '<button class="danger" onclick="robberNoWayAction(\'' + roomKey + '\')">No Way</button>' +
+                '</div>'
+            );
+            document.querySelectorAll('.room-placed-asset').forEach(el => el.removeAttribute('id'));
+            assetElement.id = 'active-robber-elem';
+        }
+
+        function handleAssetClick(assetType, assetElement, posX, posY, entrySide) {
+            if (!playerState.survivalMode) {
+                showToast("Survival Mode is off. Asset interactions are disabled.");
+                return;
+            }
+
+            let roomKey = posX + '_' + posY;
+
+            switch(assetType) {
+                case 'asset_bank_rs.png':
+                    openAssetPopup(
+                        '<img src="bank_employee.png" alt="Bank Employee" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">How can I help you?</p>' +
+                        '<div class="retro-popup-buttons" id="bank-btns">' +
+                            '<button onclick="bankDepositAction()">Deposit</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
+                case 'asset_pawnshop_rs.png':
+                    let randomPercent = Math.floor(Math.random() * (75 - 45 + 1)) + 45;
+                    openAssetPopup(
+                        '<img src="pawnshop_employee.png" alt="Pawnshop Employee" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">I can give you ' + randomPercent + '% cent on the Rinth buster.</p>' +
+                        '<div class="retro-popup-buttons" id="pawn-btns">' +
+                            '<button onclick="pawnshopTakeAction(' + randomPercent + ')">Take it</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
+                case 'asset_police_rs.png':
+                    openAssetPopup(
+                        '<img src="policeman.png" alt="Policeman" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">What crime do you have to report and where did it take place?</p>' +
+                        '<input type="number" id="crime-room-input" placeholder="Room number..." min="1">' +
+                        '<div class="retro-popup-buttons">' +
+                            '<button onclick="policeReportAction()">Robbery</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
+                case 'asset_super_rs.png':
+                    openAssetPopup(
+                        '<img src="supermarkt.png" alt="Supermarket" onerror="this.style.display=\'none\'">' +
+                        '<p id="popup-text">Anything else you need?</p>' +
+                        '<input type="number" id="super-kg-input" placeholder="Kilos of food..." min="1">' +
+                        '<div class="retro-popup-buttons" id="super-btns">' +
+                            '<button onclick="supermarketBuyAction()">Buy</button>' +
+                            '<button class="danger" onclick="closeAssetPopup()">Leave</button>' +
+                        '</div>'
+                    );
+                    break;
+                case 'asset_robber_rs.png':
+                    triggerRobberEncounter(assetElement, posX, posY, entrySide);
+                    break;
+                case 'asset_food_rs.png':
+                    playerState.foodKg += 1.0;
+                    updatePlayerUI();
+                    assetElement.remove();
+                    removeAssetFromLocalStorage(roomKey, assetType);
+                    showToast("You picked up food! Food stock increased by 1 kg.");
+                    break;
+                case 'asset_loot_rs.png':
+                    playerState.lootValue += 200;
+                    updatePlayerUI();
+                    assetElement.remove();
+                    removeAssetFromLocalStorage(roomKey, assetType);
+                    showToast("You found loot! Loot value increased by 200 Rinth.");
+                    break;
+            }
+        }
+
+        function removeAssetFromLocalStorage(roomKey, assetType) {
+            let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
+            if (dailyAssetsMap[roomKey]) {
+                dailyAssetsMap[roomKey] = dailyAssetsMap[roomKey].filter(src => src !== assetType);
+                if (dailyAssetsMap[roomKey].length === 0) delete dailyAssetsMap[roomKey];
+                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(dailyAssetsMap));
+            }
+        }
+
+        window.bankDepositAction = function() {
+            playerState.credit += playerState.cash;
+            playerState.cash = 0;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = "No problem, happy I could help. Till next time.";
+            document.getElementById('bank-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        window.pawnshopTakeAction = function(pct) {
+            let payout = Math.floor(playerState.lootValue * (pct / 100));
+            playerState.cash += payout;
+            playerState.lootValue = 0;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = "I’am sure you made a good deal.";
+            document.getElementById('pawn-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        window.policeReportAction = function() {
+            let roomVal = document.getElementById('crime-room-input').value.trim();
+            if(!roomVal) {
+                showToast("Please enter a valid room number!");
+                return;
+            }
+            document.getElementById('popup-text').textContent = "Don’t you worry, we will take care of it.";
+            
+            dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', parseInt(roomVal, 10)).limit(1).then(({data}) => {
+                if (data && data.length > 0) {
+                    let targetKey = data[0].pos_x + '_' + data[0].pos_y;
+                    if (activeRobberRoomKey === targetKey) stopRobberPanic();
+
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
+                    if (dailyAssetsMap[targetKey]) {
+                        dailyAssetsMap[targetKey] = dailyAssetsMap[targetKey].filter(src => src !== 'asset_robber_rs.png');
+                        localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(dailyAssetsMap));
+                    }
+                }
+            });
+
+            document.querySelectorAll('.room-placed-asset').forEach(el => {
+                if(el.getAttribute('data-type') === 'asset_robber_rs.png') el.remove();
+            });
+        };
+
+        window.supermarketBuyAction = function() {
+            let kgInput = parseInt(document.getElementById('super-kg-input').value, 10);
+            if(isNaN(kgInput) || kgInput <= 0) {
+                showToast("Please enter a valid amount.");
+                return;
+            }
+            let cost = kgInput * 2;
+            if (playerState.cash >= kgInput * 2) {
+                playerState.cash -= cost;
+            } else if (playerState.credit >= cost) {
+                playerState.credit -= cost;
+            } else {
+                document.getElementById('popup-text').textContent = "You don’t have enough money.";
+                return;
+            }
+            playerState.foodKg += kgInput;
+            updatePlayerUI();
+            document.getElementById('popup-text').textContent = `That will be ${cost} Rinth.`;
+            document.getElementById('super-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
+        };
+
+        // --- Draggable Logic ---
+        const panels = document.querySelectorAll('.draggable-panel');
+        panels.forEach(panel => {
+            const panelId = panel.getAttribute('data-id');
+            const savedPos = localStorage.getItem('panel_pos_' + panelId);
+            if (savedPos) {
+                const pos = JSON.parse(savedPos);
+                panel.style.left = pos.left + 'px';
+                panel.style.top = pos.top + 'px';
+            }
+
+            const savedState = localStorage.getItem('panel_state_' + panelId);
+            const chk = document.getElementById('chk-' + panelId);
+            if (savedState !== null) {
+                const isVisible = savedState === 'true';
+                panel.style.display = isVisible ? 'block' : 'none';
+                if (chk) chk.checked = isVisible;
+            }
+
+            const handle = panel.querySelector('.panel-header');
+            let isDragging = false, startX, startY;
+
+            function startDrag(clientX, clientY) {
+                isDragging = true;
+                startX = clientX - panel.offsetLeft;
+                startY = clientY - panel.offsetTop;
+                panel.style.zIndex = 1000;
+            }
+
+            function onDrag(clientX, clientY) {
+                if (!isDragging) return;
+                panel.style.left = (clientX - startX) + 'px';
+                panel.style.top = (clientY - startY) + 'px';
+            }
+
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                startDrag(e.clientX, e.clientY);
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
+            document.addEventListener('mouseup', () => { isDragging = false; savePos(); });
+
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                const touch = e.touches[0];
+                startDrag(touch.clientX, touch.clientY);
+            });
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                onDrag(touch.clientX, touch.clientY);
+            });
+            document.addEventListener('touchend', () => { isDragging = false; savePos(); });
+
+            function savePos() {
+                localStorage.setItem('panel_pos_' + panelId, JSON.stringify({left: panel.offsetLeft, top: panel.offsetTop}));
+            }
+        });
+
+        function togglePanelBody(bodyId, btnElem) {
+            const body = document.getElementById(bodyId);
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                btnElem.textContent = '-';
+            } else {
+                body.style.display = 'none';
+                btnElem.textContent = '+';
+            }
+        }
+
+        function togglePanel(panelId, show) {
+            const p = document.getElementById(panelId);
+            if (p) p.style.display = show ? 'block' : 'none';
+            localStorage.setItem('panel_state_' + panelId, show);
+        }
+
+        function copyAdminEmail() {
+            const emailField = document.getElementById('admin-email-field');
+            emailField.select();
+            navigator.clipboard.writeText(emailField.value).then(() => {
+                showToast('Admin email copied to clipboard.');
+            });
+        }
+
+        function resetGameCache() {
+            if(confirm('Do you want to delete all local progress for this Dungeon and restart?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        const oppositeSideMap = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east' };
+        let selectedDoorKey = null;
+
+        function getLocalDoorStatus(x, y, wallSide) {
+            const savedState = localStorage.getItem('dungeon_unlocked_doors_' + currentGameCategory);
+            const stateMap = savedState ? JSON.parse(savedState) : {};
+            return !!stateMap[x + '_' + y + '_' + wallSide];
+        }
+
+        function setLocalDoorStatus(posX, posY, wallSide) {
+            const savedState = localStorage.getItem('dungeon_unlocked_doors_' + currentGameCategory);
+            const stateMap = savedState ? JSON.parse(savedState) : {};
+            stateMap[posX + '_' + posY + '_' + wallSide] = true;
+
+            let targetX = posX, targetY = posY;
+            if (wallSide === 'north') targetY += 1;
+            if (wallSide === 'south') targetY -= 1;
+            if (wallSide === 'east') targetX += 1;
+            if (wallSide === 'west') targetX -= 1;
+
+            stateMap[targetX + '_' + targetY + '_' + oppositeSideMap[wallSide]] = true;
+            localStorage.setItem('dungeon_unlocked_doors_' + currentGameCategory, JSON.stringify(stateMap));
+        }
+
+        function addBreadcrumb(roomId, posX, posY) {
+            let crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs_' + currentGameCategory)) || [];
+            crumbs = crumbs.filter(c => c.roomId !== roomId);
+            crumbs.unshift({ roomId, posX, posY });
+            if (crumbs.length > 10) crumbs.pop();
+            localStorage.setItem('dungeon_breadcrumbs_' + currentGameCategory, JSON.stringify(crumbs));
+            renderBreadcrumbs();
+        }
+
+        function renderBreadcrumbs() {
+            const container = document.getElementById('breadcrumb-body');
+            const crumbs = JSON.parse(localStorage.getItem('dungeon_breadcrumbs_' + currentGameCategory)) || [];
+            
+            if (crumbs.length === 0) {
+                container.innerHTML = "No rooms visited yet.";
+                return;
+            }
+
+            let html = '';
+            crumbs.forEach(c => {
+                html += '<div class="breadcrumb-item"><span>Room ' + c.roomId + '</span>' +
+                        '<button onclick="jumpToBreadcrumb(' + c.posX + ', ' + c.posY + ')">Goto</button></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function jumpToBreadcrumb(posX, posY) {
+            loadRoomByCoords(posX, posY, 'south');
+        }
+
+        async function loadMaxRoomStat() {
+            try {
+                const { data } = await dbClient.from('puzzle_labyrinth').select('room_id').eq('category', currentGameCategory).order('room_id', { ascending: false }).limit(1);
+                if (data && data.length > 0) document.getElementById('max-room-stat').textContent = data[0].room_id || '1';
+                else document.getElementById('max-room-stat').textContent = '1';
+            } catch (err) {}
+        }
+
+        async function executeWarp() {
+            if (playerState.warpsLeft <= 0) {
+                showToast("You have no warps left!");
+                return;
+            }
+
+            const roomInput = document.getElementById('warp-room-input').value.trim();
+            const targetRoomId = parseInt(roomInput, 10);
+            if (isNaN(targetRoomId) || targetRoomId < 1) return;
+            
+            try {
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', targetRoomId).limit(1);
+                if (data && data.length > 0) {
+                    playerState.warpsLeft -= 1;
+                    updatePlayerUI();
+                    loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                    showToast(`Warp successful! ${playerState.warpsLeft} warps remaining.`);
+                } else {
+                    showToast(`Room ${targetRoomId} not found.`);
+                }
+            } catch (err) {}
+        }
+
+        // --- Lift Jump met Categoriegeheugen ---
+        async function executeLiftJump() {
+            const selectedCat = document.getElementById('lift-category-select').value;
+            const roomInput = document.getElementById('lift-room-input').value.trim();
+            const targetRoomId = roomInput !== '' ? parseInt(roomInput, 10) : null;
+
+            if (window.currentRoomX !== undefined && window.currentRoomY !== undefined) {
+                localStorage.setItem('dungeon_last_coords_' + currentGameCategory, JSON.stringify({x: window.currentRoomX, y: window.currentRoomY}));
+            }
+
+            currentGameCategory = selectedCat;
+            localStorage.setItem('dungeon_current_category', currentGameCategory);
+
+            try {
+                if (targetRoomId !== null && !isNaN(targetRoomId)) {
+                    const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', targetRoomId).limit(1);
+                    if (data && data.length > 0) {
+                        loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        showToast(`Elevator transported you to ${currentGameCategory} - Room ${targetRoomId}!`);
+                    } else {
+                        showToast(`Room ${targetRoomId} not found in ${currentGameCategory}.`);
+                    }
+                } else {
+                    let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
+                    if (lastCoordsStr) {
+                        let coords = JSON.parse(lastCoordsStr);
+                        loadRoomByCoords(coords.x, coords.y, 'south');
+                        showToast(`Elevator restored your position in ${currentGameCategory}!`);
+                    } else {
+                        const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).order('room_id', { ascending: true }).limit(1);
+                        if (data && data.length > 0) {
+                            loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        } else {
+                            loadRoomByCoords(0, 0, 'south');
+                        }
+                        showToast(`Welcome to ${currentGameCategory} (Room 1)!`);
+                    }
+                }
+                loadMaxRoomStat();
+                fetchMarketplaceItems();
+            } catch (err) {
+                showToast("Error switching category via lift.");
+            }
+        }
+
+        // --- Like, Dislike & Retro Report Functies ---
+        async function votePuzzle(puzzleId, voteType) {
+            let votedKey = 'dungeon_voted_' + puzzleId;
+            if (localStorage.getItem(votedKey)) {
+                showToast("You have already voted for this puzzle!");
+                return;
+            }
+
+            try {
+                const { data: currentPuzzle } = await dbClient.from('puzzle_labyrinth').select('likes, dislikes').eq('id', puzzleId).single();
+                if (!currentPuzzle) {
+                    showToast("Puzzle not found.");
+                    return;
+                }
+
+                let updatePayload = {};
+                if (voteType === 'like') {
+                    updatePayload.likes = (currentPuzzle.likes || 0) + 1;
+                } else {
+                    updatePayload.dislikes = (currentPuzzle.dislikes || 0) + 1;
+                }
+
+                const { error } = await dbClient.from('puzzle_labyrinth').update(updatePayload).eq('id', puzzleId);
+                if (error) {
+                    showToast("Failed to record vote.");
+                    return;
+                }
+
+                localStorage.setItem(votedKey, 'true');
+                showToast(voteType === 'like' ? "👍 Thank you for liking this puzzle!" : "👎 Feedback received.");
+            } catch (err) {
+                showToast("Error submitting vote.");
+            }
+        }
+
+        function reportActivePuzzle() {
+            const puzzle = window.activeSolvedPuzzle;
+            if (!puzzle) {
+                showToast("No active puzzle selected to report.");
+                return;
+            }
+
+            openAssetPopup(
+                '<div style="text-align: left;">' +
+                    '<h3 style="color: #e74c3c; margin-top: 0; margin-bottom: 10px; text-align: center;">Report Offensive Content</h3>' +
+                    '<p style="font-size: 12px; color: #aaa; margin-bottom: 12px; text-align: center;">Puzzle: "' + (puzzle.puzzle_name || 'Unknown') + '" | Room: R-' + puzzle.room_id + ' | Wall: ' + puzzle.wall_side + '</p>' +
+                    '<label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px; color:#ffd700;">Reason / Comment:</label>' +
+                    '<textarea id="report-comment-input" placeholder="Describe why this content is offensive..."></textarea>' +
+                    '<label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px; color:#ffd700;">Your E-mail (Optional):</label>' +
+                    '<input type="text" id="report-email-input" placeholder="your@email.com">' +
+                    '<div class="retro-popup-buttons" style="margin-top: 15px;">' +
+                        '<button onclick="submitPuzzleReport()" style="background: #27ae60;">Submit Report</button>' +
+                        '<button class="danger" onclick="closeAssetPopup()">Cancel</button>' +
+                    '</div>' +
+                '</div>'
+            );
+        }
+
+        async function submitPuzzleReport() {
+            const puzzle = window.activeSolvedPuzzle;
+            const commentText = document.getElementById('report-comment-input').value.trim();
+            const emailText = document.getElementById('report-email-input').value.trim();
+
+            if (!commentText) {
+                showToast("Please enter a reason for reporting.");
+                return;
+            }
+
+            try {
+                const payload = {
+                    puzzle_id: puzzle.id,
+                    puzzle_name: puzzle.puzzle_name || null,
+                    room_id: Number(puzzle.room_id) || null,
+                    wall_side: puzzle.wall_side || null,
+                    designer_id: puzzle.designer_id && puzzle.designer_id !== 'null' && puzzle.designer_id !== '' ? puzzle.designer_id : null,
+                    reporter_email: emailText || null,
+                    report_comment: commentText
+                };
+
+                const { error } = await dbClient.from('puzzle_reports').insert([payload]);
+
+                if (error) {
+                    showToast("Failed to submit report: " + error.message);
+                    return;
+                }
+
+                closeAssetPopup();
+                showToast("🚨 Puzzle successfully reported to administrators.");
+            } catch (err) {
+                showToast("An error occurred while reporting.");
+            }
+        }
+
+        async function loadRoomByCoords(posX, posY, entrySide = 'south') {
+            window.currentRoomX = posX;
+            window.currentRoomY = posY;
+            window.currentEntrySide = entrySide;
+
+            const roomContent = document.getElementById('room-content');
+            const roomElement = document.getElementById('room');
+            selectedDoorKey = null;
+            document.getElementById('quest-body').innerHTML = "Click on a door to view details. Click again to play.";
+
+            if (entrySide !== null) handleRoomTransitionTime(posX, posY);
+            
+            const updateRoomContent = async () => {
+                try {
+                    const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('category', currentGameCategory);
+                    
+                    // Twilight Zone check: als er geen deuren/puzzles zijn op deze coördinaten
+                    if (!puzzles || puzzles.length === 0) {
+                        roomElement.style.backgroundImage = "url('twilight_room.png')";
+                        document.getElementById('game-room-title').textContent = 'The Twilight Zone (' + currentGameCategory + ')';
+                        document.getElementById('game-score-title').innerHTML = 'Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+
+                        const hero = document.getElementById('hero');
+                        roomContent.innerHTML = ''; 
+                        roomContent.appendChild(hero);
+                        setHeroPosition(hero, entrySide);
+
+                        openAssetPopup(
+                            '<h3 style="color: #9b59b6; margin-top: 0;">Welcome to the Twilight Zone</h3>' +
+                            '<p>Because of automatic correction, you have now entered a forgotten sector. Try to escape with Warp, your Breadcrumbs trail, or use the elevator to another room.</p>' +
+                            '<div class="retro-popup-buttons">' +
+                                '<button onclick="closeAssetPopup()" style="background: #9b59b6;">Accept Fate</button>' +
+                            '</div>'
+                        );
+                        return;
+                    } else {
+                        roomElement.style.backgroundImage = "url('Empty_Room.png')";
+                    }
+
+                    const roomId = puzzles?.[0]?.room_id || '?';
+                    
+                    document.getElementById('game-room-title').textContent = 'Room ' + roomId + ' (' + currentGameCategory + ')';
+                    document.getElementById('game-score-title').innerHTML = 'Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+
+                    if (roomId !== '?') addBreadcrumb(roomId, posX, posY);
+                    
+                    const hero = document.getElementById('hero');
+                    roomContent.innerHTML = ''; 
+                    roomContent.appendChild(hero);
+                    setHeroPosition(hero, entrySide);
+
+                    puzzles.forEach(puzzle => {
+                        const img = document.createElement('img');
+                        const wallSide = puzzle.wall_side;
+                        const doorKey = posX + '_' + posY + '_' + wallSide;
+                        img.setAttribute('data-doorkey', doorKey);
+
+                        let targetX = posX, targetY = posY;
+                        if (wallSide === 'north') targetY += 1;
+                        if (wallSide === 'south') targetY -= 1;
+                        if (wallSide === 'east') targetX += 1;
+                        if (wallSide === 'west') targetX -= 1;
+
+                        const hasActivePuzzle = puzzle.question && puzzle.question.trim() !== "";
+                        let isSolved = !hasActivePuzzle || getLocalDoorStatus(posX, posY, wallSide);
+
+                        img.src = isSolved ? 'DoorWay.png' : 'Door.png';
+                        img.className = 'door-asset';
+                        setDoorPositionAndStyle(img, wallSide);
+
+                        img.addEventListener('click', async () => {
+                            const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
+                            const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
+
+                            document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
+
+                            if (liveSolved) {
+                                loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
+                            } else {
+                                if (selectedDoorKey !== doorKey) {
+                                    selectedDoorKey = doorKey;
+                                    img.classList.add('selected');
+                                    showDoorInfo(freshData);
+                                } else {
+                                    triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                        if (success) {
+                                            setLocalDoorStatus(posX, posY, wallSide);
+                                            img.src = 'DoorWay.png';
+                                            selectedDoorKey = null;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                        roomContent.appendChild(img);
+                    });
+
+                    let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
+                    let roomKey = posX + '_' + posY;
+                    if (dailyAssetsMap[roomKey]) {
+                        dailyAssetsMap[roomKey].forEach(assetSrc => {
+                            const placedAsset = document.createElement('img');
+                            placedAsset.className = 'room-placed-asset';
+                            placedAsset.src = assetSrc;
+                            placedAsset.setAttribute('data-type', assetSrc);
+
+                            placedAsset.addEventListener('click', (ev) => {
+                                handleAssetClick(assetSrc, placedAsset, posX, posY, entrySide);
+                                ev.stopPropagation();
+                            });
+
+                            roomContent.appendChild(placedAsset);
+
+                            if (assetSrc === 'asset_robber_rs.png' && playerState.survivalMode) {
+                                setTimeout(() => triggerRobberEncounter(placedAsset, posX, posY, entrySide), 150);
+                            }
+                        });
+                    }
+
+                } catch (err) {}
+            };
+
+            if (entrySide === null) {
+                await updateRoomContent();
+            } else {
+                roomContent.classList.add('fade-out');
+                setTimeout(async () => { await updateRoomContent(); roomContent.classList.remove('fade-out'); }, 300);
+            }
+        }
+
+        function showDoorInfo(puzzle) {
+            const questContent = document.getElementById('quest-body');
+            questContent.innerHTML = '<p><strong>Door found (' + puzzle.wall_side + ')</strong></p>' +
+                '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Click door again to start.</p>' +
+                '<button onclick="confirmStartPuzzle()">Start Puzzle</button>';
+        }
+
+        function confirmStartPuzzle() {
+            const selectedImg = document.querySelector('.door-asset.selected');
+            if (selectedImg) selectedImg.click();
+        }
+
+        function setHeroPosition(hero, side) {
+            const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
+            switch(side) {
+                case 'north': hero.style.left = '201px'; hero.style.top = '38px'; break;
+                case 'east': hero.style.left = '353px'; hero.style.top = '126px'; break;
+                case 'south': hero.style.left = '201px'; hero.style.top = '210px'; break;
+                case 'west': hero.style.left = '45px'; hero.style.top = '126px'; break;
+            }
+            hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
+        }
+
+        function setDoorPositionAndStyle(img, wallSide) {
+            switch(wallSide) {
+                case 'north': img.style.top = '0px'; img.style.left = '185px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '120px'; img.style.left = '370px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '260px'; img.style.left = '185px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '120px'; img.style.left = '0px'; img.style.transform = 'rotate(-90deg)'; break;
+            }
+        }
+
+        function triggerDoorPuzzle(puzzle, doorKey, callback) {
+            const questContent = document.getElementById('quest-body');
+            const q = puzzle.question || "Solve:";
+            const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
+            const maxReward = parseInt(puzzle.max_reward) || 30;
+            const wrongPenalty = parseInt(puzzle.wrong_penalty) || 10;
+            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
+            const googleTimerSec = parseInt(puzzle.google_timer) || 0;
+            const hint1 = puzzle.hint_1 || "";
+            const hint2 = puzzle.hint_2 || "";
+            const revealOpt = puzzle.reveal_answer || "free_answer";
+            const creditsCost = parseInt(puzzle.credits_cost) || 5;
+
+            let failedAttempts = 0;
+            let remainingTime = googleTimerSec;
+            let timerInterval = null;
+
+            function renderPuzzleContent() {
+                questContent.innerHTML = `
+                    <div class="quest-header-flex"><span><strong>Question:</strong> ${q}</span></div>
+                    ${googleTimerSec > 0 ? `<div id="google-timer-box" style="color: #ff9800; font-weight: bold; margin-bottom: 6px;">Anti-Google Timer: <span id="timer-val">${remainingTime}</span>s</div>` : ""}
+                    <input type="text" id="p-ans" autocomplete="off" placeholder="Answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
+                    <button id="btn-ans">Reply</button>
+                    ${chickenPenalty > 0 ? `<button id="btn-chicken" style="background: #e67e22; margin-left: 6px;">Chicken (-${chickenPenalty} pts)</button>` : ""}
+                    <div id="hint-box" style="margin-top: 6px; color: #ffd700; font-size: 11px;"></div>
+                    <div id="feedback-msg" style="margin-top: 6px;"></div>
+                `;
+
+                if (googleTimerSec > 0) {
+                    timerInterval = setInterval(() => {
+                        remainingTime--;
+                        const timerSpan = document.getElementById('timer-val');
+                        if (timerSpan) timerSpan.textContent = remainingTime;
+                        
+                        if (remainingTime <= 0) {
+                            clearInterval(timerInterval);
+                            playerState.score = Math.max(0, playerState.score - wrongPenalty);
+                            updatePlayerUI();
+                            showToast("Anti-Google Timer expired! Penalty applied.");
+                            
+                            const timerBox = document.getElementById('google-timer-box');
+                            if (timerBox) timerBox.style.color = "#ff3333";
+                        }
+                    }, 1000);
+                }
+
+                document.getElementById('btn-ans').onclick = () => {
+                    const userAnswer = document.getElementById('p-ans').value.trim();
+
+                    if (userAnswer.toLowerCase() === a.toLowerCase()) {
+                        if (timerInterval) clearInterval(timerInterval);
+                        playerState.score += maxReward;
+                        window.activeSolvedPuzzle = puzzle;
+                        updatePlayerUI();
+
+                        questContent.innerHTML = `<span style="color: #4cd137;">Correct! Earned ${maxReward} points. Door is open.</span>
+                            <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
+                                <button onclick="votePuzzle('${puzzle.id}', 'like')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>
+                                <button onclick="votePuzzle('${puzzle.id}', 'dislike')" style="background: transparent; border: none; cursor: pointer;" title="Dislike"><img src="disLike_red_symb.png" style="width: 28px; height: 28px;" alt="Dislike"></button>
+                                <button onclick="reportActivePuzzle()" style="background: transparent; border: none; cursor: pointer;" title="Report Puzzle"><img src="report_symb.png" style="width: 28px; height: 28px;" alt="Report"></button>
+                            </div>`;
+                        callback(true);
+                    } else {
+                        failedAttempts++;
+                        playerState.score = Math.max(0, playerState.score - wrongPenalty);
+                        updatePlayerUI();
+
+                        let hintBoxText = "";
+                        if (failedAttempts === 1 && hint1) hintBoxText = `Hint 1: ${hint1}`;
+                        if (failedAttempts >= 2 && hint2) hintBoxText = `Hint 2: ${hint2}`;
+                        document.getElementById('hint-box').textContent = hintBoxText;
+
+                        if (failedAttempts >= 3) {
+                            if (timerInterval) clearInterval(timerInterval);
+                            if (revealOpt === 'free_answer') {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                callback(false);
+                            } else if (revealOpt === 'paid_answer') {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer">Unlock (${creditsCost} Credits)</button>`;
+                                document.getElementById('btn-unlock-answer').onclick = () => {
+                                    if (playerState.credit >= creditsCost) {
+                                        playerState.credit -= creditsCost;
+                                        updatePlayerUI();
+                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
+                                        callback(true);
+                                    } else {
+                                        showToast("Not enough credits in bank!");
+                                    }
+                                };
+                            } else {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                callback(false);
+                            }
+                        } else {
+                            document.getElementById('feedback-msg').innerHTML = `<span style="color: #ff6b6b;">Wrong answer! (-${wrongPenalty} pts)</span>`;
+                            const ansInput = document.getElementById('p-ans');
+                            if (ansInput) {
+                                ansInput.value = "";
+                                ansInput.focus();
+                            }
+                        }
+                    }
+                };
+
+                const chickenBtn = document.getElementById('btn-chicken');
+                if (chickenBtn) {
+                    chickenBtn.onclick = () => {
+                        if (timerInterval) clearInterval(timerInterval);
+                        playerState.score = Math.max(0, playerState.score - chickenPenalty);
+                        updatePlayerUI();
+                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
+                        callback(true);
+                    };
+                }
+            }
+
+            renderPuzzleContent();
+        }
+
+        async function initGame() {
+            renderBreadcrumbs();
+            loadMaxRoomStat();
+            
+            let targetRoomId = localStorage.getItem('target_room');
+            
+            if (targetRoomId) {
+                localStorage.removeItem('target_room');
+                try {
+                    const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).eq('room_id', parseInt(targetRoomId, 10)).limit(1);
+                    if (data && data.length > 0) {
+                        loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                        showToast(`Transferred to Room ${targetRoomId} from Map!`);
+                        fetchMarketplaceItems();
+                        checkMarketplacePayouts();
+                        initRealtimeMarketplace();
+                        return;
+                    }
+                } catch (err) {}
+            }
+
+            let lastCoordsStr = localStorage.getItem('dungeon_last_coords_' + currentGameCategory);
+            if (lastCoordsStr) {
+                let coords = JSON.parse(lastCoordsStr);
+                loadRoomByCoords(coords.x, coords.y, 'south');
+            } else {
+                const { data } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory).order('room_id', { ascending: true }).limit(1);
+                if (data && data.length > 0) loadRoomByCoords(data[0].pos_x, data[0].pos_y, 'south');
+                else loadRoomByCoords(0, 0, 'south');
+            }
+
+            fetchMarketplaceItems();
+            checkMarketplacePayouts();
+            initRealtimeMarketplace();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Directe Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <button onclick="stuurDirect()">Direct 1 Puzzel Schrijven</button>
+    <div id="resultaat" style="margin-top: 15px; font-weight: bold;"></div>
+
+<script>
+    const SUPABASE_URL = 'https://mgqoxmnryqekrpjglffb.supabase.co';[span_0](start_span)[span_0](end_span)
+    const SUPABASE_ANON_KEY = 'sb_publishable_btgAerx5A8O7urSEflRDAg_8NSdtoOu';[span_1](start_span)[span_1](end_span)
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);[span_2](start_span)[span_2](end_span)
+
+    async function stuurDirect() {
+        const resultaatDiv = document.getElementById('resultaat');
+        resultaatDiv.style.color = "orange";
+        resultaatDiv.textContent = "Versturen...";
+
+        const { data, error } = await supabaseClient
+            .from('puzzle_labyrinth')
+            .insert([
+                {
+                    designer_id: "61b0db81-c99a-450f-9038-21c19692e333",
+                    puzzle_name: "test_direct",
+                    question: "1",
+                    answer: "1",
+                    google_timer: 0,
+                    max_reward: 30,
+                    chicken_penalty: 0,
+                    wrong_penalty: 10,
+                    reveal_answer: 'free_answer',
+                    credits_cost: 5,
+                    likes: 0,
+                    dislikes: 0,
+                    room_id: 99,
+                    wall_side: "north",
+                    pos_x: 0,
+                    pos_y: 0,
+                    is_open: false
+                }
+            ]);
+
+        if (error) {
+            resultaatDiv.style.color = "red";
+            resultaatDiv.textContent = "Fout: " + error.message;
+            console.error(error);
+        } else {
+            resultaatDiv.style.color = "green";
+            resultaatDiv.textContent = "Succes! Direct weggeschreven in de database.";
+        }
+    }
+</script>
+
+</body>
+</html>
