@@ -1970,32 +1970,109 @@
             const q = puzzle.question || "Solve:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
             const maxReward = parseInt(puzzle.max_reward) || 30;
+            const wrongPenalty = parseInt(puzzle.wrong_penalty) || 10;
+            const chickenPenalty = parseInt(puzzle.chicken_penalty) || 0;
+            const googleTimerSec = parseInt(puzzle.google_timer) || 0;
+            const hint1 = puzzle.hint_1 || "";
+            const hint2 = puzzle.hint_2 || "";
+            const revealOpt = puzzle.reveal_answer || "free_answer";
+            const creditsCost = parseInt(puzzle.credits_cost) || 5;
 
-            questContent.innerHTML = '<div class="quest-header-flex"><span><strong>Question:</strong> ' + q + '</span></div>' +
-                '<input type="text" id="p-ans" autocomplete="off" placeholder="Answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>' +
-                '<button id="btn-ans">Reply</button>' +
-                '<div id="feedback-msg" style="margin-top: 6px;"></div>';
+            let failedAttempts = 0;
+            let timerHtml = "";
+            let remainingTime = googleTimerSec;
+            let timerInterval = null;
 
-            document.getElementById('btn-ans').onclick = () => {
-                const userAnswer = document.getElementById('p-ans').value.trim();
-                if(userAnswer.toLowerCase() === a.toLowerCase()) {
-                    playerState.score += maxReward;
-                    
-                    window.activeSolvedPuzzle = puzzle;
-                    updatePlayerUI();
+            function renderPuzzleContent() {
+                questContent.innerHTML = `
+                    <div class="quest-header-flex"><span><strong>Question:</strong> ${q}</span></div>
+                    ${googleTimerSec > 0 ? `<div id="google-timer-box" style="color: #ff9800; font-weight: bold; margin-bottom: 6px;">Anti-Google Timer: <span id="timer-val">${remainingTime}</span>s</div>` : ""}
+                    <input type="text" id="p-ans" autocomplete="off" placeholder="Answer..." style="width: 85%; padding: 6px; margin-bottom: 6px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"><br>
+                    <button id="btn-ans">Reply</button>
+                    ${chickenPenalty > 0 ? `<button id="btn-chicken" style="background: #e67e22; margin-left: 6px;">Chicken (-${chickenPenalty} pts)</button>` : ""}
+                    <div id="hint-box" style="margin-top: 6px; color: #ffd700; font-size: 11px;"></div>
+                    <div id="feedback-msg" style="margin-top: 6px;"></div>
+                `;
 
-                    questContent.innerHTML = '<span style="color: #4cd137;">Correct! Earned ' + maxReward + ' points. Door is open.</span>' +
-                        '<div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">' +
-                            '<button onclick="votePuzzle(\'' + puzzle.id + '\', \'like\')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>' +
-                            '<button onclick="votePuzzle(\'' + puzzle.id + '\', \'dislike\')" style="background: transparent; border: none; cursor: pointer;" title="Dislike"><img src="disLike_red_symb.png" style="width: 28px; height: 28px;" alt="Dislike"></button>' +
-                            '<button onclick="reportActivePuzzle()" style="background: transparent; border: none; cursor: pointer;" title="Report Puzzle"><img src="report_symb.png" style="width: 28px; height: 28px;" alt="Report"></button>' +
-                        '</div>';
-                    callback(true);
-                } else {
-                    document.getElementById('feedback-msg').innerHTML = '<span style="color: #ff6b6b;">Wrong answer!</span>';
-                    callback(false);
+                if (googleTimerSec > 0) {
+                    timerInterval = setInterval(() => {
+                        remainingTime--;
+                        const timerSpan = document.getElementById('timer-val');
+                        if (timerSpan) timerSpan.textContent = remainingTime;
+                        if (remainingTime <= 0) {
+                            clearInterval(timerInterval);
+                            playerState.score = Math.max(0, playerState.score - wrongPenalty);
+                            updatePlayerUI();
+                            showToast("Anti-Google Timer expired! Penalty applied.");
+                        }
+                    }, 1000);
                 }
-            };
+
+                document.getElementById('btn-ans').onclick = () => {
+                    if (timerInterval) clearInterval(timerInterval);
+                    const userAnswer = document.getElementById('p-ans').value.trim();
+
+                    if (userAnswer.toLowerCase() === a.toLowerCase()) {
+                        playerState.score += maxReward;
+                        window.activeSolvedPuzzle = puzzle;
+                        updatePlayerUI();
+
+                        questContent.innerHTML = `<span style="color: #4cd137;">Correct! Earned ${maxReward} points. Door is open.</span>
+                            <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
+                                <button onclick="votePuzzle('${puzzle.id}', 'like')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>
+                                <button onclick="votePuzzle('${puzzle.id}', 'dislike')" style="background: transparent; border: none; cursor: pointer;" title="Dislike"><img src="disLike_red_symb.png" style="width: 28px; height: 28px;" alt="Dislike"></button>
+                                <button onclick="reportActivePuzzle()" style="background: transparent; border: none; cursor: pointer;" title="Report Puzzle"><img src="report_symb.png" style="width: 28px; height: 28px;" alt="Report"></button>
+                            </div>`;
+                        callback(true);
+                    } else {
+                        failedAttempts++;
+                        playerState.score = Math.max(0, playerState.score - wrongPenalty);
+                        updatePlayerUI();
+
+                        let hintBoxText = "";
+                        if (failedAttempts === 1 && hint1) hintBoxText = `Hint 1: ${hint1}`;
+                        if (failedAttempts >= 2 && hint2) hintBoxText = `Hint 2: ${hint2}`;
+                        document.getElementById('hint-box').textContent = hintBoxText;
+
+                        if (failedAttempts >= 3) {
+                            if (revealOpt === 'free_answer') {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                callback(false);
+                            } else if (revealOpt === 'paid_answer') {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer">Unlock (${creditsCost} Credits)</button>`;
+                                document.getElementById('btn-unlock-answer').onclick = () => {
+                                    if (playerState.credit >= creditsCost) {
+                                        playerState.credit -= creditsCost;
+                                        updatePlayerUI();
+                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
+                                        callback(true);
+                                    } else {
+                                        showToast("Not enough credits in bank!");
+                                    }
+                                };
+                            } else {
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                callback(false);
+                            }
+                        } else {
+                            document.getElementById('feedback-msg').innerHTML = `<span style="color: #ff6b6b;">Wrong answer! (-${wrongPenalty} pts)</span>`;
+                        }
+                    }
+                };
+
+                const chickenBtn = document.getElementById('btn-chicken');
+                if (chickenBtn) {
+                    chickenBtn.onclick = () => {
+                        if (timerInterval) clearInterval(timerInterval);
+                        playerState.score = Math.max(0, playerState.score - chickenPenalty);
+                        updatePlayerUI();
+                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
+                        callback(true);
+                    };
+                }
+            }
+
+            renderPuzzleContent();
         }
 
         async function initGame() {
