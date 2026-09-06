@@ -63,7 +63,7 @@
             padding: 0;
         }
 
-        #game-container { top: 20px; left: 50px; width: 510px; }
+        #game-container { top: 50px; left: 50px; width: 510px; }
 
         .room-wrapper {
             display: flex;
@@ -74,15 +74,29 @@
         }
 
         #room {
-            position: relative;
-            width: 450px;
-            height: 300px;
-            background-color: #333;
-            background-image: url('Empty_Room.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            overflow: hidden;
-        }
+    position: relative;
+    width: 450px;
+    height: 300px;
+    background-color: #333;
+    background-image: url('Empty_Room.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out; /* Zorgt voor de fade van de kamer */
+}
+
+#room.fade-out { 
+    opacity: 0; 
+}
+
+#room-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
 
         #room-content {
             position: absolute;
@@ -109,20 +123,20 @@
         }
 
         .ui-panel { width: 320px; min-height: 10px; }
-        #inventory-panel { top: 20px; left: 570px; width: 200px; }
-        #quest-panel { top: 430px; left: 50px; width: 340px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 20px; left: 1000px; width: 200px; max-height: 160px; overflow-y: auto; }
-        #gamemenu-panel { top: 200px; left: 1000px; width: 200px; }
-        #test-panel { top: 20px; left: 1210px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #inventory-panel { top: 50px; left: 580px; width: 200px; }
+        #quest-panel { top: 320px; left: 580px; width: 320px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 560px; left: 580px; width: 200px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 50px; left: 940px; width: 180px; }
+        #test-panel { top: 380px; left: 940px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
-        #marketplace-sell-panel { top: 20px; left: 780px; width: 210px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 320px; left: 780px; width: 210px; background: #2c3e50; border-color: #2980b9; }
-        #lift-panel { top: 350px; left: 570px; width: 200px; background: #4a235a; border-color: #8e44ad; }
+        #marketplace-sell-panel { top: 50px; left: 1140px; width: 220px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 380px; left: 1140px; width: 220px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 620px; left: 940px; width: 195px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
             position: absolute; 
-            width: 150px; 
+            width: 160px; 
             height: 40px; 
             z-index: 5; 
             transition: filter 0.2s;
@@ -1926,11 +1940,14 @@
             };
 
             if (entrySide === null) {
-                await updateRoomContent();
-            } else {
-                roomContent.classList.add('fade-out');
-                setTimeout(async () => { await updateRoomContent(); roomContent.classList.remove('fade-out'); }, 300);
-            }
+    await updateRoomContent();
+} else {
+    roomElement.classList.add('fade-out'); // Verander roomContent naar roomElement
+    setTimeout(async () => { 
+        await updateRoomContent(); 
+        roomElement.classList.remove('fade-out'); 
+    }, 300);
+}
         }
 
         function showDoorInfo(puzzle) {
@@ -1958,10 +1975,10 @@
 
         function setDoorPositionAndStyle(img, wallSide) {
             switch(wallSide) {
-                case 'north': img.style.top = '14px'; img.style.left = '150px'; img.style.transform = 'rotate(0deg)'; break;
-                case 'east': img.style.top = '130px'; img.style.left = '337px'; img.style.transform = 'rotate(90deg)'; break;
-                case 'south': img.style.top = '246px'; img.style.left = '150px'; img.style.transform = 'rotate(180deg)'; break;
-                case 'west': img.style.top = '130px'; img.style.left = '-40px'; img.style.transform = 'rotate(-90deg)'; break;
+                case 'north': img.style.top = '14px'; img.style.left = '145px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '130px'; img.style.left = '332px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '246px'; img.style.left = '145px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '130px'; img.style.left = '-45px'; img.style.transform = 'rotate(-90deg)'; break;
             }
         }
 
