@@ -1121,19 +1121,18 @@
                     }
                 }
 
-                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
-            } catch (err) {}
-                let totalAdded = 0;
-                Object.values(activeAssetsMap).forEach(arr => {
-                    totalAdded += arr.length;
-                });
+                         localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
+            
+            let totalAdded = 0;
+            Object.values(activeAssetsMap).forEach(arr => {
+                totalAdded += arr.length;
+            });
+            showToast(`Succes! Totaal ${totalAdded} assets toegevoegd.`);
+        } catch (err) {}
+    }
 
-                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
-                showToast(`Succes! Totaal ${totalAdded} assets toegevoegd voor categorie ${currentGameCategory}.`);
-            } catch (err) {}
-        }
-
-        }
+            
+        
 
         function updatePlayerUI() {
             const cashElem = document.getElementById('cash-count');
