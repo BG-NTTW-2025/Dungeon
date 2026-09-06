@@ -63,7 +63,7 @@
             padding: 0;
         }
 
-        #game-container { top: 50px; left: 50px; width: 510px; }
+        #game-container { top: 20px; left: 50px; width: 510px; }
 
         .room-wrapper {
             display: flex;
@@ -109,20 +109,20 @@
         }
 
         .ui-panel { width: 320px; min-height: 10px; }
-        #inventory-panel { top: 50px; left: 580px; width: 200px; }
-        #quest-panel { top: 320px; left: 580px; width: 320px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 560px; left: 580px; width: 200px; max-height: 160px; overflow-y: auto; }
-        #gamemenu-panel { top: 50px; left: 940px; width: 180px; }
-        #test-panel { top: 380px; left: 940px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #inventory-panel { top: 20px; left: 570px; width: 200px; }
+        #quest-panel { top: 430px; left: 50px; width: 340px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 20px; left: 990px; width: 200px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 200px; left: 990px; width: 200px; }
+        #test-panel { top: 20px; left: 1210px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
-        #marketplace-sell-panel { top: 50px; left: 1140px; width: 220px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 380px; left: 1140px; width: 220px; background: #2c3e50; border-color: #2980b9; }
-        #lift-panel { top: 620px; left: 940px; width: 195px; background: #4a235a; border-color: #8e44ad; }
+        #marketplace-sell-panel { top: 20px; left: 780px; width: 200px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 320px; left: 780px; width: 200px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 350px; left: 570px; width: 200px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
             position: absolute; 
-            width: 160px; 
+            width: 150px; 
             height: 40px; 
             z-index: 5; 
             transition: filter 0.2s;
@@ -1958,10 +1958,10 @@
 
         function setDoorPositionAndStyle(img, wallSide) {
             switch(wallSide) {
-                case 'north': img.style.top = '14px'; img.style.left = '145px'; img.style.transform = 'rotate(0deg)'; break;
-                case 'east': img.style.top = '130px'; img.style.left = '332px'; img.style.transform = 'rotate(90deg)'; break;
-                case 'south': img.style.top = '246px'; img.style.left = '145px'; img.style.transform = 'rotate(180deg)'; break;
-                case 'west': img.style.top = '130px'; img.style.left = '-45px'; img.style.transform = 'rotate(-90deg)'; break;
+                case 'north': img.style.top = '14px'; img.style.left = '150px'; img.style.transform = 'rotate(0deg)'; break;
+                case 'east': img.style.top = '130px'; img.style.left = '337px'; img.style.transform = 'rotate(90deg)'; break;
+                case 'south': img.style.top = '246px'; img.style.left = '150px'; img.style.transform = 'rotate(180deg)'; break;
+                case 'west': img.style.top = '130px'; img.style.left = '-40px'; img.style.transform = 'rotate(-90deg)'; break;
             }
         }
 
