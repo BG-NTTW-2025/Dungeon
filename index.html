@@ -1078,9 +1078,9 @@
                     .limit(1);
 
                 let maxRoomId = maxRoomData?.[0]?.room_id || 0;
-                if (maxRoomId < 100) return;
+                if (maxRoomId < 30) return;
 
-                let factor = Math.floor(maxRoomId / 100);
+                let factor = Math.floor(maxRoomId / 30);
                 let assetsPool = [];
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
