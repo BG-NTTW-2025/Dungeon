@@ -29,6 +29,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             cursor: default;
             user-select: none;
+            z-index: 10;
         }
 
         .panel-header {
@@ -63,40 +64,32 @@
             padding: 0;
         }
 
-        #game-container { top: 50px; left: 50px; width: 510px; }
+        #game-container { top: 20px; left: 50px; width: 340px; }
 
         .room-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            height: 330px;
+            height: 220px;
         }
 
         #room {
-    position: relative;
-    width: 450px;
-    height: 300px;
-    background-color: #333;
-    background-image: url('Empty_Room.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    overflow: hidden;
-    opacity: 1;
-    transition: opacity 0.3s ease-in-out; /* Zorgt voor de fade van de kamer */
-}
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background-color: #333;
+            background-image: url('Empty_Room.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
 
-#room.fade-out { 
-    opacity: 0; 
-}
-
-#room-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
+        #room.fade-out { 
+            opacity: 0; 
+        }
 
         #room-content {
             position: absolute;
@@ -104,16 +97,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 1;
-            transition: opacity 0.3s ease-in-out;
         }
-
-        #room-content.fade-out { opacity: 0; }
 
         #hero {
             position: absolute;
-            width: 48px;
-            height: 48px;
+            width: 32px;
+            height: 32px;
             background-image: url('Hero.png');
             background-size: contain;
             background-repeat: no-repeat;
@@ -123,20 +112,20 @@
         }
 
         .ui-panel { width: 320px; min-height: 10px; }
-        #inventory-panel { top: 50px; left: 580px; width: 200px; }
-        #quest-panel { top: 320px; left: 580px; width: 320px; max-height: 220px; overflow-y: auto; }
-        #breadcrumb-panel { top: 560px; left: 580px; width: 200px; max-height: 160px; overflow-y: auto; }
-        #gamemenu-panel { top: 50px; left: 940px; width: 180px; }
-        #test-panel { top: 380px; left: 940px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #inventory-panel { top: 20px; left: 400px; width: 200px; }
+        #quest-panel { top: 320px; left: 50px; width: 340px; max-height: 220px; overflow-y: auto; }
+        #breadcrumb-panel { top: 20px; left: 820px; width: 200px; max-height: 160px; overflow-y: auto; }
+        #gamemenu-panel { top: 200px; left: 820px; width: 200px; }
+        #test-panel { top: 20px; left: 1040px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
-        #marketplace-sell-panel { top: 50px; left: 1140px; width: 220px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 380px; left: 1140px; width: 220px; background: #2c3e50; border-color: #2980b9; }
-        #lift-panel { top: 620px; left: 940px; width: 195px; background: #4a235a; border-color: #8e44ad; }
+        #marketplace-sell-panel { top: 20px; left: 610px; width: 200px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 320px; left: 610px; width: 200px; background: #2c3e50; border-color: #2980b9; }
+        #lift-panel { top: 350px; left: 400px; width: 200px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
             cursor: pointer; 
             position: absolute; 
-            width: 160px; 
+            width: 80px; 
             height: 40px; 
             z-index: 5; 
             transition: filter 0.2s;
@@ -581,7 +570,7 @@
             <button class="reset-btn" onclick="resetGameCache()" title="Clear local cache and reload">Reset<br>Cache</button>
         </div>
         <div class="panel-content">
-            <div class="room-wrapper">
+            <div class="room-wrapper" id="room-wrapper-elem">
                 <div id="room">
                     <div id="room-content">
                         <div id="hero"></div>
@@ -659,6 +648,16 @@
             <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 8px;">
                 <span>Highest Room: </span><strong id="max-room-stat" style="color: #ffd700;">Loading...</strong>
             </div>
+
+            <label>Zoom / Scale:</label>
+            <select id="game-zoom-select" onchange="changeGameZoom(this.value)">
+                <option value="A">100% (Standard)</option>
+                <option value="B">125%</option>
+                <option value="C">150%</option>
+                <option value="D">175%</option>
+                <option value="E">200% (Large)</option>
+            </select>
+            <button onclick="resetPanelLayout()" style="width: 100%; background: #e67e22; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; font-size: 11px;">Reset Layout</button>
 
             <label>Warp / Room Number:</label>
             <input type="number" id="warp-room-input" min="1" value="1" placeholder="e.g. 5">
@@ -765,6 +764,222 @@
 
         // Globale variabele om de actieve opgeloste puzzel te onthouden voor de rapportage popup
         window.activeSolvedPuzzle = null;
+
+        // --- Zoom / Schaal Configuratie Data ---
+        const ZOOM_CONFIGS = {
+            A: { // 100%
+                game: { top: 20, left: 50, width: 340 },
+                roomWrapper: { height: 220 },
+                room: { width: 300, height: 200 },
+                hero: { width: 32, height: 32 },
+                door: { width: 80, height: 40, shadow: 6 },
+                heroPos: {
+                    north: { left: 134, top: 25 },
+                    east: { left: 235, top: 84 },
+                    south: { left: 134, top: 140 },
+                    west: { left: 30, top: 84 }
+                },
+                doorPos: {
+                    north: { top: 0, left: 110, rot: 0 },
+                    east: { top: 80, left: 240, rot: 90 },
+                    south: { top: 160, left: 110, rot: 180 },
+                    west: { top: 80, left: -20, rot: -90 }
+                },
+                panels: {
+                    'inventory-panel': { top: 20, left: 400 },
+                    'quest-panel': { top: 320, left: 50 },
+                    'breadcrumb-panel': { top: 20, left: 820 },
+                    'gamemenu-panel': { top: 200, left: 820 },
+                    'test-panel': { top: 20, left: 1040 },
+                    'marketplace-sell-panel': { top: 20, left: 610 },
+                    'marketplace-buy-panel': { top: 320, left: 610 },
+                    'lift-panel': { top: 350, left: 400 }
+                }
+            },
+            B: { // 125%
+                game: { top: 20, left: 50, width: 425 },
+                roomWrapper: { height: 275 },
+                room: { width: 375, height: 250 },
+                hero: { width: 40, height: 40 },
+                door: { width: 100, height: 50, shadow: 8 },
+                heroPos: {
+                    north: { left: 168, top: 32 },
+                    east: { left: 294, top: 105 },
+                    south: { left: 168, top: 175 },
+                    west: { left: 38, top: 105 }
+                },
+                doorPos: {
+                    north: { top: 0, left: 138, rot: 0 },
+                    east: { top: 100, left: 302, rot: 90 },
+                    south: { top: 203, left: 138, rot: 180 },
+                    west: { top: 100, left: -28, rot: -90 }
+                },
+                panels: {
+                    'inventory-panel': { top: 20, left: 485 },
+                    'quest-panel': { top: 375, left: 50 },
+                    'breadcrumb-panel': { top: 20, left: 910 },
+                    'gamemenu-panel': { top: 200, left: 910 },
+                    'test-panel': { top: 20, left: 1125 },
+                    'marketplace-sell-panel': { top: 20, left: 695 },
+                    'marketplace-buy-panel': { top: 320, left: 695 },
+                    'lift-panel': { top: 350, left: 485 }
+                }
+            },
+            C: { // 150%
+                game: { top: 20, left: 50, width: 510 },
+                roomWrapper: { height: 330 },
+                room: { width: 450, height: 300 },
+                hero: { width: 48, height: 48 },
+                door: { width: 140, height: 60, shadow: 9 },
+                heroPos: {
+                    north: { left: 201, top: 38 },
+                    east: { left: 353, top: 126 },
+                    south: { left: 201, top: 210 },
+                    west: { left: 45, top: 126 }
+                },
+                doorPos: {
+                    north: { top: 0, left: 156, rot: 0 },
+                    east: { top: 120, left: 352, rot: 90 },
+                    south: { top: 246, left: 156, rot: 180 },
+                    west: { top: 120, left: -40, rot: -90 }
+                },
+                panels: {
+                    'inventory-panel': { top: 20, left: 570 },
+                    'quest-panel': { top: 430, left: 50 },
+                    'breadcrumb-panel': { top: 20, left: 1000 },
+                    'gamemenu-panel': { top: 200, left: 1000 },
+                    'test-panel': { top: 20, left: 1210 },
+                    'marketplace-sell-panel': { top: 20, left: 780 },
+                    'marketplace-buy-panel': { top: 320, left: 780 },
+                    'lift-panel': { top: 350, left: 570 }
+                }
+            },
+            D: { // 175%
+                game: { top: 20, left: 50, width: 595 },
+                roomWrapper: { height: 385 },
+                room: { width: 525, height: 350 },
+                hero: { width: 56, height: 56 },
+                door: { width: 160, height: 70, shadow: 11 },
+                heroPos: {
+                    north: { left: 235, top: 44 },
+                    east: { left: 411, top: 147 },
+                    south: { left: 235, top: 245 },
+                    west: { left: 53, top: 147 }
+                },
+                doorPos: {
+                    north: { top: 0, left: 181, rot: 0 },
+                    east: { top: 140, left: 410, rot: 90 },
+                    south: { top: 289, left: 184, rot: 180 },
+                    west: { top: 140, left: -49, rot: -90 }
+                },
+                panels: {
+                    'inventory-panel': { top: 20, left: 660 },
+                    'quest-panel': { top: 485, left: 50 },
+                    'breadcrumb-panel': { top: 20, left: 1090 },
+                    'gamemenu-panel': { top: 200, left: 1090 },
+                    'test-panel': { top: 20, left: 1300 },
+                    'marketplace-sell-panel': { top: 20, left: 880 },
+                    'marketplace-buy-panel': { top: 320, left: 880 },
+                    'lift-panel': { top: 350, left: 660 }
+                }
+            },
+            E: { // 200%
+                game: { top: 20, left: 50, width: 680 },
+                roomWrapper: { height: 440 },
+                room: { width: 600, height: 400 },
+                hero: { width: 64, height: 64 },
+                door: { width: 160, height: 80, shadow: 12 },
+                heroPos: {
+                    north: { left: 268, top: 50 },
+                    east: { left: 470, top: 168 },
+                    south: { left: 268, top: 280 },
+                    west: { left: 60, top: 168 }
+                },
+                doorPos: {
+                    north: { top: 0, left: 204, rot: 0 },
+                    east: { top: 160, left: 466, rot: 90 },
+                    south: { top: 332, left: 212, rot: 180 },
+                    west: { top: 160, left: -59, rot: -90 }
+                },
+                panels: {
+                    'inventory-panel': { top: 20, left: 745 },
+                    'quest-panel': { top: 540, left: 50 },
+                    'breadcrumb-panel': { top: 20, left: 1180 },
+                    'gamemenu-panel': { top: 200, left: 1180 },
+                    'test-panel': { top: 20, left: 1390 },
+                    'marketplace-sell-panel': { top: 20, left: 965 },
+                    'marketplace-buy-panel': { top: 320, left: 965 },
+                    'lift-panel': { top: 350, left: 745 }
+                }
+            }
+        };
+
+        let currentZoomKey = localStorage.getItem('dungeon_zoom_config') || 'A';
+        document.getElementById('game-zoom-select').value = currentZoomKey;
+
+        function applyZoomConfig(zoomKey, resetPositions = false) {
+            currentZoomKey = zoomKey;
+            localStorage.setItem('dungeon_zoom_config', zoomKey);
+            const cfg = ZOOM_CONFIGS[zoomKey];
+
+            // 1. Game Container & Room afmetingen toepassen
+            const gContainer = document.getElementById('game-container');
+            gContainer.style.width = cfg.game.width + 'px';
+            if (resetPositions) {
+                gContainer.style.top = cfg.game.top + 'px';
+                gContainer.style.left = cfg.game.left + 'px';
+                localStorage.setItem('panel_pos_game-container', JSON.stringify({ top: cfg.game.top, left: cfg.game.left }));
+            }
+
+            const roomWrapper = document.getElementById('room-wrapper-elem');
+            roomWrapper.style.height = cfg.roomWrapper.height + 'px';
+
+            const roomElem = document.getElementById('room');
+            roomElem.style.width = cfg.room.width + 'px';
+            roomElem.style.height = cfg.room.height + 'px';
+
+            const heroElem = document.getElementById('hero');
+            heroElem.style.width = cfg.hero.width + 'px';
+            heroElem.style.height = cfg.hero.height + 'px';
+
+            // 2. Alle panels positioneren
+            for (const [panelId, pos] of Object.entries(cfg.panels)) {
+                const pElem = document.getElementById(panelId);
+                if (pElem) {
+                    if (resetPositions || !localStorage.getItem('panel_pos_' + panelId)) {
+                        pElem.style.top = pos.top + 'px';
+                        pElem.style.left = pos.left + 'px';
+                        localStorage.setItem('panel_pos_' + panelId, JSON.stringify({ top: pos.top, left: pos.left }));
+                    }
+                }
+            }
+
+            // Indien we in een kamer zijn, herlaad de kamer om elementen direct te schalen
+            if (window.currentRoomX !== undefined && window.currentRoomY !== undefined) {
+                loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
+            }
+        }
+
+        function changeGameZoom(zoomKey) {
+            applyZoomConfig(zoomKey, true);
+            showToast(`Zoom successfully changed to ${zoomKey}!`);
+        }
+
+        function resetPanelLayout() {
+            if (confirm('Do you want to reset all panel layouts and positions to the default of the current zoom?')) {
+                // Verwijder opgeslagen posities en ingeklapte states
+                document.querySelectorAll('.draggable-panel').forEach(panel => {
+                    const pId = panel.getAttribute('data-id');
+                    localStorage.removeItem('panel_pos_' + pId);
+                    localStorage.removeItem('panel_state_' + pId);
+                    panel.style.display = 'block';
+                    const chk = document.getElementById('chk-' + pId);
+                    if (chk) chk.checked = true;
+                });
+                applyZoomConfig(currentZoomKey, true);
+                showToast("Layout successfully reset to default positions!");
+            }
+        }
 
         // --- Marketplace Helper & Interactie Logica ---
         function updateMaxPriceHint() {
@@ -1050,8 +1265,15 @@
         let robberIntervalId = null;
         let lootDrainTimerId = null;
 
+        // --- Toast Limiet (max 3 tegelijk, FIFO) ---
         function showToast(message) {
             const container = document.getElementById('toast-container');
+            
+            // Beperk tot maximaal 2 bestaande zodat de nieuwe de 3e wordt (oudste verdwijnt)
+            while (container.children.length >= 3) {
+                container.firstElementChild.remove();
+            }
+
             const toast = document.createElement('div');
             toast.className = 'toast-message';
             
@@ -1078,9 +1300,9 @@
                     .limit(1);
 
                 let maxRoomId = maxRoomData?.[0]?.room_id || 0;
-                if (maxRoomId < 30) return;
+                if (maxRoomId < 10) return;
 
-                let factor = Math.floor(maxRoomId / 30);
+                let factor = Math.floor(maxRoomId / 10);
                 let assetsPool = [];
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
                 for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
@@ -1121,18 +1343,9 @@
                     }
                 }
 
-                         localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
-            
-            let totalAdded = 0;
-            Object.values(activeAssetsMap).forEach(arr => {
-                totalAdded += arr.length;
-            });
-            showToast(`Succes! Totaal ${totalAdded} assets toegevoegd.`);
-        } catch (err) {}
-    }
-
-            
-        
+                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
+            } catch (err) {}
+        }
 
         function updatePlayerUI() {
             const cashElem = document.getElementById('cash-count');
@@ -1511,7 +1724,9 @@
             document.getElementById('super-btns').innerHTML = '<button onclick="closeAssetPopup()">Leave</button>';
         };
 
-        // --- Draggable Logic ---
+        // --- Draggable & Z-Index Logic ---
+        let highestZIndex = 100;
+
         const panels = document.querySelectorAll('.draggable-panel');
         panels.forEach(panel => {
             const panelId = panel.getAttribute('data-id');
@@ -1530,6 +1745,14 @@
                 if (chk) chk.checked = isVisible;
             }
 
+            function bringToFront() {
+                highestZIndex++;
+                panel.style.zIndex = highestZIndex;
+            }
+
+            panel.addEventListener('mousedown', bringToFront);
+            panel.addEventListener('touchstart', bringToFront);
+
             const handle = panel.querySelector('.panel-header');
             let isDragging = false, startX, startY;
 
@@ -1537,7 +1760,7 @@
                 isDragging = true;
                 startX = clientX - panel.offsetLeft;
                 startY = clientY - panel.offsetTop;
-                panel.style.zIndex = 1000;
+                bringToFront();
             }
 
             function onDrag(clientX, clientY) {
@@ -1842,7 +2065,7 @@
                 try {
                     const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('category', currentGameCategory);
                     
-                    // Twilight Zone check: als er geen deuren/puzzles zijn op deze coördinaten
+                    // Twilight Zone check
                     if (!puzzles || puzzles.length === 0) {
                         roomElement.style.backgroundImage = "url('twilight_room.png')";
                         document.getElementById('game-room-title').textContent = 'The Twilight Zone (' + currentGameCategory + ')';
@@ -1949,14 +2172,14 @@
             };
 
             if (entrySide === null) {
-    await updateRoomContent();
-} else {
-    roomElement.classList.add('fade-out'); // Verander roomContent naar roomElement
-    setTimeout(async () => { 
-        await updateRoomContent(); 
-        roomElement.classList.remove('fade-out'); 
-    }, 300);
-}
+                await updateRoomContent();
+            } else {
+                roomElement.classList.add('fade-out');
+                setTimeout(async () => { 
+                    await updateRoomContent(); 
+                    roomElement.classList.remove('fade-out'); 
+                }, 300);
+            }
         }
 
         function showDoorInfo(puzzle) {
@@ -1972,23 +2195,28 @@
         }
 
         function setHeroPosition(hero, side) {
+            const cfg = ZOOM_CONFIGS[currentZoomKey];
+            hero.style.width = cfg.hero.width + 'px';
+            hero.style.height = cfg.hero.height + 'px';
+
+            const pos = cfg.heroPos[side] || { left: 134, top: 25 };
+            hero.style.left = pos.left + 'px';
+            hero.style.top = pos.top + 'px';
+
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
-            switch(side) {
-                case 'north': hero.style.left = '201px'; hero.style.top = '38px'; break;
-                case 'east': hero.style.left = '353px'; hero.style.top = '126px'; break;
-                case 'south': hero.style.left = '201px'; hero.style.top = '210px'; break;
-                case 'west': hero.style.left = '45px'; hero.style.top = '126px'; break;
-            }
             hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
         }
 
         function setDoorPositionAndStyle(img, wallSide) {
-            switch(wallSide) {
-                case 'north': img.style.top = '14px'; img.style.left = '145px'; img.style.transform = 'rotate(0deg)'; break;
-                case 'east': img.style.top = '130px'; img.style.left = '332px'; img.style.transform = 'rotate(90deg)'; break;
-                case 'south': img.style.top = '246px'; img.style.left = '145px'; img.style.transform = 'rotate(180deg)'; break;
-                case 'west': img.style.top = '130px'; img.style.left = '-45px'; img.style.transform = 'rotate(-90deg)'; break;
-            }
+            const cfg = ZOOM_CONFIGS[currentZoomKey];
+            img.style.width = cfg.door.width + 'px';
+            img.style.height = cfg.door.height + 'px';
+            img.style.filter = `drop-shadow(0 0 ${cfg.door.shadow}px #ffd700)`;
+
+            const dPos = cfg.doorPos[wallSide] || { top: 0, left: 110, rot: 0 };
+            img.style.top = dPos.top + 'px';
+            img.style.left = dPos.left + 'px';
+            img.style.transform = 'rotate(' + dPos.rot + 'deg)';
         }
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
@@ -2111,6 +2339,9 @@
         }
 
         async function initGame() {
+            // Pas de initiële zoom toe
+            applyZoomConfig(currentZoomKey, false);
+
             renderBreadcrumbs();
             loadMaxRoomStat();
             
