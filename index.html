@@ -774,9 +774,9 @@
                 hero: { width: 32, height: 32 },
                 door: { width: 80, height: 40, shadow: 6 },
                 assets: {
-                    gebouwen: 90,   // Bank, Pawnshop, Police, Supermarket
-                    buit: 32,       // Food, Loot (chest)
-                    npc: 32         // Robber (boef)
+                    gebouwen: 90,   
+                    buit: 32,       
+                    npc: 32         
                 },
                 heroPos: {
                     north: { left: 134, top: 25 },
@@ -807,11 +807,7 @@
                 room: { width: 375, height: 250 },
                 hero: { width: 40, height: 40 },
                 door: { width: 100, height: 50, shadow: 8 },
-                assets: {
-                    gebouwen: 115,
-                    buit: 40,
-                    npc: 40
-                },
+                assets: { gebouwen: 115, buit: 40, npc: 40 },
                 heroPos: {
                     north: { left: 168, top: 32 },
                     east: { left: 294, top: 105 },
@@ -841,11 +837,7 @@
                 room: { width: 450, height: 300 },
                 hero: { width: 48, height: 48 },
                 door: { width: 140, height: 60, shadow: 9 },
-                assets: {
-                    gebouwen: 140,
-                    buit: 48,
-                    npc: 48
-                },
+                assets: { gebouwen: 140, buit: 48, npc: 48 },
                 heroPos: {
                     north: { left: 201, top: 38 },
                     east: { left: 353, top: 126 },
@@ -875,11 +867,7 @@
                 room: { width: 525, height: 350 },
                 hero: { width: 56, height: 56 },
                 door: { width: 160, height: 70, shadow: 11 },
-                assets: {
-                    gebouwen: 165,
-                    buit: 56,
-                    npc: 56
-                },
+                assets: { gebouwen: 165, buit: 56, npc: 56 },
                 heroPos: {
                     north: { left: 235, top: 44 },
                     east: { left: 411, top: 147 },
@@ -909,11 +897,7 @@
                 room: { width: 600, height: 400 },
                 hero: { width: 64, height: 64 },
                 door: { width: 160, height: 80, shadow: 12 },
-                assets: {
-                    gebouwen: 190,
-                    buit: 64,
-                    npc: 64
-                },
+                assets: { gebouwen: 190, buit: 64, npc: 64 },
                 heroPos: {
                     north: { left: 268, top: 50 },
                     east: { left: 470, top: 168 },
@@ -947,7 +931,6 @@
             localStorage.setItem('dungeon_zoom_config', zoomKey);
             const cfg = ZOOM_CONFIGS[zoomKey];
 
-            // 1. Game Container & Room afmetingen toepassen
             const gContainer = document.getElementById('game-container');
             gContainer.style.width = cfg.game.width + 'px';
             if (resetPositions) {
@@ -967,7 +950,6 @@
             heroElem.style.width = cfg.hero.width + 'px';
             heroElem.style.height = cfg.hero.height + 'px';
 
-            // 2. Alle panels positioneren
             for (const [panelId, pos] of Object.entries(cfg.panels)) {
                 const pElem = document.getElementById(panelId);
                 if (pElem) {
@@ -979,7 +961,6 @@
                 }
             }
 
-            // Indien we in een kamer zijn, herlaad de kamer om elementen direct te schalen
             if (window.currentRoomX !== undefined && window.currentRoomY !== undefined) {
                 loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
             }
@@ -1313,61 +1294,72 @@
             container.appendChild(toast);
         }
 
-        async function applyDailyAutomatedAssets() {
-            try {
-                const { data: maxRoomData } = await dbClient
-                    .from('puzzle_labyrinth')
-                    .select('room_id')
-                    .eq('category', currentGameCategory)
-                    .order('room_id', { ascending: false })
-                    .limit(1);
+        // --- Automatische verdeling voor ALLE categorieën tegelijk ---
+        async function applyAllCategoriesDailyAssets() {
+            const allCategories = [
+                'General', 'Logic', 'Geography', 'Entertainment', 'History', 
+                'Art and Literature', 'Science and Nature', 'Sports and Recreation', 'Kids', 'Nerds'
+            ];
 
-                let maxRoomId = maxRoomData?.[0]?.room_id || 0;
-                if (maxRoomId < 30) return;
+            for (const cat of allCategories) {
+                try {
+                    // Wis oude assets voor deze categorie
+                    localStorage.removeItem('dungeon_daily_assets_' + cat);
 
-                let factor = Math.floor(maxRoomId / 30);
-                let assetsPool = [];
-                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
-                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
-                for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_robber_rs.png');
-                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_police_rs.png');
-                for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_super_rs.png');
-                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
-                for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
+                    const { data: maxRoomData } = await dbClient
+                        .from('puzzle_labyrinth')
+                        .select('room_id')
+                        .eq('category', cat)
+                        .order('room_id', { ascending: false })
+                        .limit(1);
 
-                const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', currentGameCategory);
-                if (!allRooms || allRooms.length === 0) return;
+                    let maxRoomId = maxRoomData?.[0]?.room_id || 0;
+                    if (maxRoomId < 30) continue;
 
-                let uniqueRoomsMap = new Map();
-                allRooms.forEach(r => {
-                    let key = r.pos_x + '_' + r.pos_y;
-                    uniqueRoomsMap.set(key, { pos_x: r.pos_x, pos_y: r.pos_y });
-                });
-                let availableRooms = Array.from(uniqueRoomsMap.values());
+                    let factor = Math.floor(maxRoomId / 30);
+                    let assetsPool = [];
+                    for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_loot_rs.png');
+                    for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_food_rs.png');
+                    for (let i = 0; i < (3 * factor); i++) assetsPool.push('asset_robber_rs.png');
+                    for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_police_rs.png');
+                    for (let i = 0; i < (2 * factor); i++) assetsPool.push('asset_super_rs.png');
+                    for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_pawnshop_rs.png');
+                    for (let i = 0; i < (1 * factor); i++) assetsPool.push('asset_bank_rs.png');
 
-                let activeAssetsMap = {};
-                let occupiedRoomKeys = new Set();
+                    const { data: allRooms } = await dbClient.from('puzzle_labyrinth').select('pos_x, pos_y').eq('category', cat);
+                    if (!allRooms || allRooms.length === 0) continue;
 
-                for (let asset of assetsPool) {
-                    if (availableRooms.length === 0) break;
-                    let chosenRoom, roomKey, safetyCounter = 0;
-                    do {
-                        let randomIndex = Math.floor(Math.random() * availableRooms.length);
-                        chosenRoom = availableRooms[randomIndex];
-                        roomKey = chosenRoom.pos_x + '_' + chosenRoom.pos_y;
-                        safetyCounter++;
-                        if (safetyCounter > 200) break;
-                    } while (occupiedRoomKeys.has(roomKey));
+                    let uniqueRoomsMap = new Map();
+                    allRooms.forEach(r => {
+                        let key = r.pos_x + '_' + r.pos_y;
+                        uniqueRoomsMap.set(key, { pos_x: r.pos_x, pos_y: r.pos_y });
+                    });
+                    let availableRooms = Array.from(uniqueRoomsMap.values());
 
-                    if (!occupiedRoomKeys.has(roomKey)) {
-                        occupiedRoomKeys.add(roomKey);
-                        if (!activeAssetsMap[roomKey]) activeAssetsMap[roomKey] = [];
-                        activeAssetsMap[roomKey].push(asset);
+                    let activeAssetsMap = {};
+                    let occupiedRoomKeys = new Set();
+
+                    for (let asset of assetsPool) {
+                        if (availableRooms.length === 0) break;
+                        let chosenRoom, roomKey, safetyCounter = 0;
+                        do {
+                            let randomIndex = Math.floor(Math.random() * availableRooms.length);
+                            chosenRoom = availableRooms[randomIndex];
+                            roomKey = chosenRoom.pos_x + '_' + chosenRoom.pos_y;
+                            safetyCounter++;
+                            if (safetyCounter > 200) break;
+                        } while (occupiedRoomKeys.has(roomKey));
+
+                        if (!occupiedRoomKeys.has(roomKey)) {
+                            occupiedRoomKeys.add(roomKey);
+                            if (!activeAssetsMap[roomKey]) activeAssetsMap[roomKey] = [];
+                            activeAssetsMap[roomKey].push(asset);
+                        }
                     }
-                }
 
-                localStorage.setItem('dungeon_daily_assets_' + currentGameCategory, JSON.stringify(activeAssetsMap));
-            } catch (err) {}
+                    localStorage.setItem('dungeon_daily_assets_' + cat, JSON.stringify(activeAssetsMap));
+                } catch (err) {}
+            }
         }
 
         function updatePlayerUI() {
@@ -1466,16 +1458,15 @@
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
             document.getElementById('survival-content-body').style.display = "block";
             stopRobberPanic();
-            localStorage.removeItem('dungeon_daily_assets_' + currentGameCategory);
 
-            applyDailyAutomatedAssets().then(() => {
+            applyAllCategoriesDailyAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
                     loadRoomByCoords(window.currentRoomX, window.currentRoomY, null);
                 }
             });
 
             updatePlayerUI();
-            showToast("Simulated Reset: Assets dynamically distributed & warps refilled!");
+            showToast("Simulated Reset: Assets distributed across ALL categories & warps refilled!");
         }
 
         function confirmToggleSurvival() {
@@ -2178,9 +2169,8 @@
                             placedAsset.src = assetSrc;
                             placedAsset.setAttribute('data-type', assetSrc);
 
-                            // Groepsbepaling en schaling toepassen op basis van ZOOM_CONFIGS
                             const cfg = ZOOM_CONFIGS[currentZoomKey] || ZOOM_CONFIGS['A'];
-                            let assetWidth = cfg.assets.buit; // standaardwaarde
+                            let assetWidth = cfg.assets.buit; 
                             if (assetSrc.includes('bank') || assetSrc.includes('pawnshop') || assetSrc.includes('police') || assetSrc.includes('super')) {
                                 assetWidth = cfg.assets.gebouwen;
                             } else if (assetSrc.includes('robber')) {
