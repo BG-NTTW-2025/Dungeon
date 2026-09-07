@@ -118,8 +118,8 @@
         #gamemenu-panel { top: 200px; left: 820px; width: 200px; }
         #test-panel { top: 20px; left: 1040px; width: 180px; background: #351c1c; border-color: #c0392b; }
         
-        #marketplace-sell-panel { top: 20px; left: 610px; width: 200px; background: #1a252f; border-color: #16a085; }
-        #marketplace-buy-panel { top: 320px; left: 610px; width: 200px; background: #2c3e50; border-color: #2980b9; }
+        #marketplace-sell-panel { top: 20px; left: 610px; width: 210px; background: #1a252f; border-color: #16a085; }
+        #marketplace-buy-panel { top: 320px; left: 610px; width: 210px; background: #2c3e50; border-color: #2980b9; }
         #lift-panel { top: 350px; left: 400px; width: 200px; background: #4a235a; border-color: #8e44ad; }
 
         .door-asset { 
@@ -158,7 +158,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
+            z-index: 4000;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease-in-out;
@@ -765,7 +765,7 @@
         // Globale variabele om de actieve opgeloste puzzel te onthouden voor de rapportage popup
         window.activeSolvedPuzzle = null;
 
-        // --- Zoom / Schaal Configuratie Data ---
+        // --- Zoom / Schaal Configuratie Data met Asset Groepen ---
         const ZOOM_CONFIGS = {
             A: { // 100%
                 game: { top: 20, left: 50, width: 340 },
@@ -773,6 +773,11 @@
                 room: { width: 300, height: 200 },
                 hero: { width: 32, height: 32 },
                 door: { width: 80, height: 40, shadow: 6 },
+                assets: {
+                    gebouwen: 90,   // Bank, Pawnshop, Police, Supermarket
+                    buit: 32,       // Food, Loot (chest)
+                    npc: 32         // Robber (boef)
+                },
                 heroPos: {
                     north: { left: 134, top: 25 },
                     east: { left: 235, top: 84 },
@@ -802,6 +807,11 @@
                 room: { width: 375, height: 250 },
                 hero: { width: 40, height: 40 },
                 door: { width: 100, height: 50, shadow: 8 },
+                assets: {
+                    gebouwen: 115,
+                    buit: 40,
+                    npc: 40
+                },
                 heroPos: {
                     north: { left: 168, top: 32 },
                     east: { left: 294, top: 105 },
@@ -811,7 +821,7 @@
                 doorPos: {
                     north: { top: 0, left: 138, rot: 0 },
                     east: { top: 100, left: 302, rot: 90 },
-                    south: { top: 203, left: 138, rot: 180 },
+                    south: { top: 201, left: 138, rot: 180 },
                     west: { top: 100, left: -28, rot: -90 }
                 },
                 panels: {
@@ -831,6 +841,11 @@
                 room: { width: 450, height: 300 },
                 hero: { width: 48, height: 48 },
                 door: { width: 140, height: 60, shadow: 9 },
+                assets: {
+                    gebouwen: 140,
+                    buit: 48,
+                    npc: 48
+                },
                 heroPos: {
                     north: { left: 201, top: 38 },
                     east: { left: 353, top: 126 },
@@ -840,7 +855,7 @@
                 doorPos: {
                     north: { top: 0, left: 156, rot: 0 },
                     east: { top: 120, left: 352, rot: 90 },
-                    south: { top: 246, left: 156, rot: 180 },
+                    south: { top: 242, left: 156, rot: 180 },
                     west: { top: 120, left: -40, rot: -90 }
                 },
                 panels: {
@@ -860,6 +875,11 @@
                 room: { width: 525, height: 350 },
                 hero: { width: 56, height: 56 },
                 door: { width: 160, height: 70, shadow: 11 },
+                assets: {
+                    gebouwen: 165,
+                    buit: 56,
+                    npc: 56
+                },
                 heroPos: {
                     north: { left: 235, top: 44 },
                     east: { left: 411, top: 147 },
@@ -867,9 +887,9 @@
                     west: { left: 53, top: 147 }
                 },
                 doorPos: {
-                    north: { top: 0, left: 181, rot: 0 },
+                    north: { top: 0, left: 183, rot: 0 },
                     east: { top: 140, left: 410, rot: 90 },
-                    south: { top: 289, left: 184, rot: 180 },
+                    south: { top: 282, left: 183, rot: 180 },
                     west: { top: 140, left: -49, rot: -90 }
                 },
                 panels: {
@@ -889,6 +909,11 @@
                 room: { width: 600, height: 400 },
                 hero: { width: 64, height: 64 },
                 door: { width: 160, height: 80, shadow: 12 },
+                assets: {
+                    gebouwen: 190,
+                    buit: 64,
+                    npc: 64
+                },
                 heroPos: {
                     north: { left: 268, top: 50 },
                     east: { left: 470, top: 168 },
@@ -896,10 +921,10 @@
                     west: { left: 60, top: 168 }
                 },
                 doorPos: {
-                    north: { top: 0, left: 204, rot: 0 },
-                    east: { top: 160, left: 466, rot: 90 },
-                    south: { top: 332, left: 212, rot: 180 },
-                    west: { top: 160, left: -59, rot: -90 }
+                    north: { top: 0, left: 222, rot: 0 },
+                    east: { top: 160, left: 478, rot: 90 },
+                    south: { top: 321, left: 222, rot: 180 },
+                    west: { top: 160, left: -44, rot: -90 }
                 },
                 panels: {
                     'inventory-panel': { top: 20, left: 745 },
@@ -967,7 +992,6 @@
 
         function resetPanelLayout() {
             if (confirm('Do you want to reset all panel layouts and positions to the default of the current zoom?')) {
-                // Verwijder opgeslagen posities en ingeklapte states
                 document.querySelectorAll('.draggable-panel').forEach(panel => {
                     const pId = panel.getAttribute('data-id');
                     localStorage.removeItem('panel_pos_' + pId);
@@ -1269,7 +1293,6 @@
         function showToast(message) {
             const container = document.getElementById('toast-container');
             
-            // Beperk tot maximaal 2 bestaande zodat de nieuwe de 3e wordt (oudste verdwijnt)
             while (container.children.length >= 3) {
                 container.firstElementChild.remove();
             }
@@ -2155,6 +2178,18 @@
                             placedAsset.src = assetSrc;
                             placedAsset.setAttribute('data-type', assetSrc);
 
+                            // Groepsbepaling en schaling toepassen op basis van ZOOM_CONFIGS
+                            const cfg = ZOOM_CONFIGS[currentZoomKey] || ZOOM_CONFIGS['A'];
+                            let assetWidth = cfg.assets.buit; // standaardwaarde
+                            if (assetSrc.includes('bank') || assetSrc.includes('pawnshop') || assetSrc.includes('police') || assetSrc.includes('super')) {
+                                assetWidth = cfg.assets.gebouwen;
+                            } else if (assetSrc.includes('robber')) {
+                                assetWidth = cfg.assets.npc;
+                            } else if (assetSrc.includes('food') || assetSrc.includes('loot')) {
+                                assetWidth = cfg.assets.buit;
+                            }
+                            placedAsset.style.width = assetWidth + 'px';
+
                             placedAsset.addEventListener('click', (ev) => {
                                 handleAssetClick(assetSrc, placedAsset, posX, posY, entrySide);
                                 ev.stopPropagation();
@@ -2195,16 +2230,18 @@
         }
 
         function setHeroPosition(hero, side) {
-            const cfg = ZOOM_CONFIGS[currentZoomKey];
+            const cfg = ZOOM_CONFIGS[currentZoomKey] || ZOOM_CONFIGS['A'];
             hero.style.width = cfg.hero.width + 'px';
             hero.style.height = cfg.hero.height + 'px';
 
-            const pos = cfg.heroPos[side] || { left: 134, top: 25 };
+            const safeSide = cfg.heroPos[side] ? side : 'south';
+            const pos = cfg.heroPos[safeSide];
+            
             hero.style.left = pos.left + 'px';
             hero.style.top = pos.top + 'px';
 
             const rotations = { 'north': '180deg', 'east': '-90deg', 'south': '0deg', 'west': '90deg' };
-            hero.style.transform = 'rotate(' + (rotations[side] || '0deg') + ')';
+            hero.style.transform = 'rotate(' + (rotations[safeSide] || '0deg') + ')';
         }
 
         function setDoorPositionAndStyle(img, wallSide) {
@@ -2339,7 +2376,6 @@
         }
 
         async function initGame() {
-            // Pas de initiële zoom toe
             applyZoomConfig(currentZoomKey, false);
 
             renderBreadcrumbs();
