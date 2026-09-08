@@ -1480,10 +1480,7 @@
             playerState.timeLeft = 600; 
             playerState.energy = 100;
             playerState.warpsLeft = 5;
-            playerState.survivalMode = true;
-            document.getElementById('survival-toggle-btn').textContent = "ON";
-            document.getElementById('survival-toggle-btn').style.background = "#27ae60";
-            document.getElementById('survival-content-body').style.display = "block";
+            // Behoud de huidige survivalMode status i.p.v. deze geforceerd op true te zetten
             stopRobberPanic();
             closeAssetPopup(); // Sluit de Out of Time popup zodat je direct weer verder kunt!
 
@@ -1512,6 +1509,8 @@
 
         window.applySurvivalToggle = function(enable) {
             playerState.survivalMode = enable;
+            savePlayerStateToLocal(); // Sla de gekozen stand direct op in localStorage!
+            
             const btn = document.getElementById('survival-toggle-btn');
             const bodyContent = document.getElementById('survival-content-body');
             const sellPanel = document.getElementById('marketplace-sell-panel');
