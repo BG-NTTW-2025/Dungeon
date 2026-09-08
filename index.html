@@ -2064,6 +2064,18 @@
         }
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
+            // Check of de speeltijd in survival mode op is verstreken
+            if (playerState.survivalMode && playerState.timeLeft <= 0) {
+                openAssetPopup(
+                    '<img src="out_of_time.png" alt="Out of Time" onerror="this.style.display=\'none\'">' +
+                    '<p>Unfortunately, your playtime in the Puzzle Dungeon has expired. Tonight at 3 AM, the dungeon will be reset, and you can continue your journey of discovery through the infinite labyrinth fully rested.</p>' +
+                    '<div class="retro-popup-buttons">' +
+                        '<button onclick="window.close();">Go Rest</button>' +
+                    '</div>'
+                );
+                return; // Blokkeer verdere overgang
+            }
+
             window.currentRoomX = posX;
             window.currentRoomY = posY;
             window.currentEntrySide = entrySide;
