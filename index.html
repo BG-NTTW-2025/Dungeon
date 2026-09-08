@@ -132,7 +132,7 @@
         }
 
         .door-asset.selected {
-            filter: drop-shadow(0 0 6px #ffd700);
+            filter: drop-shadow(0 0 var(--door-shadow, 6px) #ffd700);
         }
 
         .room-placed-asset {
@@ -2279,12 +2279,14 @@
             const cfg = ZOOM_CONFIGS[currentZoomKey];
             img.style.width = cfg.door.width + 'px';
             img.style.height = cfg.door.height + 'px';
-            img.style.filter = `drop-shadow(0 0 ${cfg.door.shadow}px #ffd700)`;
 
             const dPos = cfg.doorPos[wallSide] || { top: 0, left: 110, rot: 0 };
             img.style.top = dPos.top + 'px';
             img.style.left = dPos.left + 'px';
             img.style.transform = 'rotate(' + dPos.rot + 'deg)';
+
+            // Zet een data-attribuut zodat de CSS de juiste zoom-schaduw kan gebruiken
+            img.style.setProperty('--door-shadow', cfg.door.shadow + 'px');
         }
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
