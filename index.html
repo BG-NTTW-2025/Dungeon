@@ -116,7 +116,7 @@
         #quest-panel { top: 320px; left: 50px; width: 340px; max-height: 220px; overflow-y: auto; }
         #breadcrumb-panel { top: 20px; left: 820px; width: 200px; max-height: 160px; overflow-y: auto; }
         #gamemenu-panel { top: 200px; left: 820px; width: 200px; }
-        #test-panel { top: 20px; left: 1040px; width: 180px; background: #351c1c; border-color: #c0392b; }
+        #test-panel { top: 20px; left: 1040px; width: 180px; background: #351c1c; border-color: #c0392b; display: none; z-index: 5000 !important; }
         
         #marketplace-sell-panel { top: 20px; left: 610px; width: 210px; background: #1a252f; border-color: #16a085; }
         #marketplace-buy-panel { top: 320px; left: 610px; width: 210px; background: #2c3e50; border-color: #2980b9; }
@@ -688,7 +688,7 @@
                 <span>Lift Panel</span>
                 <input type="checkbox" id="chk-lift-panel" checked onchange="togglePanel('lift-panel', this.checked)">
             </div>
-            <div class="toggle-row">
+            <div class="toggle-row" id="toggle-row-test-panel" style="display: none;">
                 <span>Test Panel</span>
                 <input type="checkbox" id="chk-test-panel" checked onchange="togglePanel('test-panel', this.checked)">
             </div>
@@ -977,13 +977,40 @@
                     const pId = panel.getAttribute('data-id');
                     localStorage.removeItem('panel_pos_' + pId);
                     localStorage.removeItem('panel_state_' + pId);
-                    panel.style.display = 'block';
-                    const chk = document.getElementById('chk-' + pId);
-                    if (chk) chk.checked = true;
+                    if (pId !== 'test-panel') {
+                        panel.style.display = 'block';
+                        const chk = document.getElementById('chk-' + pId);
+                        if (chk) chk.checked = true;
+                    }
                 });
                 applyZoomConfig(currentZoomKey, true);
                 showToast("Layout successfully reset to default positions!");
             }
+        }
+
+        // --- Designer Check & Test Panel Onthulling ---
+        async function checkDesignerAndShowTestPanel() {
+            try {
+                const { data: authData } = await dbClient.auth.getUser();
+                if (authData?.user) {
+                    const { data: designerData } = await dbClient
+                        .from('designers')
+                        .select('id')
+                        .eq('id', authData.user.id)
+                        .single();
+
+                    if (designerData) {
+                        // Toon de test-panel checkbox en zet panel aan indien opgeslagen
+                        document.getElementById('toggle-row-test-panel').style.display = 'flex';
+                        const testPanel = document.getElementById('test-panel');
+                        const savedState = localStorage.getItem('panel_state_test-panel');
+                        const isVisible = savedState === null ? true : savedState === 'true';
+                        
+                        testPanel.style.display = isVisible ? 'block' : 'none';
+                        document.getElementById('chk-test-panel').checked = isVisible;
+                    }
+                }
+            } catch (e) {}
         }
 
         // --- Marketplace Helper & Interactie Logica ---
@@ -1458,6 +1485,7 @@
             document.getElementById('survival-toggle-btn').style.background = "#27ae60";
             document.getElementById('survival-content-body').style.display = "block";
             stopRobberPanic();
+            closeAssetPopup(); // Sluit de Out of Time popup zodat je direct weer verder kunt!
 
             applyAllCategoriesDailyAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
@@ -1755,8 +1783,10 @@
             const chk = document.getElementById('chk-' + panelId);
             if (savedState !== null) {
                 const isVisible = savedState === 'true';
-                panel.style.display = isVisible ? 'block' : 'none';
-                if (chk) chk.checked = isVisible;
+                if (panelId !== 'test-panel') {
+                    panel.style.display = isVisible ? 'block' : 'none';
+                    if (chk) chk.checked = isVisible;
+                }
             }
 
             function bringToFront() {
@@ -2382,6 +2412,7 @@
 
             renderBreadcrumbs();
             loadMaxRoomStat();
+            await checkDesignerAndShowTestPanel();
             
             let targetRoomId = localStorage.getItem('target_room');
             
