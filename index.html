@@ -1000,7 +1000,6 @@
                         .single();
 
                     if (designerData) {
-                        // Toon de test-panel checkbox en zet panel aan indien opgeslagen
                         document.getElementById('toggle-row-test-panel').style.display = 'flex';
                         const testPanel = document.getElementById('test-panel');
                         const savedState = localStorage.getItem('panel_state_test-panel');
@@ -1330,7 +1329,6 @@
 
             for (const cat of allCategories) {
                 try {
-                    // Wis oude assets voor deze categorie
                     localStorage.removeItem('dungeon_daily_assets_' + cat);
 
                     const { data: maxRoomData } = await dbClient
@@ -1480,9 +1478,8 @@
             playerState.timeLeft = 600; 
             playerState.energy = 100;
             playerState.warpsLeft = 5;
-            // Behoud de huidige survivalMode status i.p.v. deze geforceerd op true te zetten
             stopRobberPanic();
-            closeAssetPopup(); // Sluit de Out of Time popup zodat je direct weer verder kunt!
+            closeAssetPopup();
 
             applyAllCategoriesDailyAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
@@ -1509,7 +1506,7 @@
 
         window.applySurvivalToggle = function(enable) {
             playerState.survivalMode = enable;
-            savePlayerStateToLocal(); // Sla de gekozen stand direct op in localStorage!
+            savePlayerStateToLocal();
             
             const btn = document.getElementById('survival-toggle-btn');
             const bodyContent = document.getElementById('survival-content-body');
@@ -2093,7 +2090,6 @@
         }
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
-            // Check of de speeltijd in survival mode op is verstreken
             if (playerState.survivalMode && playerState.timeLeft <= 0) {
                 openAssetPopup(
                     '<img src="out_of_time.png" alt="Out of Time" onerror="this.style.display=\'none\'">' +
@@ -2102,7 +2098,7 @@
                         '<button onclick="window.close();">Go Rest</button>' +
                     '</div>'
                 );
-                return; // Blokkeer verdere overgang
+                return;
             }
 
             window.currentRoomX = posX;
@@ -2120,7 +2116,6 @@
                 try {
                     const { data: puzzles } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('category', currentGameCategory);
                     
-                    // Twilight Zone check
                     if (!puzzles || puzzles.length === 0) {
                         roomElement.style.backgroundImage = "url('twilight_room.png')";
                         document.getElementById('game-room-title').textContent = 'The Twilight Zone (' + currentGameCategory + ')';
@@ -2182,7 +2177,6 @@
                                 document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
                                 loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                             } else {
-                                // Direct starten en selecteren van de puzzel (geen ontwijking mogelijk)
                                 document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
                                 selectedDoorKey = doorKey;
                                 img.classList.add('selected');
@@ -2197,6 +2191,8 @@
                                 });
                             }
                         });
+                        roomContent.appendChild(img);
+                    });
 
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
                     let roomKey = posX + '_' + posY;
@@ -2248,13 +2244,7 @@
         function showDoorInfo(puzzle) {
             const questContent = document.getElementById('quest-body');
             questContent.innerHTML = '<p><strong>Door found (' + puzzle.wall_side + ')</strong></p>' +
-                '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Click door again to start.</p>' +
-                '<button onclick="confirmStartPuzzle()">Start Puzzle</button>';
-        }
-
-        function confirmStartPuzzle() {
-            const selectedImg = document.querySelector('.door-asset.selected');
-            if (selectedImg) selectedImg.click();
+                '<p style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">Puzzle started. Answer below.</p>';
         }
 
         function setHeroPosition(hero, side) {
@@ -2282,7 +2272,6 @@
             img.style.left = dPos.left + 'px';
             img.style.transform = 'rotate(' + dPos.rot + 'deg)';
 
-            // Zet een data-attribuut zodat de CSS de juiste zoom-schaduw kan gebruiken
             img.style.setProperty('--door-shadow', cfg.door.shadow + 'px');
         }
 
@@ -2314,7 +2303,6 @@
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
-                // Focus direct op het antwoordveld
                 setTimeout(() => {
                     const inp = document.getElementById('p-ans');
                     if (inp) inp.focus();
@@ -2343,9 +2331,9 @@
 
                     if (userAnswer.toLowerCase() === a.toLowerCase()) {
                         if (timerInterval) clearInterval(timerInterval);
-                        playerState.score += maxReward; // Direct punten erbij
+                        playerState.score += maxReward;
                         window.activeSolvedPuzzle = puzzle;
-                        updatePlayerUI(); // Direct verwerken in UI
+                        updatePlayerUI();
 
                         questContent.innerHTML = `<span style="color: #4cd137;">Correct! Earned ${maxReward} points. Door is open.</span>
                             <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
@@ -2360,8 +2348,8 @@
                         };
                     } else {
                         failedAttempts++;
-                        playerState.score = Math.max(0, playerState.score - wrongPenalty); // Direct strafpunten eraf
-                        updatePlayerUI(); // Direct verwerken in UI
+                        playerState.score = Math.max(0, playerState.score - wrongPenalty);
+                        updatePlayerUI();
 
                         let hintBoxText = "";
                         if (failedAttempts === 1 && hint1) hintBoxText = `Hint 1: ${hint1}`;
@@ -2373,9 +2361,9 @@
                             window.activeSolvedPuzzle = puzzle;
 
                             if (revealOpt === 'free_answer') {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #e74c3c;">Continue</button>`;
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #e74c3c; width: 100%;">Continue</button>`;
                                 document.getElementById('btn-after-fail').onclick = () => {
-                                    callback(true); // Deur gaat open na 3 fouten
+                                    callback(true);
                                 };
                             } else if (revealOpt === 'paid_answer') {
                                 questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer" style="margin-top:8px;">Unlock (${creditsCost} Credits)</button>`;
@@ -2383,7 +2371,7 @@
                                     if (playerState.credit >= creditsCost) {
                                         playerState.credit -= creditsCost;
                                         updatePlayerUI();
-                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #27ae60;">Continue</button>`;
+                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #27ae60; width: 100%;">Continue</button>`;
                                         document.getElementById('btn-after-fail').onclick = () => {
                                             callback(true);
                                         };
@@ -2392,9 +2380,9 @@
                                     }
                                 };
                             } else {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button id="btn-after-fail" style="margin-top:8px; background: #c0392b;">Close Door</button>`;
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button id="btn-after-fail" style="margin-top:8px; background: #c0392b; width: 100%;">Close Door</button>`;
                                 document.getElementById('btn-after-fail').onclick = () => {
-                                    callback(false); // Deur blijft dicht
+                                    callback(false);
                                 };
                             }
                         } else {
@@ -2415,26 +2403,11 @@
                         playerState.score = Math.max(0, playerState.score - chickenPenalty);
                         updatePlayerUI();
                         
-                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button id="btn-chicken-cont" style="margin-top:8px; background: #27ae60;">Continue Journey</button>`;
+                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button id="btn-chicken-cont" style="margin-top:8px; background: #27ae60; width: 100%;">Continue Journey</button>`;
                         
                         document.getElementById('btn-chicken-cont').onclick = () => {
-                            callback(true); // Deur gaat direct open en puzzel is voltooid
+                            callback(true);
                         };
-                    };
-                }
-            }
-
-            renderPuzzleContent();
-        }
-
-                const chickenBtn = document.getElementById('btn-chicken');
-                if (chickenBtn) {
-                    chickenBtn.onclick = () => {
-                        if (timerInterval) clearInterval(timerInterval);
-                        playerState.score = Math.max(0, playerState.score - chickenPenalty);
-                        updatePlayerUI();
-                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
-                        callback(true);
                     };
                 }
             }
