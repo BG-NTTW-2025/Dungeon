@@ -2178,28 +2178,25 @@
                             const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
                             const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
 
-                            document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
-
                             if (liveSolved) {
+                                document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
                                 loadRoomByCoords(targetX, targetY, oppositeSideMap[wallSide]);
                             } else {
-                                if (selectedDoorKey !== doorKey) {
-                                    selectedDoorKey = doorKey;
-                                    img.classList.add('selected');
-                                    showDoorInfo(freshData);
-                                } else {
-                                    triggerDoorPuzzle(freshData, doorKey, (success) => {
-                                        if (success) {
-                                            setLocalDoorStatus(posX, posY, wallSide);
-                                            img.src = 'DoorWay.png';
-                                            selectedDoorKey = null;
-                                        }
-                                    });
-                                }
+                                // Direct starten en selecteren van de puzzel (geen ontwijking mogelijk)
+                                document.querySelectorAll('.door-asset').forEach(d => d.classList.remove('selected'));
+                                selectedDoorKey = doorKey;
+                                img.classList.add('selected');
+                                showDoorInfo(freshData);
+
+                                triggerDoorPuzzle(freshData, doorKey, (success) => {
+                                    if (success) {
+                                        setLocalDoorStatus(posX, posY, wallSide);
+                                        img.src = 'DoorWay.png';
+                                        selectedDoorKey = null;
+                                    }
+                                });
                             }
                         });
-                        roomContent.appendChild(img);
-                    });
 
                     let dailyAssetsMap = JSON.parse(localStorage.getItem('dungeon_daily_assets_' + currentGameCategory)) || {};
                     let roomKey = posX + '_' + posY;
@@ -2317,6 +2314,12 @@
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
+                // Focus direct op het antwoordveld
+                setTimeout(() => {
+                    const inp = document.getElementById('p-ans');
+                    if (inp) inp.focus();
+                }, 50);
+
                 if (googleTimerSec > 0) {
                     timerInterval = setInterval(() => {
                         remainingTime--;
@@ -2340,21 +2343,25 @@
 
                     if (userAnswer.toLowerCase() === a.toLowerCase()) {
                         if (timerInterval) clearInterval(timerInterval);
-                        playerState.score += maxReward;
+                        playerState.score += maxReward; // Direct punten erbij
                         window.activeSolvedPuzzle = puzzle;
-                        updatePlayerUI();
+                        updatePlayerUI(); // Direct verwerken in UI
 
                         questContent.innerHTML = `<span style="color: #4cd137;">Correct! Earned ${maxReward} points. Door is open.</span>
                             <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
                                 <button onclick="votePuzzle('${puzzle.id}', 'like')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>
                                 <button onclick="votePuzzle('${puzzle.id}', 'dislike')" style="background: transparent; border: none; cursor: pointer;" title="Dislike"><img src="disLike_red_symb.png" style="width: 28px; height: 28px;" alt="Dislike"></button>
                                 <button onclick="reportActivePuzzle()" style="background: transparent; border: none; cursor: pointer;" title="Report Puzzle"><img src="report_symb.png" style="width: 28px; height: 28px;" alt="Report"></button>
-                            </div>`;
-                        callback(true);
+                            </div>
+                            <div style="margin-top: 10px;"><button id="btn-finish-puzzle" style="background: #27ae60; width: 100%;">Continue Journey</button></div>`;
+                        
+                        document.getElementById('btn-finish-puzzle').onclick = () => {
+                            callback(true);
+                        };
                     } else {
                         failedAttempts++;
-                        playerState.score = Math.max(0, playerState.score - wrongPenalty);
-                        updatePlayerUI();
+                        playerState.score = Math.max(0, playerState.score - wrongPenalty); // Direct strafpunten eraf
+                        updatePlayerUI(); // Direct verwerken in UI
 
                         let hintBoxText = "";
                         if (failedAttempts === 1 && hint1) hintBoxText = `Hint 1: ${hint1}`;
@@ -2366,9 +2373,9 @@
                             window.activeSolvedPuzzle = puzzle;
 
                             if (revealOpt === 'free_answer') {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
-                                document.getElementById('btn-after-fail-continue').onclick = () => {
-                                    callback(true);
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #e74c3c;">Continue</button>`;
+                                document.getElementById('btn-after-fail').onclick = () => {
+                                    callback(true); // Deur gaat open na 3 fouten
                                 };
                             } else if (revealOpt === 'paid_answer') {
                                 questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer" style="margin-top:8px;">Unlock (${creditsCost} Credits)</button>`;
@@ -2376,8 +2383,8 @@
                                     if (playerState.credit >= creditsCost) {
                                         playerState.credit -= creditsCost;
                                         updatePlayerUI();
-                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
-                                        document.getElementById('btn-after-fail-continue').onclick = () => {
+                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button id="btn-after-fail" style="margin-top:8px; background: #27ae60;">Continue</button>`;
+                                        document.getElementById('btn-after-fail').onclick = () => {
                                             callback(true);
                                         };
                                     } else {
@@ -2385,9 +2392,9 @@
                                     }
                                 };
                             } else {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
-                                document.getElementById('btn-after-fail-continue').onclick = () => {
-                                    callback(true);
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button id="btn-after-fail" style="margin-top:8px; background: #c0392b;">Close Door</button>`;
+                                document.getElementById('btn-after-fail').onclick = () => {
+                                    callback(false); // Deur blijft dicht
                                 };
                             }
                         } else {
@@ -2400,6 +2407,25 @@
                         }
                     }
                 };
+
+                const chickenBtn = document.getElementById('btn-chicken');
+                if (chickenBtn) {
+                    chickenBtn.onclick = () => {
+                        if (timerInterval) clearInterval(timerInterval);
+                        playerState.score = Math.max(0, playerState.score - chickenPenalty);
+                        updatePlayerUI();
+                        
+                        questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button id="btn-chicken-cont" style="margin-top:8px; background: #27ae60;">Continue Journey</button>`;
+                        
+                        document.getElementById('btn-chicken-cont').onclick = () => {
+                            callback(true); // Deur gaat direct open en puzzel is voltooid
+                        };
+                    };
+                }
+            }
+
+            renderPuzzleContent();
+        }
 
                 const chickenBtn = document.getElementById('btn-chicken');
                 if (chickenBtn) {
