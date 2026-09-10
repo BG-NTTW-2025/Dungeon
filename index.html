@@ -764,6 +764,7 @@
 
         // Globale variabele om de actieve opgeloste puzzel te onthouden voor de rapportage popup
         window.activeSolvedPuzzle = null;
+        let isPuzzleActive = false; // Blokkeert speelveld tijdens actieve puzzel
 
         // --- Zoom / Schaal Configuratie Data met Asset Groepen ---
         const ZOOM_CONFIGS = {
@@ -1000,7 +1001,6 @@
                         .single();
 
                     if (designerData) {
-                        // Toon de test-panel checkbox en zet panel aan indien opgeslagen
                         document.getElementById('toggle-row-test-panel').style.display = 'flex';
                         const testPanel = document.getElementById('test-panel');
                         const savedState = localStorage.getItem('panel_state_test-panel');
@@ -1425,6 +1425,12 @@
             if (lootWeightElem) lootWeightElem.textContent = lootWeight.toFixed(1);
             if (foodKgElem) foodKgElem.textContent = playerState.foodKg.toFixed(1);
 
+            // Direct score update in header
+            const gameScoreTitle = document.getElementById('game-score-title');
+            if (gameScoreTitle) {
+                gameScoreTitle.innerHTML = 'Score: <strong style="color: #4cd137;">' + playerState.score + '</strong>';
+            }
+
             savePlayerStateToLocal();
         }
 
@@ -1480,9 +1486,8 @@
             playerState.timeLeft = 600; 
             playerState.energy = 100;
             playerState.warpsLeft = 5;
-            // Behoud de huidige survivalMode status i.p.v. deze geforceerd op true te zetten
             stopRobberPanic();
-            closeAssetPopup(); // Sluit de Out of Time popup zodat je direct weer verder kunt!
+            closeAssetPopup();
 
             applyAllCategoriesDailyAssets().then(() => {
                 if (window.currentRoomX !== undefined) {
@@ -1509,7 +1514,7 @@
 
         window.applySurvivalToggle = function(enable) {
             playerState.survivalMode = enable;
-            savePlayerStateToLocal(); // Sla de gekozen stand direct op in localStorage!
+            savePlayerStateToLocal();
             
             const btn = document.getElementById('survival-toggle-btn');
             const bodyContent = document.getElementById('survival-content-body');
@@ -1621,6 +1626,11 @@
         }
 
         function handleAssetClick(assetType, assetElement, posX, posY, entrySide) {
+            if (isPuzzleActive) {
+                showToast("You are busy with an active puzzle!");
+                return;
+            }
+
             if (!playerState.survivalMode) {
                 showToast("Survival Mode is off. Asset interactions are disabled.");
                 return;
@@ -1920,6 +1930,10 @@
         }
 
         function jumpToBreadcrumb(posX, posY) {
+            if (isPuzzleActive) {
+                showToast("You are busy with an active puzzle!");
+                return;
+            }
             loadRoomByCoords(posX, posY, 'south');
         }
 
@@ -1932,6 +1946,10 @@
         }
 
         async function executeWarp() {
+            if (isPuzzleActive) {
+                showToast("You are busy with an active puzzle!");
+                return;
+            }
             if (playerState.warpsLeft <= 0) {
                 showToast("You have no warps left!");
                 return;
@@ -1956,6 +1974,11 @@
 
         // --- Lift Jump met Categoriegeheugen ---
         async function executeLiftJump() {
+            if (isPuzzleActive) {
+                showToast("You are busy with an active puzzle!");
+                return;
+            }
+
             const selectedCat = document.getElementById('lift-category-select').value;
             const roomInput = document.getElementById('lift-room-input').value.trim();
             const targetRoomId = roomInput !== '' ? parseInt(roomInput, 10) : null;
@@ -2093,6 +2116,11 @@
         }
 
         async function loadRoomByCoords(posX, posY, entrySide = 'south') {
+            if (isPuzzleActive) {
+                showToast("You are busy with an active puzzle!");
+                return;
+            }
+
             // Check of de speeltijd in survival mode op is verstreken
             if (playerState.survivalMode && playerState.timeLeft <= 0) {
                 openAssetPopup(
@@ -2175,6 +2203,11 @@
                         setDoorPositionAndStyle(img, wallSide);
 
                         img.addEventListener('click', async () => {
+                            if (isPuzzleActive) {
+                                showToast("Finish your active puzzle first!");
+                                return;
+                            }
+
                             const { data: freshData } = await dbClient.from('puzzle_labyrinth').select('*').eq('pos_x', posX).eq('pos_y', posY).eq('wall_side', wallSide).eq('category', currentGameCategory).single();
                             const liveSolved = !freshData?.question || freshData.question.trim() === "" || getLocalDoorStatus(posX, posY, wallSide);
 
@@ -2222,6 +2255,10 @@
                             placedAsset.style.width = assetWidth + 'px';
 
                             placedAsset.addEventListener('click', (ev) => {
+                                if (isPuzzleActive) {
+                                    showToast("Finish your active puzzle first!");
+                                    return;
+                                }
                                 handleAssetClick(assetSrc, placedAsset, posX, posY, entrySide);
                                 ev.stopPropagation();
                             });
@@ -2256,6 +2293,7 @@
         }
 
         function confirmStartPuzzle() {
+            if (isPuzzleActive) return;
             const selectedImg = document.querySelector('.door-asset.selected');
             if (selectedImg) selectedImg.click();
         }
@@ -2290,6 +2328,7 @@
         }
 
         function triggerDoorPuzzle(puzzle, doorKey, callback) {
+            isPuzzleActive = true; // Blokkeer muiskliks in game container
             const questContent = document.getElementById('quest-body');
             const q = puzzle.question || "Solve:";
             const a = puzzle.answer ? String(puzzle.answer).trim() : "open";
@@ -2317,6 +2356,11 @@
                     <div id="feedback-msg" style="margin-top: 6px;"></div>
                 `;
 
+                setTimeout(() => {
+                    const ansField = document.getElementById('p-ans');
+                    if (ansField) ansField.focus();
+                }, 50);
+
                 if (googleTimerSec > 0) {
                     timerInterval = setInterval(() => {
                         remainingTime--;
@@ -2326,7 +2370,7 @@
                         if (remainingTime <= 0) {
                             clearInterval(timerInterval);
                             playerState.score = Math.max(0, playerState.score - wrongPenalty);
-                            updatePlayerUI();
+                            updatePlayerUI(); // Direct verwerken
                             showToast("Anti-Google Timer expired! Penalty applied.");
                             
                             const timerBox = document.getElementById('google-timer-box');
@@ -2342,8 +2386,9 @@
                         if (timerInterval) clearInterval(timerInterval);
                         playerState.score += maxReward;
                         window.activeSolvedPuzzle = puzzle;
-                        updatePlayerUI();
+                        updatePlayerUI(); // Direct verwerken
 
+                        isPuzzleActive = false; // Vrijgeven
                         questContent.innerHTML = `<span style="color: #4cd137;">Correct! Earned ${maxReward} points. Door is open.</span>
                             <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
                                 <button onclick="votePuzzle('${puzzle.id}', 'like')" style="background: transparent; border: none; cursor: pointer;" title="Like"><img src="like_green_symb.png" style="width: 28px; height: 28px;" alt="Like"></button>
@@ -2354,7 +2399,7 @@
                     } else {
                         failedAttempts++;
                         playerState.score = Math.max(0, playerState.score - wrongPenalty);
-                        updatePlayerUI();
+                        updatePlayerUI(); // Direct verwerken
 
                         let hintBoxText = "";
                         if (failedAttempts === 1 && hint1) hintBoxText = `Hint 1: ${hint1}`;
@@ -2363,15 +2408,17 @@
 
                         if (failedAttempts >= 3) {
                             if (timerInterval) clearInterval(timerInterval);
+                            isPuzzleActive = false; // Vrijgeven bij einde puzzel
+
                             if (revealOpt === 'free_answer') {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
                                 callback(false);
                             } else if (revealOpt === 'paid_answer') {
                                 questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer">Unlock (${creditsCost} Credits)</button>`;
                                 document.getElementById('btn-unlock-answer').onclick = () => {
                                     if (playerState.credit >= creditsCost) {
                                         playerState.credit -= creditsCost;
-                                        updatePlayerUI();
+                                        updatePlayerUI(); // Direct verwerken
                                         questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
                                         callback(true);
                                     } else {
@@ -2379,7 +2426,7 @@
                                     }
                                 };
                             } else {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
                                 callback(false);
                             }
                         } else {
@@ -2398,7 +2445,8 @@
                     chickenBtn.onclick = () => {
                         if (timerInterval) clearInterval(timerInterval);
                         playerState.score = Math.max(0, playerState.score - chickenPenalty);
-                        updatePlayerUI();
+                        updatePlayerUI(); // Direct verwerken
+                        isPuzzleActive = false; // Vrijgeven
                         questContent.innerHTML = `<span style="color: #ffd700;">Chicken out! Answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
                         callback(true);
                     };
