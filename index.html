@@ -2363,24 +2363,32 @@
 
                         if (failedAttempts >= 3) {
                             if (timerInterval) clearInterval(timerInterval);
+                            window.activeSolvedPuzzle = puzzle;
+
                             if (revealOpt === 'free_answer') {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
-                                callback(false);
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The correct answer was: <strong>${a}</strong></span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
+                                document.getElementById('btn-after-fail-continue').onclick = () => {
+                                    callback(true);
+                                };
                             } else if (revealOpt === 'paid_answer') {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer">Unlock (${creditsCost} Credits)</button>`;
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. Unlock answer for ${creditsCost} Credits?</span><br><button id="btn-unlock-answer" style="margin-top:8px;">Unlock (${creditsCost} Credits)</button>`;
                                 document.getElementById('btn-unlock-answer').onclick = () => {
                                     if (playerState.credit >= creditsCost) {
                                         playerState.credit -= creditsCost;
                                         updatePlayerUI();
-                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button onclick="confirmStartPuzzle()">Continue</button>`;
-                                        callback(true);
+                                        questContent.innerHTML = `<span style="color: #4cd137;">Answer: <strong>${a}</strong></span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
+                                        document.getElementById('btn-after-fail-continue').onclick = () => {
+                                            callback(true);
+                                        };
                                     } else {
                                         showToast("Not enough credits in bank!");
                                     }
                                 };
                             } else {
-                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button onclick="confirmStartPuzzle()">Retry</button>`;
-                                callback(false);
+                                questContent.innerHTML = `<span style="color: #ff6b6b;">3 failed attempts. The answer remains a secret!</span><br><button id="btn-after-fail-continue" style="margin-top:8px;">Continue</button>`;
+                                document.getElementById('btn-after-fail-continue').onclick = () => {
+                                    callback(true);
+                                };
                             }
                         } else {
                             document.getElementById('feedback-msg').innerHTML = `<span style="color: #ff6b6b;">Wrong answer! (-${wrongPenalty} pts)</span>`;
